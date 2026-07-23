@@ -14,6 +14,7 @@ import LayerPanel from '@/components/hud/LayerPanel'
 import SearchBox from '@/components/hud/SearchBox'
 import DetailPanel from '@/components/hud/DetailPanel'
 import type { Telemetry } from '@/components/hud/DetailPanel'
+import PlanetInfoCard from '@/components/hud/PlanetInfoCard'
 import FallbackTable from '@/components/FallbackTable'
 
 const EARTH_R = 6371
@@ -183,6 +184,7 @@ export default function Home() {
       onContextRestored: () => setCtxLost(false),
       onFps: (v) => setFps(v),
       onPinSelected: (pin) => setSelectedPin(pin),
+      onSelectBody: (body) => setFocusBody(body),
       orbitProvider,
       footprintProvider,
     })
@@ -439,6 +441,12 @@ export default function Home() {
           onToggleFollow={() => setFollow((v) => !v)}
           onClose={() => selectSat(null)}
         />
+      )}
+
+      {!selSat && (
+        <div className="absolute top-4 right-4 z-20">
+          <PlanetInfoCard bodyId={focusBody} />
+        </div>
       )}
 
       {degraded && (

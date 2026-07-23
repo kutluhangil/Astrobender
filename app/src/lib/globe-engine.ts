@@ -49,6 +49,7 @@ export interface EngineCallbacks {
     simMs: number,
   ) => { x: number; y: number; z: number; ang: number } | null
   onPinSelected?: (pin: { lat: number; lon: number; text: string } | null) => void
+  onSelectBody?: (bodyId: CelestialBodyId) => void
 }
 
 interface GroupRuntime {
@@ -847,26 +848,35 @@ export class GlobeEngine {
     this.scene.add(mesh)
 
     // Atmosphere rim glow
+    // Atmosphere rim glow — smooth, soft atmospheric haze
     let atmo: THREE.Mesh | undefined
     if (def.atmosphereColor) {
       const [ar, ag, ab] = def.atmosphereColor
-      const atmoGeo = new THREE.SphereGeometry(def.radius * 1.12, 48, 48)
+      const atmoGeo = new THREE.SphereGeometry(def.radius * 1.025, 64, 64)
       const atmoMat = new THREE.ShaderMaterial({
-        uniforms: {},
+        uniforms: {
+          uSunDir: { value: new THREE.Vector3(1, 0, 0) },
+        },
         vertexShader: /* glsl */ `
-          varying vec3 vNormalW; varying vec3 vPosW;
+          varying vec3 vNormalW;
+          varying vec3 vPosW;
           void main() {
             vec4 wp = modelMatrix * vec4(position, 1.0);
-            vPosW = wp.xyz; vNormalW = normalize(mat3(modelMatrix) * normal);
+            vPosW = wp.xyz;
+            vNormalW = normalize(mat3(modelMatrix) * normal);
             gl_Position = projectionMatrix * viewMatrix * wp;
           }
         `,
         fragmentShader: /* glsl */ `
-          varying vec3 vNormalW; varying vec3 vPosW;
+          uniform vec3 uSunDir;
+          varying vec3 vNormalW;
+          varying vec3 vPosW;
           void main() {
             vec3 v = normalize(cameraPosition - vPosW);
-            float rim = pow(max(0.6 - dot(vNormalW, v), 0.0), 2.5);
-            gl_FragColor = vec4(${ar.toFixed(2)}, ${ag.toFixed(2)}, ${ab.toFixed(2)}, 1.0) * rim * ${def.atmosphereIntensity.toFixed(1)};
+            float rim = pow(1.0 - max(dot(vNormalW, v), 0.0), 3.5);
+            float sunLit = max(dot(vNormalW, uSunDir) * 0.5 + 0.5, 0.2);
+            float alpha = rim * 0.42 * sunLit;
+            gl_FragColor = vec4(${ar.toFixed(2)}, ${ag.toFixed(2)}, ${ab.toFixed(2)}, alpha);
           }
         `,
         transparent: true,
@@ -902,22 +912,49 @@ export class GlobeEngine {
     )
     this.scene.add(orbitLine)
 
-    // Saturn ring
+    // Saturn ring — 3D Shader with radial polar UV mapping
     let ring: THREE.Mesh | undefined
     if (def.hasRing) {
-      const ringGeo = new THREE.RingGeometry(def.radius * 1.3, def.radius * 2.3, 128)
-      const ringTex = loader.load(`${import.meta.env.BASE_URL}textures/saturn-ring-alpha.png`)
-      ringTex.colorSpace = THREE.SRGBColorSpace
-      const ringMat = new THREE.MeshBasicMaterial({
-        map: ringTex,
+      const innerR = def.radius * 1.35
+      const outerR = def.radius * 2.45
+      const ringGeo = new THREE.RingGeometry(innerR, outerR, 128)
+      const ringMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uRingTex: { value: loader.load(`${import.meta.env.BASE_URL}textures/saturn-ring-alpha.png`) },
+          uInnerR: { value: innerR },
+          uOuterR: { value: outerR },
+        },
+        vertexShader: /* glsl */ `
+          varying vec3 vLocalPos;
+          void main() {
+            vLocalPos = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying vec3 vLocalPos;
+          uniform sampler2D uRingTex;
+          uniform float uInnerR;
+          uniform float uOuterR;
+
+          void main() {
+            float r = length(vLocalPos.xy);
+            float t = (r - uInnerR) / (uOuterR - uInnerR);
+            t = clamp(t, 0.0, 1.0);
+
+            vec4 ringCol = texture2D(uRingTex, vec2(t, 0.5));
+            float edgeFade = smoothstep(0.0, 0.04, t) * (1.0 - smoothstep(0.96, 1.0, t));
+
+            gl_FragColor = vec4(ringCol.rgb, ringCol.a * edgeFade * 0.92);
+          }
+        `,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.85,
         depthWrite: false,
         blending: THREE.NormalBlending,
       })
       ring = new THREE.Mesh(ringGeo, ringMat)
-      ring.rotation.x = Math.PI / 2 // flat on XY plane, then parent tilt applies
+      ring.rotation.x = Math.PI / 2
       mesh.add(ring)
     }
 
@@ -1298,21 +1335,47 @@ export class GlobeEngine {
       )
       const raycaster = new THREE.Raycaster()
       raycaster.setFromCamera(mouse, this.camera)
-      const targetObj = this.getTargetBodyInfo(this.focusTarget)
-      const targetMesh = targetObj ? targetObj.mesh : this.earth
-      const targetName = targetObj ? targetObj.name : '🌍 EARTH'
-      const hits = raycaster.intersectObject(targetMesh)
+
+      // Test all celestial bodies in 3D scene (Earth, Moon, Sun, Planets, Moons)
+      const pickables: { mesh: THREE.Mesh; id: CelestialBodyId; name: string }[] = [
+        { mesh: this.earth, id: 'earth', name: '🌍 EARTH' },
+        { mesh: this.moon, id: 'moon', name: '🌕 MOON' },
+        { mesh: this.sun, id: 'sun', name: '☀️ SUN' },
+      ]
+      const collectPrt = (list: PlanetRuntime[]) => {
+        for (const prt of list) {
+          pickables.push({
+            mesh: prt.mesh,
+            id: prt.def.id,
+            name: `${prt.def.emoji} ${prt.def.name.toUpperCase()}`,
+          })
+          collectPrt(prt.moons)
+        }
+      }
+      collectPrt(this.planetRuntimes)
+
+      const meshesToTest = pickables.map((p) => p.mesh)
+      const hits = raycaster.intersectObjects(meshesToTest)
+
       if (hits.length > 0) {
         const hit = hits[0]
-        const pt = hit.point
-        const localPt = pt.clone().sub(targetMesh.position).applyMatrix4(targetMesh.matrixWorld.clone().invert()).normalize()
-        const lat = Math.asin(Math.min(Math.max(localPt.z, -1), 1)) * (180 / Math.PI)
-        const lon = Math.atan2(localPt.y, localPt.x) * (180 / Math.PI)
-        this.pinMarker.position.copy(pt.clone().add(pt.clone().sub(targetMesh.position).normalize().multiplyScalar(0.01)))
-        this.pinMarker.visible = true
-        const latStr = `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? 'N' : 'S'}`
-        const lonStr = `${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? 'E' : 'W'}`
-        this.cb.onPinSelected?.({ lat, lon, text: `${targetName}: ${latStr}, ${lonStr}` })
+        const hitMesh = hit.object as THREE.Mesh
+        const match = pickables.find((p) => p.mesh === hitMesh)
+        if (match) {
+          const pt = hit.point
+          const localPt = pt.clone().sub(hitMesh.position).applyMatrix4(hitMesh.matrixWorld.clone().invert()).normalize()
+          const lat = Math.asin(Math.min(Math.max(localPt.z, -1), 1)) * (180 / Math.PI)
+          const lon = Math.atan2(localPt.y, localPt.x) * (180 / Math.PI)
+          this.pinMarker.position.copy(pt.clone().add(pt.clone().sub(hitMesh.position).normalize().multiplyScalar(0.01)))
+          this.pinMarker.visible = true
+          const latStr = `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? 'N' : 'S'}`
+          const lonStr = `${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? 'E' : 'W'}`
+
+          this.setFocusTarget(match.id)
+          this.cb.onSelectBody?.(match.id)
+          this.cb.onPinSelected?.({ lat, lon, text: `${match.name}: ${latStr}, ${lonStr}` })
+          return
+        }
       }
     } else {
       this.pinMarker.visible = false
@@ -1430,7 +1493,8 @@ export class GlobeEngine {
     // Camera Fly-To & Up-Close Focus Lerping — supports all celestial bodies
     const targetInfo = this.getTargetBodyInfo(this.focusTarget)
     if (targetInfo) {
-      const currentTargetPos = targetInfo.mesh.position.clone()
+      const currentTargetPos = new THREE.Vector3()
+      targetInfo.mesh.getWorldPosition(currentTargetPos)
       const targetRadius = targetInfo.radius
 
       if (this.flyToActive) {

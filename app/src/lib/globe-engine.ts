@@ -670,8 +670,14 @@ export class GlobeEngine {
     this.asteroidSwarm.mainBelt.visible = false
     this.asteroidSwarm.kuiperBelt.visible = false
 
-    if (this.probeGroup) this.scene.add(this.probeGroup)
-    if (this.constellationGroup) this.scene.add(this.constellationGroup)
+    if (this.probeGroup) {
+      this.probeGroup.visible = false
+      this.scene.add(this.probeGroup)
+    }
+    if (this.constellationGroup) {
+      this.constellationGroup.visible = false
+      this.scene.add(this.constellationGroup)
+    }
 
     // --- selection marker ---
     this.marker = new THREE.Sprite(
@@ -1588,18 +1594,8 @@ export class GlobeEngine {
         const pulse = 0.045 + 0.01 * Math.sin(performance.now() * 0.005)
         this.marker.scale.setScalar(pulse)
 
-        // 3D Signal Cone position & orientation - only visible when satellite selected & target is Earth
-        if (this.showFoot && this.focusTarget === 'earth') {
-          const satPos = p.clone()
-          const groundPos = satPos.clone().normalize()
-          this.signalCone.position.copy(satPos)
-          this.signalCone.lookAt(groundPos)
-          const dist = satPos.distanceTo(groundPos)
-          this.signalCone.scale.set(1, 1, dist)
-          this.signalCone.visible = true
-        } else {
-          this.signalCone.visible = false
-        }
+        // Permanently hide signalCone to ensure Earth stays clean without giant cyan circles
+        this.signalCone.visible = false
 
         if (this.follow) {
           this.controls.target.lerp(p, 0.15)
@@ -1772,40 +1768,13 @@ export class GlobeEngine {
       const py = Math.sin(p.angleRad) * Math.cos(p.inclinationRad) * p.distanceAu
       const pz = Math.sin(p.angleRad) * Math.sin(p.inclinationRad) * p.distanceAu
 
-      const geo = new THREE.SphereGeometry(0.35, 16, 16)
-      const mat = new THREE.MeshBasicMaterial({ color: 0x00f0ff })
+      // Deep space probe 3D marker (Amber Gold / Silver)
+      const geo = new THREE.SphereGeometry(0.25, 16, 16)
+      const mat = new THREE.MeshBasicMaterial({ color: 0xf59e0b })
       const mesh = new THREE.Mesh(geo, mat)
       mesh.position.set(px, py, pz)
 
-      const MOON_ORBIT_R = 9.5
-      const moonOrbitPts: THREE.Vector3[] = []
-      for (let i = 0; i <= 128; i++) {
-        const a = (i / 128) * Math.PI * 2
-        moonOrbitPts.push(new THREE.Vector3(Math.cos(a) * MOON_ORBIT_R, Math.sin(a) * Math.cos((5.14 * Math.PI) / 180) * MOON_ORBIT_R, Math.sin(a) * Math.sin((5.14 * Math.PI) / 180) * MOON_ORBIT_R))
-      }
-      this.moonOrbitLine = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(moonOrbitPts),
-        new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.25 }),
-      )
-      this.moonOrbitLine.visible = false
-      this.scene.add(this.moonOrbitLine)
-
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(px, py, pz),
-      ])
-      const lineMat = new THREE.LineDashedMaterial({
-        color: 0x00f0ff,
-        dashSize: 1,
-        gapSize: 1,
-        opacity: 0.35,
-        transparent: true,
-      })
-      const line = new THREE.Line(lineGeo, lineMat)
-      line.computeLineDistances()
-
       group.add(mesh)
-      group.add(line)
     }
     return group
   }

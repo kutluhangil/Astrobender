@@ -47,6 +47,7 @@ interface PlanetRuntime {
   orbitLine?: THREE.Line
   ring?: THREE.Mesh
   moons: PlanetRuntime[]
+  ensureLoaded?: () => void
 }
 
 export interface EngineCallbacks {
@@ -304,6 +305,28 @@ void main() {
 const ORBIT_SIDE = 96
 const FOOT_POINTS = 96
 const EARTH_R_SCENE = 1.0
+
+const PLANET_BASE_COLORS: Record<string, string> = {
+  mercury: '#9ea0a5',
+  venus: '#e3bb73',
+  mars: '#c85a32',
+  jupiter: '#b8946e',
+  saturn: '#cfb584',
+  uranus: '#64b4c8',
+  neptune: '#3e6bb5',
+  pluto: '#a49889',
+}
+
+function createPlanetBaseTexture(planetId: string): THREE.Texture {
+  const c = document.createElement('canvas')
+  c.width = c.height = 4
+  const ctx = c.getContext('2d')!
+  ctx.fillStyle = PLANET_BASE_COLORS[planetId] || '#666666'
+  ctx.fillRect(0, 0, 4, 4)
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
 
 function makeRingTexture(): THREE.Texture {
   const c = document.createElement('canvas')
@@ -675,6 +698,12 @@ export class GlobeEngine {
     // SOLAR SYSTEM PLANETS & MOONS — dynamic from PLANETS config
     // ═══════════════════════════════════════════════════════════════════════
     this.planetRuntimes = PLANETS.map((def) => this.createPlanet(def, loader))
+    // Stagger loading of background planet textures so initial scene load stays ultra-fast
+    this.planetRuntimes.forEach((prt, idx) => {
+      setTimeout(() => {
+        prt.ensureLoaded?.()
+      }, 800 + idx * 300)
+    })
 
     this.scene.add(this.makeStars())
 
@@ -828,14 +857,32 @@ export class GlobeEngine {
 
   // ─── Planet Factory ─────────────────────────────────────────────────────
   private createPlanet(def: PlanetDef, loader: THREE.TextureLoader): PlanetRuntime {
-    const tex = def.parent
-      ? createRealisticMoonTexture(def.id)
-      : loader.load(`${import.meta.env.BASE_URL}textures/${def.texture}`)
-    tex.colorSpace = THREE.SRGBColorSpace
-    // Moons only need anisotropy=4; major planets use 8. Max (16) reserved for Earth.
-    tex.anisotropy = def.parent ? 4 : 8
-    tex.minFilter = THREE.LinearMipmapLinearFilter
-    tex.magFilter = THREE.LinearFilter
+    let tex: THREE.Texture
+    let ensureLoaded: (() => void) | undefined
+
+    if (def.parent) {
+      tex = createRealisticMoonTexture(def.id)
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.anisotropy = 4
+      tex.minFilter = THREE.LinearMipmapLinearFilter
+      tex.magFilter = THREE.LinearFilter
+    } else {
+      let isLoaded = false
+      tex = createPlanetBaseTexture(def.id)
+
+      ensureLoaded = () => {
+        if (isLoaded) return
+        isLoaded = true
+        loader.load(`${import.meta.env.BASE_URL}textures/${def.texture}`, (loadedTex) => {
+          loadedTex.colorSpace = THREE.SRGBColorSpace
+          loadedTex.anisotropy = 8
+          loadedTex.minFilter = THREE.LinearMipmapLinearFilter
+          loadedTex.magFilter = THREE.LinearFilter
+          mat.uniforms.uTex.value = loadedTex
+          mat.needsUpdate = true
+        })
+      }
+    }
 
     const geo = new THREE.SphereGeometry(def.radius, def.segments, def.segments)
     geo.rotateX(Math.PI / 2) // poles -> +z
@@ -1025,7 +1072,7 @@ export class GlobeEngine {
       moonRTs.push(moonRT)
     }
 
-    return { def, mesh, mat, atmo, orbitLine, ring, moons: moonRTs }
+    return { def, mesh, mat, atmo, orbitLine, ring, moons: moonRTs, ensureLoaded }
   }
 
   private makeStars(): THREE.Points {
@@ -1765,15 +1812,15 @@ export class GlobeEngine {
     }
   }
 
-  private getTargetBodyInfo(id: CelestialBodyId): { mesh: THREE.Mesh; radius: number; name: string } | null {
+  private getTargetBodyInfo(id: CelestialBodyId): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null {
     if (id === 'earth') return { mesh: this.earth, radius: 1.0, name: '🌍 EARTH' }
     if (id === 'moon') return { mesh: this.moon, radius: 0.2727, name: '🌕 MOON' }
     if (id === 'sun') return { mesh: this.sun, radius: 2.5, name: '☀️ SUN' }
 
-    const findInRuntimes = (list: PlanetRuntime[]): { mesh: THREE.Mesh; radius: number; name: string } | null => {
+    const findInRuntimes = (list: PlanetRuntime[]): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null => {
       for (const prt of list) {
         if (prt.def.id === id) {
-          return { mesh: prt.mesh, radius: prt.def.radius, name: `${prt.def.emoji} ${prt.def.name.toUpperCase()}` }
+          return { mesh: prt.mesh, radius: prt.def.radius, name: `${prt.def.emoji} ${prt.def.name.toUpperCase()}`, ensureLoaded: prt.ensureLoaded }
         }
         const sub = findInRuntimes(prt.moons)
         if (sub) return sub
@@ -1803,6 +1850,7 @@ export class GlobeEngine {
     this.signalCone.visible = false
     const info = this.getTargetBodyInfo(target)
     if (!info) return
+    info.ensureLoaded?.()
 
     // Dynamically adjust camera near clipping plane so small moons are never sliced off
     this.camera.near = Math.max(0.001, Math.min(0.1, info.radius * 0.08))

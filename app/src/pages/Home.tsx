@@ -18,6 +18,8 @@ import PlanetInfoCard from '@/components/hud/PlanetInfoCard'
 import CinematicTitleOverlay from '@/components/hud/CinematicTitleOverlay'
 import CosmicTourControls from '@/components/hud/CosmicTourControls'
 import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
+import LandingSiteModal from '@/components/hud/LandingSiteModal'
+import type { LandingSite } from '@/lib/landing-sites'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import FallbackTable from '@/components/FallbackTable'
 
@@ -66,7 +68,7 @@ export default function Home() {
   const [showFoot, setShowFoot] = useState(true)
   const [follow, setFollow] = useState(false)
   const [focusBody, setFocusBody] = useState<CelestialBodyId>('earth')
-  const [selectedPin, setSelectedPin] = useState<{ lat: number; lon: number; text: string } | null>(null)
+  const [selectedPin, setSelectedPin] = useState<{ lat: number; lon: number; text: string; landingSite?: LandingSite | null } | null>(null)
   const [fps, setFps] = useState(0)
   const [layersOpen, setLayersOpen] = useState(false)
   const [showScaleModal, setShowScaleModal] = useState(false)
@@ -425,8 +427,8 @@ export default function Home() {
       )}
 
       {/* layers: static panel on desktop */}
-      {/* cosmic tour autopilot */}
-      <div className="absolute top-4 left-1/2 z-20 -translate-x-1/2">
+      {/* cosmic tour autopilot: top-left under IdentityBlock to avoid overlapping top clock */}
+      <div className="absolute left-4 top-[72px] z-20 md:left-7 md:top-[76px]">
         <CosmicTourControls onSelectBody={handleSelectBody} currentBodyId={focusBody} />
       </div>
 
@@ -514,6 +516,11 @@ export default function Home() {
 
       {/* Sci-Fi / Star Wars Arrival Title Overlay */}
       <CinematicTitleOverlay bodyId={focusBody} />
+
+      {/* Historic Planetary Landing Site Modal */}
+      {selectedPin?.landingSite && (
+        <LandingSiteModal site={selectedPin.landingSite} onClose={() => setSelectedPin(null)} />
+      )}
 
       {/* Scale Comparison Sandbox Modal */}
       {showScaleModal && (

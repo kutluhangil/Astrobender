@@ -19,6 +19,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { PLANETS, type CelestialBodyId, type PlanetDef } from './planets'
 import { DEEP_SPACE_PROBES } from './probes'
 import { CONSTELLATIONS } from './constellations'
+import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 
 /** Runtime state for a rendered planet or moon */
 interface PlanetRuntime {
@@ -50,7 +51,7 @@ export interface EngineCallbacks {
     index: number,
     simMs: number,
   ) => { x: number; y: number; z: number; ang: number } | null
-  onPinSelected?: (pin: { lat: number; lon: number; text: string } | null) => void
+  onPinSelected?: (pin: { lat: number; lon: number; text: string; landingSite?: LandingSite | null } | null) => void
   onSelectBody?: (bodyId: CelestialBodyId) => void
 }
 
@@ -970,14 +971,39 @@ export class GlobeEngine {
       mesh.add(ring)
     }
 
+    // Add historic landing sites to planet/moon surface
+    const sites = LANDING_SITES.filter((s) => s.bodyId === def.id)
+    if (sites.length > 0) {
+      const landmarkGroup = new THREE.Group()
+      const markTex = makeRingTexture()
+      for (const s of sites) {
+        const phi = (90 - s.lat) * (Math.PI / 180)
+        const theta = (s.lon + 180) * (Math.PI / 180)
+        const lx = -(def.radius * 1.01 * Math.sin(phi) * Math.cos(theta))
+        const ly = def.radius * 1.01 * Math.cos(phi)
+        const lz = def.radius * 1.01 * Math.sin(phi) * Math.sin(theta)
+
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: markTex,
+            color: 0xf59e0b, // Amber gold landmark ring
+            transparent: true,
+            depthWrite: false,
+          }),
+        )
+        sprite.position.set(lx, ly, lz)
+        sprite.scale.setScalar(Math.max(0.04, def.radius * 0.05))
+        sprite.userData = { site: s }
+        landmarkGroup.add(sprite)
+      }
+      mesh.add(landmarkGroup)
+    }
+
     // Moons (recursive, orbit around parent planet)
     const moonRTs: PlanetRuntime[] = []
     for (const moonDef of def.moons ?? []) {
       const moonRT = this.createPlanet(moonDef, loader)
-      // Remove from scene root — will be positioned relative to parent in loop
-      this.scene.remove(moonRT.mesh)
-      // Remove orbit line from scene (moon orbits are relative)
-      if (moonRT.orbitLine) this.scene.remove(moonRT.orbitLine)
+      // Keep moonRT.mesh in scene so moon renders in 3D world space
       moonRTs.push(moonRT)
     }
 
@@ -1382,10 +1408,11 @@ export class GlobeEngine {
           this.pinMarker.visible = true
           const latStr = `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? 'N' : 'S'}`
           const lonStr = `${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? 'E' : 'W'}`
+          const site = findLandingSiteNear(match.id, lat, lon)
 
           this.setFocusTarget(match.id)
           this.cb.onSelectBody?.(match.id)
-          this.cb.onPinSelected?.({ lat, lon, text: `${match.name}: ${latStr}, ${lonStr}` })
+          this.cb.onPinSelected?.({ lat, lon, text: `${match.name}: ${latStr}, ${lonStr}`, landingSite: site })
           return
         }
       }

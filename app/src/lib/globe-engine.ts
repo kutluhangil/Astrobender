@@ -332,6 +332,11 @@ export class GlobeEngine {
   private flyToStartTime = 0
   private flyToStartCam = new THREE.Vector3()
   private flyToStartTarget = new THREE.Vector3()
+  private tmpVec1 = new THREE.Vector3()
+  private tmpVec2 = new THREE.Vector3()
+  private tmpVec3 = new THREE.Vector3()
+  private tmpVec4 = new THREE.Vector3()
+  private reusableDate = new Date()
   private groups: GroupRuntime[] = []
   /** hidden replacement set during a dataset swap (old groups keep rendering) */
   private replacement: GroupRuntime[] | null = null
@@ -379,6 +384,7 @@ export class GlobeEngine {
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
+      logarithmicDepthBuffer: true,
       powerPreference: 'high-performance',
     })
     this.renderer.setClearColor(0x000000, 1)
@@ -386,7 +392,7 @@ export class GlobeEngine {
 
     const initW = Math.max(1, container.clientWidth)
     const initH = Math.max(1, container.clientHeight)
-    this.camera = new THREE.PerspectiveCamera(42, initW / initH, 0.05, 20000.0)
+    this.camera = new THREE.PerspectiveCamera(42, initW / initH, 0.1, 25000.0)
     this.camera.up.set(0, 0, 1)
     // large, dominant Earth; lower edge may bleed off the viewport
     this.camera.position.set(1.0, -2.75, 1.35)
@@ -1482,7 +1488,8 @@ export class GlobeEngine {
     const simMs = this.cb.getSimTime()
     const simS = simMs / 1000
 
-    this.earth.rotation.z = satellite.gstime(new Date(simMs))
+    this.reusableDate.setTime(simMs)
+    this.earth.rotation.z = satellite.gstime(this.reusableDate)
     this.clouds.rotation.z = (simS * 0.00015) + (performance.now() * 0.00003)
     this.earthMat.uniforms.uTime.value = performance.now() * 0.001
     this.moonMat.uniforms.uTime.value = performance.now() * 0.001
@@ -1517,7 +1524,7 @@ export class GlobeEngine {
     // Camera Fly-To & Up-Close Focus Lerping — supports all celestial bodies
     const targetInfo = this.getTargetBodyInfo(this.focusTarget)
     if (targetInfo) {
-      const currentTargetPos = new THREE.Vector3()
+      const currentTargetPos = this.tmpVec2
       targetInfo.mesh.getWorldPosition(currentTargetPos)
       const targetRadius = targetInfo.radius
 
@@ -1526,9 +1533,9 @@ export class GlobeEngine {
         const progress = Math.min(1, elapsed / 800)
         const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
 
-        let dir = this.flyToStartCam.clone().sub(this.flyToStartTarget).normalize()
+        const dir = this.tmpVec3.copy(this.flyToStartCam).sub(this.flyToStartTarget).normalize()
         if (dir.lengthSq() < 0.01 || !isFinite(dir.x)) dir.set(0, -1, 0.5).normalize()
-        const endCamPos = currentTargetPos.clone().add(dir.multiplyScalar(targetRadius * 2.8))
+        const endCamPos = this.tmpVec4.copy(currentTargetPos).add(dir.multiplyScalar(targetRadius * 2.8))
 
         this.controls.target.lerpVectors(this.flyToStartTarget, currentTargetPos, ease)
         this.camera.position.lerpVectors(this.flyToStartCam, endCamPos, ease)
@@ -1665,8 +1672,8 @@ export class GlobeEngine {
     const rotSpeed = (2 * Math.PI) / (def.rotationPeriodHours * 3600)
     mesh.rotation.z = (simS * rotSpeed * rotSign) % (Math.PI * 2)
 
-    // Calculate vector pointing from planet to Sun for accurate 3D lighting
-    const bodySunDir = sunPos.clone().sub(mesh.position).normalize()
+    // Calculate vector pointing from planet to Sun for accurate 3D lighting without garbage collection
+    const bodySunDir = this.tmpVec1.copy(sunPos).sub(mesh.position).normalize()
     if (bodySunDir.lengthSq() < 0.001) bodySunDir.set(1, 0, 0)
     mat.uniforms.uTime.value = performance.now() * 0.001
     ;(mat.uniforms.uSunDir.value as THREE.Vector3).copy(bodySunDir)

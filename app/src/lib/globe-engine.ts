@@ -20,6 +20,7 @@ import { PLANETS, type CelestialBodyId, type PlanetDef } from './planets'
 import { DEEP_SPACE_PROBES } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
+import { createRealisticMoonTexture } from './moon-texture-generator'
 
 /** Runtime state for a rendered planet or moon */
 interface PlanetRuntime {
@@ -789,7 +790,9 @@ export class GlobeEngine {
 
   // ─── Planet Factory ─────────────────────────────────────────────────────
   private createPlanet(def: PlanetDef, loader: THREE.TextureLoader): PlanetRuntime {
-    const tex = loader.load(`${import.meta.env.BASE_URL}textures/${def.texture}`)
+    const tex = def.parent
+      ? createRealisticMoonTexture(def.id)
+      : loader.load(`${import.meta.env.BASE_URL}textures/${def.texture}`)
     tex.colorSpace = THREE.SRGBColorSpace
     tex.anisotropy = 16
     tex.minFilter = THREE.LinearMipmapLinearFilter

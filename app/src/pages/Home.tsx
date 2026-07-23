@@ -73,9 +73,9 @@ export default function Home() {
   const [layersOpen, setLayersOpen] = useState(false)
   const [showScaleModal, setShowScaleModal] = useState(false)
   const [audioPlaying, setAudioPlaying] = useState(false)
-  const [planetaryOrbitsVisible, setPlanetaryOrbitsVisible] = useState(true)
-  const [probesVisible, setProbesVisible] = useState(true)
-  const [constellationsVisible, setConstellationsVisible] = useState(true)
+  const [planetaryOrbitsVisible, setPlanetaryOrbitsVisible] = useState(false)
+  const [probesVisible, setProbesVisible] = useState(false)
+  const [constellationsVisible, setConstellationsVisible] = useState(false)
   const audioSynthRef = useRef(new SpaceAudioSynth())
 
   const satsRef = useRef<SatInfo[]>(EMPTY_SATS)

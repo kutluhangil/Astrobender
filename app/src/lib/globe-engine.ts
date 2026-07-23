@@ -336,7 +336,7 @@ export class GlobeEngine {
   /** hidden replacement set during a dataset swap (old groups keep rendering) */
   private replacement: GroupRuntime[] | null = null
   private desiredVisible: boolean[] = []
-  private qualityCap = 2.5
+  private qualityCap = 1.25
   private appliedW = 0
   private appliedH = 0
   private appliedDpr = 0
@@ -416,7 +416,7 @@ export class GlobeEngine {
     dayTex.minFilter = THREE.LinearMipmapLinearFilter
     dayTex.magFilter = THREE.LinearFilter
 
-    const geo = new THREE.SphereGeometry(1, 256, 256)
+    const geo = new THREE.SphereGeometry(1, 128, 128)
     geo.rotateX(Math.PI / 2) // poles -> +z, lon0 -> +x
     this.earthMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -512,7 +512,7 @@ export class GlobeEngine {
     moonTex.minFilter = THREE.LinearMipmapLinearFilter
     moonTex.magFilter = THREE.LinearFilter
 
-    const moonGeo = new THREE.SphereGeometry(0.2727, 128, 128)
+    const moonGeo = new THREE.SphereGeometry(0.2727, 64, 64)
     moonGeo.rotateX(Math.PI / 2)
     this.moonMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -591,7 +591,7 @@ export class GlobeEngine {
     const sunMapTex = loader.load(`${import.meta.env.BASE_URL}textures/sun-map.jpg`)
     sunMapTex.colorSpace = THREE.SRGBColorSpace
     sunMapTex.anisotropy = 16
-    const sunGeo = new THREE.SphereGeometry(2.5, 128, 128)
+    const sunGeo = new THREE.SphereGeometry(2.5, 64, 64)
     sunGeo.rotateX(Math.PI / 2)
 
     this.sunMat = new THREE.ShaderMaterial({

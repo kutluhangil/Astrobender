@@ -1493,7 +1493,6 @@ export class GlobeEngine {
           const latStr = `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? 'N' : 'S'}`
           const lonStr = `${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? 'E' : 'W'}`
 
-          this.setFocusTarget(match.id)
           this.cb.onSelectBody?.(match.id)
           this.cb.onPinSelected?.({ lat, lon, text: `${match.name}: ${latStr}, ${lonStr}`, landingSite: site })
           return
@@ -1666,11 +1665,11 @@ export class GlobeEngine {
 
         const elapsed = performance.now() - this.flyToStartTime
         const progress = Math.min(1, elapsed / 800)
-        const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+        const ease = 1 - Math.pow(1 - progress, 3)
 
         const dir = this.tmpVec3.copy(this.flyToStartCam).sub(this.flyToStartTarget).normalize()
         if (dir.lengthSq() < 0.01 || !isFinite(dir.x)) dir.set(0, -1, 0.5).normalize()
-        const endCamPos = this.tmpVec4.copy(currentTargetPos).add(dir.multiplyScalar(Math.max(0.20, targetRadius * 3.2)))
+        const endCamPos = this.tmpVec4.copy(currentTargetPos).add(dir.multiplyScalar(Math.max(0.20, targetRadius * 3.4)))
 
         this.controls.target.lerpVectors(this.flyToStartTarget, currentTargetPos, ease)
         this.camera.position.lerpVectors(this.flyToStartCam, endCamPos, ease)
@@ -1678,6 +1677,7 @@ export class GlobeEngine {
 
         if (progress >= 1) {
           this.flyToActive = false
+          this.lastFocusPos = currentTargetPos.clone()
         }
       }
     } else {
@@ -1845,6 +1845,7 @@ export class GlobeEngine {
   }
 
   setFocusTarget(target: CelestialBodyId) {
+    const isSameTarget = this.focusTarget === target
     this.focusTarget = target
     this.pinMarker.visible = false
     this.marker.visible = false
@@ -1860,10 +1861,13 @@ export class GlobeEngine {
     this.controls.minDistance = Math.max(0.005, info.radius * 1.1)
     this.controls.maxDistance = 8000.0
 
-    this.flyToActive = true
-    this.flyToStartTime = performance.now()
-    this.flyToStartCam.copy(this.camera.position)
-    this.flyToStartTarget.copy(this.controls.target)
+    if (!isSameTarget || !this.flyToActive) {
+      this.flyToActive = true
+      this.flyToStartTime = performance.now()
+      this.flyToStartCam.copy(this.camera.position)
+      this.flyToStartTarget.copy(this.controls.target)
+      this.lastFocusPos = null
+    }
   }
 
   setTheme(theme: 'dark' | 'light') {

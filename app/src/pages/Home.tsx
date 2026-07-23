@@ -235,6 +235,7 @@ export default function Home() {
       onFps: (v) => setFps(v),
       onPinSelected: (pin) => setSelectedPin(pin),
       onSelectBody: (body) => setFocusBody(body),
+      onTargetChanged: (body) => setFocusBody(body),
       orbitProvider,
       footprintProvider,
     })
@@ -438,7 +439,12 @@ export default function Home() {
       {/* layers: static panel on desktop */}
       {/* cosmic tour autopilot: top-left under IdentityBlock to avoid overlapping top clock */}
       <div className="absolute left-4 top-[72px] z-20 md:left-7 md:top-[76px]">
-        <CosmicTourControls onSelectBody={handleSelectBody} currentBodyId={focusBody} />
+        <CosmicTourControls
+          onSelectBody={handleSelectBody}
+          currentBodyId={focusBody}
+          onStartTour={() => engineRef.current?.startCinematicTour()}
+          onStopTour={() => engineRef.current?.stopCinematicTour()}
+        />
       </div>
 
       {/* left panel: layers */}

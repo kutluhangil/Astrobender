@@ -23,6 +23,21 @@ import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-
 import { createRealisticMoonTexture } from './moon-texture-generator'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 
+export const TOUR_SEQUENCE: CelestialBodyId[] = [
+  'sun',
+  'mercury',
+  'venus',
+  'earth',
+  'moon',
+  'mars',
+  'jupiter',
+  'saturn',
+  'titan',
+  'uranus',
+  'neptune',
+  'pluto',
+]
+
 /** Runtime state for a rendered planet or moon */
 interface PlanetRuntime {
   def: PlanetDef
@@ -55,6 +70,7 @@ export interface EngineCallbacks {
   ) => { x: number; y: number; z: number; ang: number } | null
   onPinSelected?: (pin: { lat: number; lon: number; text: string; landingSite?: LandingSite | null } | null) => void
   onSelectBody?: (bodyId: CelestialBodyId) => void
+  onTargetChanged?: (bodyId: CelestialBodyId) => void
 }
 
 interface GroupRuntime {
@@ -331,6 +347,9 @@ export class GlobeEngine {
   private constellationGroup: THREE.Group | null = null
   private asteroidSwarm: AsteroidSwarm | null = null
   private lastFocusPos: THREE.Vector3 | null = null
+  public isCinematicTourActive: boolean = false
+  public tourTargetIndex: number = 0
+  private tourStartTime: number = 0
   private flyToActive = false
   private flyToStartTime = 0
   private flyToStartCam = new THREE.Vector3()
@@ -1546,13 +1565,46 @@ export class GlobeEngine {
     }
 
     // Camera Fly-To & Up-Close Focus Lerping — supports all celestial bodies
-    const targetInfo = this.getTargetBodyInfo(this.focusTarget)
-    if (targetInfo) {
-      const currentTargetPos = this.tmpVec2
-      targetInfo.mesh.getWorldPosition(currentTargetPos)
-      const targetRadius = targetInfo.radius
+    if (this.isCinematicTourActive) {
+      const tourBodyId = TOUR_SEQUENCE[this.tourTargetIndex]
+      const targetInfo = this.getTargetBodyInfo(tourBodyId)
+      if (targetInfo) {
+        const bodyPos = this.tmpVec2
+        targetInfo.mesh.getWorldPosition(bodyPos)
 
-      if (this.flyToActive) {
+        const now = performance.now()
+        const elapsedS = (now - this.tourStartTime) / 1000
+        const durationPerBody = 9.0 // 9 seconds continuous IMAX orbital sweep per body
+
+        const r = Math.max(0.4, targetInfo.radius * 3.4)
+        const orbitAngle = elapsedS * 0.65
+        const heightWave = Math.sin(elapsedS * 0.4) * (r * 0.35)
+
+        const camTargetPos = this.tmpVec4.set(
+          bodyPos.x + Math.cos(orbitAngle) * r,
+          bodyPos.y + heightWave,
+          bodyPos.z + Math.sin(orbitAngle) * r,
+        )
+
+        this.controls.target.lerp(bodyPos, 0.08)
+        this.camera.position.lerp(camTargetPos, 0.06)
+        this.controls.update()
+
+        if (elapsedS >= durationPerBody) {
+          this.tourTargetIndex = (this.tourTargetIndex + 1) % TOUR_SEQUENCE.length
+          this.tourStartTime = performance.now()
+          const nextBody = TOUR_SEQUENCE[this.tourTargetIndex]
+          this.setFocusTarget(nextBody)
+          this.cb.onTargetChanged?.(nextBody)
+        }
+      }
+    } else if (this.flyToActive) {
+      const targetInfo = this.getTargetBodyInfo(this.focusTarget)
+      if (targetInfo) {
+        const currentTargetPos = this.tmpVec2
+        targetInfo.mesh.getWorldPosition(currentTargetPos)
+        const targetRadius = targetInfo.radius
+
         const elapsed = performance.now() - this.flyToStartTime
         const progress = Math.min(1, elapsed / 800)
         const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
@@ -1568,8 +1620,13 @@ export class GlobeEngine {
         if (progress >= 1) {
           this.flyToActive = false
         }
-      } else {
-        // Lock-on tracking for moving celestial bodies
+      }
+    } else {
+      // Lock-on tracking for moving celestial bodies
+      const targetInfo = this.getTargetBodyInfo(this.focusTarget)
+      if (targetInfo) {
+        const currentTargetPos = this.tmpVec2
+        targetInfo.mesh.getWorldPosition(currentTargetPos)
         if (this.lastFocusPos) {
           const delta = currentTargetPos.clone().sub(this.lastFocusPos)
           this.camera.position.add(delta)
@@ -1577,11 +1634,11 @@ export class GlobeEngine {
         } else {
           this.controls.target.copy(currentTargetPos)
         }
+        this.lastFocusPos = currentTargetPos.clone()
+      } else if (this.selected === null && !this.follow) {
+        this.controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.08)
+        this.lastFocusPos = null
       }
-      this.lastFocusPos = currentTargetPos.clone()
-    } else if (this.selected === null && !this.follow) {
-      this.controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.08)
-      this.lastFocusPos = null
     }
 
     const uS = Math.min(Math.max(simS - this.t0, 0), Math.max(this.t1 - this.t0, 0.001))
@@ -1713,6 +1770,19 @@ export class GlobeEngine {
       return null
     }
     return findInRuntimes(this.planetRuntimes)
+  }
+
+  startCinematicTour() {
+    this.isCinematicTourActive = true
+    this.tourTargetIndex = 0
+    this.tourStartTime = performance.now()
+    const firstBody = TOUR_SEQUENCE[0]
+    this.setFocusTarget(firstBody)
+    this.cb.onTargetChanged?.(firstBody)
+  }
+
+  stopCinematicTour() {
+    this.isCinematicTourActive = false
   }
 
   setFocusTarget(target: CelestialBodyId) {

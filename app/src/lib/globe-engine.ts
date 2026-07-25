@@ -20,7 +20,6 @@ import { PLANETS, type CelestialBodyId, type PlanetDef } from './planets'
 import { DEEP_SPACE_PROBES } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
-import { createRealisticMoonTexture } from './moon-texture-generator'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 
 export const TOUR_SEQUENCE: CelestialBodyId[] = [
@@ -318,10 +317,21 @@ const PLANET_BASE_COLORS: Record<string, string> = {
   mercury: '#9ea0a5',
   venus: '#e3bb73',
   mars: '#c85a32',
+  phobos: '#786b5e',
+  deimos: '#80766b',
   jupiter: '#b8946e',
+  io: '#c9a946',
+  europa: '#c8c5b9',
+  ganymede: '#827d74',
+  callisto: '#655d53',
   saturn: '#cfb584',
+  titan: '#a56627',
+  enceladus: '#dce7ee',
   uranus: '#64b4c8',
+  titania: '#7d8c94',
+  oberon: '#6d7479',
   neptune: '#3e6bb5',
+  triton: '#a98d91',
   pluto: '#a49889',
 }
 
@@ -865,31 +875,27 @@ export class GlobeEngine {
 
   // ─── Planet Factory ─────────────────────────────────────────────────────
   private createPlanet(def: PlanetDef, loader: THREE.TextureLoader): PlanetRuntime {
-    let tex: THREE.Texture
-    let ensureLoaded: (() => void) | undefined
-
-    if (def.parent) {
-      tex = createRealisticMoonTexture(def.id)
-      tex.colorSpace = THREE.SRGBColorSpace
-      tex.anisotropy = 4
-      tex.minFilter = THREE.LinearMipmapLinearFilter
-      tex.magFilter = THREE.LinearFilter
-    } else {
-      let isLoaded = false
-      tex = createPlanetBaseTexture(def.id)
-
-      ensureLoaded = () => {
-        if (isLoaded) return
-        isLoaded = true
-        loader.load(`${import.meta.env.BASE_URL}textures/${def.texture}`, (loadedTex) => {
+    const tex = createPlanetBaseTexture(def.id)
+    let isLoaded = false
+    const textureUrl = `${import.meta.env.BASE_URL}textures/${def.texture}`
+    const ensureLoaded = () => {
+      if (isLoaded) return
+      isLoaded = true
+      loader.load(
+        textureUrl,
+        (loadedTex) => {
           loadedTex.colorSpace = THREE.SRGBColorSpace
           loadedTex.anisotropy = 8
           loadedTex.minFilter = THREE.LinearMipmapLinearFilter
           loadedTex.magFilter = THREE.LinearFilter
           mat.uniforms.uTex.value = loadedTex
           mat.needsUpdate = true
-        })
-      }
+        },
+        undefined,
+        () => {
+          throw new Error(`Failed to load texture for ${def.id}: ${textureUrl}`)
+        },
+      )
     }
 
     const geo = new THREE.SphereGeometry(def.radius, def.segments, def.segments)
@@ -897,6 +903,10 @@ export class GlobeEngine {
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         uTex: { value: tex },
+        uTint: {
+          value: new THREE.Vector3(...(def.surfaceTint ?? [1, 1, 1])),
+        },
+        uAmbient: { value: def.parent ? 0.16 : 0.06 },
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
         uTime: { value: 0 },
       },
@@ -914,22 +924,25 @@ export class GlobeEngine {
       `,
       fragmentShader: /* glsl */ `
         uniform sampler2D uTex;
+        uniform vec3 uTint;
+        uniform float uAmbient;
         uniform vec3 uSunDir;
         uniform float uTime;
         varying vec2 vUv;
         varying vec3 vNormalW;
         varying vec3 vPosW;
         void main() {
-          vec3 texCol = texture2D(uTex, vUv).rgb;
+          vec3 texCol = clamp(texture2D(uTex, vUv).rgb * uTint, 0.0, 1.0);
           float lit = dot(vNormalW, uSunDir);
           float day = smoothstep(-0.15, 0.35, lit);
-          vec3 col = texCol * (0.06 + 0.94 * day);
+          vec3 col = texCol * (uAmbient + (1.0 - uAmbient) * day);
           gl_FragColor = vec4(col, 1.0);
         }
       `,
     })
     const mesh = new THREE.Mesh(geo, mat)
     mesh.rotation.x = def.axialTilt * (Math.PI / 180)
+    if (def.shapeScale) mesh.scale.set(...def.shapeScale)
     this.scene.add(mesh)
 
     // Atmosphere rim glow

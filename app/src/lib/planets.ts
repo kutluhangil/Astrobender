@@ -34,6 +34,10 @@ export interface PlanetDef {
   segments: number
   /** Texture file name (in /textures/) */
   texture: string
+  /** Conservative color correction applied to grayscale observation mosaics */
+  surfaceTint?: [number, number, number]
+  /** Non-spherical body proportions */
+  shapeScale?: [number, number, number]
   /** Optional bump map file name */
   bump?: string
   /** Orbit radius in scene units (distance from Sun or parent) */
@@ -134,6 +138,8 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.04,
         segments: 32,
         texture: 'phobos-4k.jpg',
+        surfaceTint: [0.82, 0.72, 0.62],
+        shapeScale: [1.23, 1.0, 0.82],
         orbitRadius: 1.2,
         orbitPeriodDays: 0.319,
         rotationPeriodHours: 7.66,
@@ -152,6 +158,8 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.025,
         segments: 32,
         texture: 'deimos-4k.jpg',
+        surfaceTint: [0.86, 0.78, 0.68],
+        shapeScale: [1.22, 1.0, 0.90],
         orbitRadius: 2.0,
         orbitPeriodDays: 1.263,
         rotationPeriodHours: 30.3,
@@ -207,6 +215,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.10,
         segments: 48,
         texture: 'europa-4k.jpg',
+        surfaceTint: [1.08, 1.02, 0.90],
         orbitRadius: 5.0,
         orbitPeriodDays: 3.551,
         rotationPeriodHours: 85.2,
@@ -225,6 +234,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.14,
         segments: 48,
         texture: 'ganymede-4k.jpg',
+        surfaceTint: [0.95, 0.91, 0.84],
         orbitRadius: 7.0,
         orbitPeriodDays: 7.155,
         rotationPeriodHours: 171.7,
@@ -243,6 +253,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.13,
         segments: 48,
         texture: 'callisto-4k.jpg',
+        surfaceTint: [0.88, 0.80, 0.70],
         orbitRadius: 10.0,
         orbitPeriodDays: 16.689,
         rotationPeriodHours: 400.5,
@@ -281,6 +292,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.16,
         segments: 48,
         texture: 'titan-4k.jpg',
+        surfaceTint: [1.18, 0.78, 0.38],
         orbitRadius: 6.0,
         orbitPeriodDays: 15.945,
         rotationPeriodHours: 382.7,
@@ -299,6 +311,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.04,
         segments: 32,
         texture: 'enceladus-4k.jpg',
+        surfaceTint: [0.90, 0.97, 1.08],
         orbitRadius: 3.5,
         orbitPeriodDays: 1.370,
         rotationPeriodHours: 32.9,
@@ -337,6 +350,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.06,
         segments: 32,
         texture: 'titania-4k.jpg',
+        surfaceTint: [0.80, 0.90, 0.96],
         orbitRadius: 3.0,
         orbitPeriodDays: 8.706,
         rotationPeriodHours: 208.9,
@@ -355,6 +369,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.055,
         segments: 32,
         texture: 'oberon-4k.jpg',
+        surfaceTint: [0.78, 0.83, 0.88],
         orbitRadius: 4.5,
         orbitPeriodDays: 13.463,
         rotationPeriodHours: 323.1,
@@ -392,6 +407,7 @@ export const PLANETS: PlanetDef[] = [
         radius: 0.08,
         segments: 32,
         texture: 'triton-4k.jpg',
+        surfaceTint: [1.02, 0.84, 0.88],
         orbitRadius: 3.5,
         orbitPeriodDays: 5.877,
         rotationPeriodHours: 141.0,

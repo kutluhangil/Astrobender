@@ -605,7 +605,7 @@ export default function Home() {
 
       {/* ============ FOOTER CREDITS (desktop only) ============ */}
       <div className="pointer-events-none absolute bottom-1.5 left-7 z-10 hidden font-mono text-[10px] tracking-wider text-slate-600 md:block">
-        TLE CelesTrak · SGP4 satellite.js · Imagery NASA Blue Marble
+        TLE CelesTrak · SGP4 satellite.js · Imagery NASA · USGS Astrogeology · JPL
       </div>
       <div className="pointer-events-none absolute bottom-1.5 right-7 z-10 hidden font-mono text-[10px] tabular-nums tracking-wider text-slate-600 md:block">
         {fps} fps
@@ -645,7 +645,7 @@ export default function Home() {
       )}
 
       {/* ============ CINEMATIC OVERLAY ============ */}
-      <CinematicTitleOverlay bodyId={focusBody} />
+      <CinematicTitleOverlay key={focusBody} bodyId={focusBody} />
 
       {/* ============ LANDING SITE MODAL ============ */}
       {selectedPin?.landingSite && (

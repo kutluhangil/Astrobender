@@ -33,20 +33,16 @@ const CONTROL_SECTORS: Record<CelestialBodyId, { sector: string; code: string }>
 
 export default function CinematicTitleOverlay({ bodyId }: CinematicTitleOverlayProps) {
   const [active, setActive] = useState(true)
-  const [animKey, setAnimKey] = useState(0)
 
   const fact = CELESTIAL_FACTS[bodyId]
   const info = CONTROL_SECTORS[bodyId] ?? { sector: 'UNKNOWN SECTOR', code: 'STATUS: UNKNOWN' }
 
-  // Re-trigger animation on body change
   useEffect(() => {
-    setActive(true)
-    setAnimKey((k) => k + 1)
     const timer = setTimeout(() => {
       setActive(false)
     }, 4500)
     return () => clearTimeout(timer)
-  }, [bodyId])
+  }, [])
 
   if (!fact) return null
 
@@ -54,7 +50,6 @@ export default function CinematicTitleOverlay({ bodyId }: CinematicTitleOverlayP
     <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center select-none overflow-hidden">
       {/* Remedy's CONTROL Game Style Location Card Banner */}
       <div
-        key={animKey}
         className={`flex flex-col items-center text-center transition-all duration-1000 ease-out transform ${
           active
             ? 'opacity-100 scale-100 blur-0 translate-y-0'

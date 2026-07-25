@@ -907,12 +907,6 @@ export class GlobeEngine {
         uTint: {
           value: new THREE.Vector3(...(def.surfaceTint ?? [1, 1, 1])),
         },
-        uFallbackColor: {
-          value: new THREE.Color(PLANET_BASE_COLORS[def.id] ?? '#666666'),
-        },
-        uMissingMode: {
-          value: def.missingTextureTone === 'dark' ? 1 : def.missingTextureTone === 'light' ? 2 : 0,
-        },
         uAmbient: { value: def.parent ? 0.30 : 0.06 },
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
         uTime: { value: 0 },
@@ -932,8 +926,6 @@ export class GlobeEngine {
       fragmentShader: /* glsl */ `
         uniform sampler2D uTex;
         uniform vec3 uTint;
-        uniform vec3 uFallbackColor;
-        uniform int uMissingMode;
         uniform float uAmbient;
         uniform vec3 uSunDir;
         uniform float uTime;
@@ -942,15 +934,7 @@ export class GlobeEngine {
         varying vec3 vPosW;
         void main() {
           vec3 sampled = texture2D(uTex, vUv).rgb;
-          float luminance = dot(sampled, vec3(0.2126, 0.7152, 0.0722));
-          float coverage = 1.0;
-          if (uMissingMode == 1) {
-            coverage = smoothstep(0.012, 0.065, luminance);
-          } else if (uMissingMode == 2) {
-            coverage = 1.0 - smoothstep(0.965, 0.995, luminance);
-          }
-          vec3 observedColor = clamp(sampled * uTint, 0.0, 1.0);
-          vec3 texCol = mix(uFallbackColor, observedColor, coverage);
+          vec3 texCol = clamp(sampled * uTint, 0.0, 1.0);
           float lit = dot(vNormalW, uSunDir);
           float day = smoothstep(-0.15, 0.35, lit);
           vec3 col = texCol * (uAmbient + (1.0 - uAmbient) * day);

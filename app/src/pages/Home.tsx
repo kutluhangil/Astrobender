@@ -75,6 +75,7 @@ export default function Home() {
   const [layersOpen, setLayersOpen] = useState(false)
   const [mobilePlanetInfoOpen, setMobilePlanetInfoOpen] = useState(false)
   const [showScaleModal, setShowScaleModal] = useState(false)
+  const [tleWarningDismissed, setTleWarningDismissed] = useState(false)
 
   // Cosmic environment states
   const [audioPlaying, setAudioPlaying] = useState(false)
@@ -83,6 +84,10 @@ export default function Home() {
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+
+  useEffect(() => {
+    setTleWarningDismissed(false)
+  }, [tleWarning])
 
   const audioSynthRef = useRef(new SpaceAudioSynth())
 
@@ -254,7 +259,12 @@ export default function Home() {
       onContextRestored: () => setCtxLost(false),
       onFps: (v) => setFps(v),
       onPinSelected: (pin) => setSelectedPin(pin),
-      onSelectBody: (body) => setFocusBody(body),
+      onSelectBody: (body) => {
+        setFocusBody(body)
+        engine.setFocusTarget(body)
+        setLayersOpen(false)
+        setMobilePlanetInfoOpen(false)
+      },
       onTargetChanged: (body) => setFocusBody(body),
       orbitProvider,
       footprintProvider,
@@ -661,15 +671,36 @@ export default function Home() {
       )}
 
       {/* ============ DEGRADED WARNING ============ */}
-      {tleWarning && (
+      {tleWarning && !tleWarningDismissed && (
         <div
-          className="absolute bottom-[136px] right-3 z-20 max-w-[min(360px,calc(100vw-24px))] rounded-lg border border-amber-400/30 bg-[#17120a]/90 px-3 py-2 text-[11px] text-amber-100 shadow-lg backdrop-blur-xl md:right-7"
+          className="absolute bottom-[136px] right-3 z-20 w-[min(288px,calc(100vw-24px))] rounded-lg border border-amber-400/30 bg-[#17120a]/90 px-3 py-2 text-[11px] text-amber-100 shadow-lg backdrop-blur-xl md:right-7"
           role="status"
+          aria-live="polite"
         >
-          <div>{tleWarning}</div>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-amber-100">Canlı TLE güncellemesi kullanılamıyor</div>
+              <div className="mt-0.5 text-amber-100/75">Paketlenmiş son geçerli veriyle devam ediliyor.</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTleWarningDismissed(true)}
+              className="-mr-1 -mt-1 rounded px-1.5 py-0.5 text-base leading-none text-amber-100/70 hover:bg-amber-300/10 hover:text-amber-100"
+              aria-label="TLE durum uyarısını kapat"
+            >
+              ×
+            </button>
+          </div>
+          <details className="mt-1.5 text-amber-100/70">
+            <summary className="w-fit cursor-pointer text-[10px] text-amber-200/90">Teknik ayrıntı</summary>
+            <p className="mt-1 break-words font-mono text-[9px] leading-relaxed">{tleWarning}</p>
+          </details>
           <button
             type="button"
-            onClick={() => void retryTle()}
+            onClick={() => {
+              setTleWarningDismissed(false)
+              void retryTle()
+            }}
             className="mt-1.5 rounded border border-amber-300/30 px-2 py-0.5 font-mono text-[10px] text-amber-200 hover:bg-amber-300/10"
           >
             Tekrar dene

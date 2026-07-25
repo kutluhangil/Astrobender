@@ -34,10 +34,8 @@ export interface PlanetDef {
   segments: number
   /** Texture file name (in /textures/) */
   texture: string
-  /** Conservative color correction applied to grayscale observation mosaics */
+  /** Conservative color correction applied to the surface texture */
   surfaceTint?: [number, number, number]
-  /** No-data tone used by partial observation mosaics */
-  missingTextureTone?: 'dark' | 'light'
   /** Non-spherical body proportions */
   shapeScale?: [number, number, number]
   /** Optional bump map file name */
@@ -214,7 +212,6 @@ export const PLANETS: PlanetDef[] = [
         segments: 48,
         texture: 'europa-4k.jpg',
         surfaceTint: [1.08, 1.02, 0.90],
-        missingTextureTone: 'dark',
         semiMajorAxisKm: 671100,
         orbitPeriodDays: 3.525463,
         rotationPeriodHours: 85.2,
@@ -350,7 +347,6 @@ export const PLANETS: PlanetDef[] = [
         segments: 32,
         texture: 'titania-4k.jpg',
         surfaceTint: [0.80, 0.90, 0.96],
-        missingTextureTone: 'dark',
         semiMajorAxisKm: 436298,
         orbitPeriodDays: 8.705869,
         rotationPeriodHours: 208.9,
@@ -370,7 +366,6 @@ export const PLANETS: PlanetDef[] = [
         segments: 32,
         texture: 'oberon-4k.jpg',
         surfaceTint: [0.78, 0.83, 0.88],
-        missingTextureTone: 'dark',
         semiMajorAxisKm: 583511,
         orbitPeriodDays: 13.463237,
         rotationPeriodHours: 323.1,
@@ -409,7 +404,6 @@ export const PLANETS: PlanetDef[] = [
         segments: 32,
         texture: 'triton-4k.jpg',
         surfaceTint: [1.02, 0.84, 0.88],
-        missingTextureTone: 'light',
         semiMajorAxisKm: 354800,
         orbitPeriodDays: 5.876994,
         rotationPeriodHours: 141.0,

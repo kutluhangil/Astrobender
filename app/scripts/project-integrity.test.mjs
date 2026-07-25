@@ -58,20 +58,21 @@ test('dialogs expose modal semantics', () => {
   }
 })
 
-test('partial moon mosaics declare their no-data tone', () => {
+test('surface textures no longer rely on partial-mosaic workarounds', () => {
   const planets = read('src/lib/planets.ts')
-  for (const [moon, tone] of [
-    ['europa', 'dark'],
-    ['titania', 'dark'],
-    ['oberon', 'dark'],
-    ['triton', 'light'],
-  ]) {
+  assert.doesNotMatch(planets, /missingTextureTone/)
+  for (const body of ['europa', 'titania', 'oberon', 'triton', 'pluto']) {
     assert.match(
       planets,
-      new RegExp(`id: '${moon}'[\\s\\S]*?missingTextureTone: '${tone}'`),
-      moon,
+      new RegExp(`id: '${body}'[\\s\\S]*?texture: '[^']+'`),
+      body,
     )
   }
+})
+
+test('celestial pointer selection flies the engine to the selected body', () => {
+  const home = read('src/pages/Home.tsx')
+  assert.match(home, /onSelectBody: \(body\) => \{[\s\S]*?engine\.setFocusTarget\(body\)/)
 })
 
 test('known invalid and duplicate textures are removed', () => {

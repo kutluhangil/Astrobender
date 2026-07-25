@@ -15,7 +15,6 @@ interface FeedDef {
   key: keyof FeedTexts
   liveUrl: string
   snapUrl: string
-  required: boolean
 }
 
 const FEEDS: FeedDef[] = [
@@ -23,31 +22,26 @@ const FEEDS: FeedDef[] = [
     key: 'active',
     liveUrl: `${CELESTRAK}?GROUP=active&FORMAT=tle`,
     snapUrl: `${SNAP}/tle-snapshot.txt`,
-    required: true,
   },
   {
     key: 'visual',
     liveUrl: `${CELESTRAK}?GROUP=visual&FORMAT=tle`,
     snapUrl: `${SNAP}/tle-visual.txt`,
-    required: false,
   },
   {
     key: 'cosmos2251',
     liveUrl: `${CELESTRAK}?GROUP=cosmos-2251-debris&FORMAT=tle`,
     snapUrl: `${SNAP}/tle-cosmos-2251-debris.txt`,
-    required: false,
   },
   {
     key: 'iridium33',
     liveUrl: `${CELESTRAK}?GROUP=iridium-33-debris&FORMAT=tle`,
     snapUrl: `${SNAP}/tle-iridium-33-debris.txt`,
-    required: false,
   },
   {
     key: 'fengyun1c',
     liveUrl: `${CELESTRAK}?GROUP=fengyun-1c-debris&FORMAT=tle`,
     snapUrl: `${SNAP}/tle-fengyun-1c-debris.txt`,
-    required: false,
   },
 ]
 
@@ -59,6 +53,7 @@ export interface TleDataState {
   status: 'loading' | 'ready' | 'error'
   dataset: Dataset | null
   error: string | null
+  warning: string | null
 }
 
 async function fetchText(url: string, timeoutMs: number): Promise<string> {
@@ -66,8 +61,18 @@ async function fetchText(url: string, timeoutMs: number): Promise<string> {
   const t = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     const res = await fetch(url, { signal: ctrl.signal })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const body = (await res.text()).replace(/\s+/g, ' ').slice(0, 180)
+      throw new Error(
+        `TLE request failed: ${url} returned HTTP ${res.status} ${res.statusText}${body ? ` — ${body}` : ''}`,
+      )
+    }
     return await res.text()
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`TLE request timed out after ${timeoutMs} ms: ${url}`)
+    }
+    throw error
   } finally {
     clearTimeout(t)
   }
@@ -96,6 +101,7 @@ export function useTleData() {
     status: 'loading',
     dataset: null,
     error: null,
+    warning: null,
   })
   const genRef = useRef(0)
   const busyRef = useRef(false)
@@ -105,12 +111,18 @@ export function useTleData() {
   }, [])
 
   const apply = useCallback(
-    (feeds: FeedTexts, source: Dataset['source'], fetchedAt: number) => {
+    (
+      feeds: FeedTexts,
+      source: Dataset['source'],
+      fetchedAt: number,
+      warning: string | null = null,
+    ) => {
       const sats = validate(feeds)
       setState({
         status: 'ready',
         dataset: buildDataset(sats, source, fetchedAt),
         error: null,
+        warning,
       })
     },
     [],
@@ -118,16 +130,7 @@ export function useTleData() {
 
   const loadSnapshots = useCallback(async (): Promise<FeedTexts> => {
     if (snapTextsRef.current) return snapTextsRef.current
-    const texts = await Promise.all(
-      FEEDS.map(async (f) => {
-        try {
-          return await fetchText(f.snapUrl, 30000)
-        } catch (err) {
-          if (f.required) throw err
-          return null
-        }
-      }),
-    )
+    const texts = await Promise.all(FEEDS.map((f) => fetchText(f.snapUrl, 30000)))
     const feeds = Object.fromEntries(
       FEEDS.map((f, i) => [f.key, texts[i]]),
     ) as unknown as FeedTexts
@@ -135,7 +138,7 @@ export function useTleData() {
     return feeds
   }, [])
 
-  /** Background live refresh; never disturbs the UI on failure. */
+  /** Background live refresh; keeps the last dataset and surfaces failures. */
   const refreshLive = useCallback(async () => {
     if (busyRef.current) return
     busyRef.current = true
@@ -147,22 +150,44 @@ export function useTleData() {
       if (genRef.current !== myGen) return
       const base = snapTextsRef.current ?? (await loadSnapshots())
       const feeds = { ...base }
-      let liveCount = 0
+      const failures: string[] = []
       results.forEach((r, i) => {
         if (r.status === 'fulfilled' && isValidTleText(r.value)) {
           feeds[FEEDS[i].key] = r.value
-          liveCount++
+        } else if (r.status === 'fulfilled') {
+          failures.push(`${FEEDS[i].key}: invalid TLE structure`)
+        } else {
+          failures.push(
+            `${FEEDS[i].key}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
+          )
         }
       })
-      const activeLive = results[0].status === 'fulfilled'
-      if (!activeLive) return // keep current dataset silently
-      const fetchedAt = Date.now()
-      apply(feeds, 'live', fetchedAt)
-      if (liveCount === FEEDS.length) {
-        void cacheSet({ key: CACHE_KEY, texts: feeds, fetchedAt })
+      const activeLive =
+        results[0].status === 'fulfilled' && isValidTleText(results[0].value)
+      if (!activeLive) {
+        throw new Error(failures[0] ?? 'active feed did not return valid TLE data')
       }
-    } catch {
-      /* 403 / timeout / offline: keep current dataset */
+      const fetchedAt = Date.now()
+      const warning =
+        failures.length > 0
+          ? `Bazı canlı TLE akışları güncellenemedi; son geçerli veri korunuyor. ${failures.join(' | ')}`
+          : null
+      apply(feeds, 'live', fetchedAt, warning)
+      if (failures.length === 0) {
+        try {
+          await cacheSet({ key: CACHE_KEY, texts: feeds, fetchedAt })
+        } catch (error) {
+          setState((current) => ({
+            ...current,
+            warning: `Canlı veri yüklendi ancak yerel TLE önbelleği güncellenemedi: ${error instanceof Error ? error.message : String(error)}`,
+          }))
+        }
+      }
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        warning: `Canlı TLE güncellemesi başarısız; son geçerli veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+      }))
     } finally {
       busyRef.current = false
     }
@@ -183,6 +208,7 @@ export function useTleData() {
         status: 'error',
         dataset: null,
         error: err instanceof Error ? err.message : String(err),
+        warning: null,
       })
       // continue anyway: live fetch below may still succeed
     }
@@ -194,8 +220,11 @@ export function useTleData() {
         if (isStale()) return
         apply(cached.texts, 'cached', cached.fetchedAt)
       }
-    } catch {
-      /* invalid cache — ignore */
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        warning: `Yerel TLE önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+      }))
     }
 
     // 3. live fetch in background
@@ -211,5 +240,5 @@ export function useTleData() {
     }
   }, [initialLoad, refreshLive, invalidate])
 
-  return state
+  return { ...state, retry: refreshLive }
 }

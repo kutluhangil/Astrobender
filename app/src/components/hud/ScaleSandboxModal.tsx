@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface CelestialScaleSpec {
   id: string
@@ -81,10 +82,10 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     radiusKm: '24,622 km',
     ratioToEarth: 3.86,
     gravity: '11.15 m/s² (1.14g)',
-    climate: '-200°C, 2,100 km/s Fırtınalar',
+    climate: '-200°C, 2,000 km/h Fırtınalar',
     atmosphere: 'Hidrojen (%80), Helyum (%19), Metan',
     texture: 'neptune-2k.jpg',
-    funFact: 'Güneş Sistemi\'nin en güçlü rüzgarlarına sahiptir (2,100 km/s).',
+    funFact: 'Güneş Sistemi\'nin en güçlü rüzgarlarına sahiptir (2,000 km/h üzeri).',
   },
   {
     id: 'earth',
@@ -151,7 +152,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     radiusKm: '2,575 km',
     ratioToEarth: 0.4,
     gravity: '1.35 m/s² (0.14g)',
-    climate: '-179°C, Sıvı Metan Okyanusları',
+    climate: '-179°C, Sıvı Metan Gölleri ve Denizleri',
     atmosphere: 'Azot (%95), Metan (%5)',
     texture: 'titan-4k.jpg',
     funFact: 'Yüzeyinde sıvı metan gölleri ve yoğun atmosferi olan tek uydudur.',
@@ -268,6 +269,62 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     texture: 'titania-4k.jpg',
     funFact: 'Uranüs\'ün en büyük uydusudur; devasa kanyon sistemleri barındırır.',
   },
+  {
+    id: 'oberon',
+    name: 'Oberon',
+    nameTr: 'Oberon',
+    emoji: '🌑',
+    typeTr: 'Uranüs Uydusu',
+    radiusKm: '761 km',
+    ratioToEarth: 0.119,
+    gravity: '0.35 m/s² (0.04g)',
+    climate: '-198°C, Kraterli Buz ve Kaya',
+    atmosphere: 'Yok',
+    texture: 'oberon-4k.jpg',
+    funFact: 'Uranüs\'ün ikinci büyük ve en dıştaki büyük uydusudur.',
+  },
+  {
+    id: 'enceladus',
+    name: 'Enceladus',
+    nameTr: 'Enceladus',
+    emoji: '🧊',
+    typeTr: 'Satürn Uydusu',
+    radiusKm: '252 km',
+    ratioToEarth: 0.04,
+    gravity: '0.11 m/s² (0.01g)',
+    climate: '-201°C, Buz Kabuğu ve Su Gayzerleri',
+    atmosphere: 'Su buharı ağırlıklı ince egzozfer',
+    texture: 'enceladus-4k.jpg',
+    funFact: 'Güney kutbundaki çatlaklardan uzaya su ve buz püskürtür.',
+  },
+  {
+    id: 'phobos',
+    name: 'Phobos',
+    nameTr: 'Phobos',
+    emoji: '🌑',
+    typeTr: 'Mars Uydusu',
+    radiusKm: '11.2 km',
+    ratioToEarth: 0.0018,
+    gravity: '0.0057 m/s²',
+    climate: '-112°C Ortalama, Tozlu Kaya',
+    atmosphere: 'Yok',
+    texture: 'phobos-4k.jpg',
+    funFact: 'Mars çevresinde bir Mars gününde yaklaşık üç tur atar.',
+  },
+  {
+    id: 'deimos',
+    name: 'Deimos',
+    nameTr: 'Deimos',
+    emoji: '🌑',
+    typeTr: 'Mars Uydusu',
+    radiusKm: '6.2 km',
+    ratioToEarth: 0.001,
+    gravity: '0.003 m/s²',
+    climate: '-40°C Ortalama, Tozlu Kaya',
+    atmosphere: 'Yok',
+    texture: 'deimos-4k.jpg',
+    funFact: 'Mars\'ın daha küçük ve daha uzaktaki doğal uydusudur.',
+  },
 ]
 
 interface ScaleSandboxModalProps {
@@ -277,6 +334,7 @@ interface ScaleSandboxModalProps {
 export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'planets' | 'moons'>('all')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useDialogFocus(onClose)
 
   const scrollContainer = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
@@ -284,27 +342,41 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
     scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' })
   }
 
+  const isMoon = (body: CelestialScaleSpec) => body.typeTr.includes('Uydu')
   const filtered = SORTED_BODIES.filter((b) => {
-    if (activeTab === 'planets') return b.typeTr.includes('Gezegen') || b.typeTr.includes('Yıldız')
-    if (activeTab === 'moons') return b.typeTr.includes('Uydu')
+    if (activeTab === 'planets') return !isMoon(b)
+    if (activeTab === 'moons') return isMoon(b)
     return true
   })
+  const moonCount = SORTED_BODIES.filter(isMoon).length
+  const planetAndSunCount = SORTED_BODIES.length - moonCount
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/85 p-0 md:p-4 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="relative w-full md:max-w-6xl rounded-t-2xl md:rounded-2xl border border-cyan-500/30 bg-[#060a12]/95 p-4 md:p-6 text-slate-100 shadow-[0_0_60px_rgba(6,182,212,0.25)] flex flex-col max-h-[92vh] md:max-h-[90vh]">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scale-sandbox-title"
+        tabIndex={-1}
+        className="relative w-full md:max-w-6xl rounded-t-2xl md:rounded-2xl border border-cyan-500/30 bg-[#060a12]/95 p-4 md:p-6 text-slate-100 shadow-[0_0_60px_rgba(6,182,212,0.25)] flex flex-col max-h-[92vh] md:max-h-[90vh] focus:outline-none"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
           <div>
-            <h2 className="font-mono text-lg md:text-xl font-bold text-cyan-200 tracking-wide flex items-center gap-2">
+            <h2
+              id="scale-sandbox-title"
+              className="font-mono text-lg md:text-xl font-bold text-cyan-200 tracking-wide flex items-center gap-2"
+            >
               <span>⚖️</span> GÜNEŞ SİSTEMİ GERÇEK BOYUT & ÖZELLİK KARŞILAŞTIRMASI
             </h2>
             <p className="font-mono text-xs text-slate-400 mt-1">
-              Gök cisimleri gerçek yarıçaplarına göre büyükten küçüğe sıralanmıştır. Gerçek 3D kaplama görselleri, yerçekimi ve iklim verileri.
+              Gök cisimleri gerçek yarıçaplarına göre büyükten küçüğe sıralanmıştır. Gözlemsel 3D kaplamalar, yerçekimi ve iklim verileri.
             </p>
           </div>
           <button
             onClick={onClose}
+            aria-label="Boyut karşılaştırmasını kapat"
             className="rounded-lg border border-white/10 bg-white/5 px-3.5 py-1.5 font-mono text-xs text-slate-300 hover:bg-white/10 transition-all"
           >
             Kapat ✖
@@ -316,33 +388,36 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('all')}
+              aria-pressed={activeTab === 'all'}
               className={`px-3 py-1 rounded-md font-mono text-xs transition-all ${
                 activeTab === 'all'
                   ? 'border border-cyan-400/50 bg-cyan-400/20 text-cyan-200 font-bold'
                   : 'border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              Tüm Gök Cisimleri (18)
+              Tüm Gök Cisimleri ({SORTED_BODIES.length})
             </button>
             <button
               onClick={() => setActiveTab('planets')}
+              aria-pressed={activeTab === 'planets'}
               className={`px-3 py-1 rounded-md font-mono text-xs transition-all ${
                 activeTab === 'planets'
                   ? 'border border-amber-400/50 bg-amber-400/20 text-amber-200 font-bold'
                   : 'border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              Gezegenler & Güneş (9)
+              Gezegenler & Güneş ({planetAndSunCount})
             </button>
             <button
               onClick={() => setActiveTab('moons')}
+              aria-pressed={activeTab === 'moons'}
               className={`px-3 py-1 rounded-md font-mono text-xs transition-all ${
                 activeTab === 'moons'
                   ? 'border border-indigo-400/50 bg-indigo-400/20 text-indigo-200 font-bold'
                   : 'border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              Uydular (9)
+              Uydular ({moonCount})
             </button>
           </div>
 
@@ -350,6 +425,7 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => scrollContainer('left')}
+              aria-label="Gök cisimlerini sola kaydır"
               className="flex items-center gap-1 px-3 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-mono font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
               title="Sola Kaydır"
             >
@@ -357,6 +433,7 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
             </button>
             <button
               onClick={() => scrollContainer('right')}
+              aria-label="Gök cisimlerini sağa kaydır"
               className="flex items-center gap-1 px-3 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-mono font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
               title="Sağa Kaydır"
             >
@@ -366,7 +443,10 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
         </div>
 
         {/* Horizontal Side-by-Side Scrolling Cards Container (Büyükten Küçüğe Yan Yana) */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-cyan-500/40 pb-4 pt-1">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-cyan-500/40 pb-4 pt-1"
+        >
           <div className="flex gap-4 min-w-max px-1 items-stretch">
             {filtered.map((b, index) => {
               // Scale representation size for visual sphere preview

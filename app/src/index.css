@@ -17,6 +17,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.font-display {
+  font-family: 'Arial Narrow', 'Avenir Next Condensed', 'Helvetica Neue', sans-serif;
+  font-stretch: condensed;
+}
+
+.font-display-heavy {
+  font-family: 'Arial Black', 'Avenir Next', 'Helvetica Neue', sans-serif;
+}
+
 canvas {
   display: block;
 }

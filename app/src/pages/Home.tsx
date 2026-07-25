@@ -53,7 +53,7 @@ export default function Home() {
   const mountRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<GlobeEngine | null>(null)
   const clock = useSimClock()
-  const { status, dataset, error } = useTleData()
+  const { status, dataset, error, warning: tleWarning, retry: retryTle } = useTleData()
 
   const [webglOk] = useState(detectWebGL)
   const [ctxLost, setCtxLost] = useState(false)
@@ -477,6 +477,7 @@ export default function Home() {
               : 'border-white/10 bg-[#0a0e14]/70'
           }`}
           title="Gezegen Bilgisi"
+          aria-label="Gezegen bilgisini aç veya kapat"
         >
           🪐
         </button>
@@ -489,6 +490,7 @@ export default function Home() {
               : 'border-cyan-500/30 bg-[#0a0e17]/85 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
           }`}
           title="Tema Değiştir"
+          aria-label="Karanlık ve açık tema arasında geçiş yap"
         >
           {theme === 'light' ? '🦴' : '🌌'}
         </button>
@@ -544,6 +546,7 @@ export default function Home() {
           <button
             onClick={() => setSelectedPin(null)}
             className="ml-2 shrink-0 rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+            aria-label="Seçili koordinatı kapat"
           >
             ✕
           </button>
@@ -658,6 +661,21 @@ export default function Home() {
       )}
 
       {/* ============ DEGRADED WARNING ============ */}
+      {tleWarning && (
+        <div
+          className="absolute bottom-[136px] right-3 z-20 max-w-[min(360px,calc(100vw-24px))] rounded-lg border border-amber-400/30 bg-[#17120a]/90 px-3 py-2 text-[11px] text-amber-100 shadow-lg backdrop-blur-xl md:right-7"
+          role="status"
+        >
+          <div>{tleWarning}</div>
+          <button
+            type="button"
+            onClick={() => void retryTle()}
+            className="mt-1.5 rounded border border-amber-300/30 px-2 py-0.5 font-mono text-[10px] text-amber-200 hover:bg-amber-300/10"
+          >
+            Tekrar dene
+          </button>
+        </div>
+      )}
       {degraded && (
         <div className="absolute bottom-[100px] right-3 z-20 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[11px] text-amber-200 max-w-[200px] md:right-7">
           Live propagation degraded: {degraded}

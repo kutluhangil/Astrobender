@@ -1,4 +1,5 @@
 import type { LandingSite } from '@/lib/landing-sites'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface LandingSiteModalProps {
   site: LandingSite
@@ -6,14 +7,26 @@ interface LandingSiteModalProps {
 }
 
 export default function LandingSiteModal({ site, onClose }: LandingSiteModalProps) {
+  const dialogRef = useDialogFocus(onClose)
+
   return (
-    <div className="pointer-events-auto fixed bottom-24 right-4 z-40 w-[320px] max-w-[calc(100vw-32px)] rounded-2xl border border-amber-500/40 bg-[#0a0e17]/95 p-4 text-slate-100 shadow-[0_0_40px_rgba(245,158,11,0.25)] backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="landing-site-title"
+      tabIndex={-1}
+      className="pointer-events-auto fixed bottom-24 right-4 z-40 w-[320px] max-w-[calc(100vw-32px)] rounded-2xl border border-amber-500/40 bg-[#0a0e17]/95 p-4 text-slate-100 shadow-[0_0_40px_rgba(245,158,11,0.25)] backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 focus:outline-none"
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-2.5 mb-3">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">{site.emoji}</span>
           <div>
-            <h3 className="font-mono text-xs font-bold tracking-wide text-amber-200 uppercase">
+            <h3
+              id="landing-site-title"
+              className="font-mono text-xs font-bold tracking-wide text-amber-200 uppercase"
+            >
               {site.nameTr}
             </h3>
             <p className="font-mono text-[10px] text-amber-400/90">{site.name}</p>
@@ -21,6 +34,7 @@ export default function LandingSiteModal({ site, onClose }: LandingSiteModalProp
         </div>
         <button
           onClick={onClose}
+          aria-label="İniş alanı ayrıntılarını kapat"
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 hover:bg-white/10"
         >
           Kapat ✖

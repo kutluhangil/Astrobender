@@ -37,10 +37,6 @@ export default defineConfig({
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'react-vendor'
           }
-          // Radix UI components (shadcn/ui) — large but cache-stable
-          if (id.includes('@radix-ui')) {
-            return 'radix-vendor'
-          }
         },
       },
     },

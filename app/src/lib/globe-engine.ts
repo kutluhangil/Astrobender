@@ -17,6 +17,17 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { PLANETS, type CelestialBodyId, type PlanetDef } from './planets'
+import {
+  J2000_MS,
+  compressDistanceAu,
+  getGeocentricScenePositions,
+  getSatelliteScenePosition,
+  samplePlanetOrbitScene,
+  sampleSatelliteOrbitScene,
+  type CartesianPosition,
+  type PlanetaryBodyId,
+  type SatelliteBodyId,
+} from './orbital-mechanics'
 import { DEEP_SPACE_PROBES } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
@@ -602,20 +613,10 @@ export class GlobeEngine {
 
 
     // Moon Orbit Path
-    const MOON_ORBIT_R = 9.5
-    const orbitPts: THREE.Vector3[] = []
     const moonSegs = 128
-    const inc = (5.14 * Math.PI) / 180
-    for (let i = 0; i <= moonSegs; i++) {
-      const a = (i / moonSegs) * Math.PI * 2
-      orbitPts.push(
-        new THREE.Vector3(
-          Math.cos(a) * MOON_ORBIT_R,
-          Math.sin(a) * Math.cos(inc) * MOON_ORBIT_R,
-          Math.sin(a) * Math.sin(inc) * MOON_ORBIT_R,
-        ),
-      )
-    }
+    const orbitPts = sampleSatelliteOrbitScene('moon', moonSegs).map(
+      ({ x, y, z }) => new THREE.Vector3(x, y, z),
+    )
     const moonOrbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPts)
     this.moonOrbitLine = new THREE.Line(
       moonOrbitGeo,
@@ -906,7 +907,13 @@ export class GlobeEngine {
         uTint: {
           value: new THREE.Vector3(...(def.surfaceTint ?? [1, 1, 1])),
         },
-        uAmbient: { value: def.parent ? 0.16 : 0.06 },
+        uFallbackColor: {
+          value: new THREE.Color(PLANET_BASE_COLORS[def.id] ?? '#666666'),
+        },
+        uMissingMode: {
+          value: def.missingTextureTone === 'dark' ? 1 : def.missingTextureTone === 'light' ? 2 : 0,
+        },
+        uAmbient: { value: def.parent ? 0.30 : 0.06 },
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
         uTime: { value: 0 },
       },
@@ -925,6 +932,8 @@ export class GlobeEngine {
       fragmentShader: /* glsl */ `
         uniform sampler2D uTex;
         uniform vec3 uTint;
+        uniform vec3 uFallbackColor;
+        uniform int uMissingMode;
         uniform float uAmbient;
         uniform vec3 uSunDir;
         uniform float uTime;
@@ -932,7 +941,16 @@ export class GlobeEngine {
         varying vec3 vNormalW;
         varying vec3 vPosW;
         void main() {
-          vec3 texCol = clamp(texture2D(uTex, vUv).rgb * uTint, 0.0, 1.0);
+          vec3 sampled = texture2D(uTex, vUv).rgb;
+          float luminance = dot(sampled, vec3(0.2126, 0.7152, 0.0722));
+          float coverage = 1.0;
+          if (uMissingMode == 1) {
+            coverage = smoothstep(0.012, 0.065, luminance);
+          } else if (uMissingMode == 2) {
+            coverage = 1.0 - smoothstep(0.965, 0.995, luminance);
+          }
+          vec3 observedColor = clamp(sampled * uTint, 0.0, 1.0);
+          vec3 texCol = mix(uFallbackColor, observedColor, coverage);
           float lit = dot(vNormalW, uSunDir);
           float day = smoothstep(-0.15, 0.35, lit);
           vec3 col = texCol * (uAmbient + (1.0 - uAmbient) * day);
@@ -945,7 +963,6 @@ export class GlobeEngine {
     if (def.shapeScale) mesh.scale.set(...def.shapeScale)
     this.scene.add(mesh)
 
-    // Atmosphere rim glow
     // Atmosphere rim glow — smooth, soft atmospheric haze
     let atmo: THREE.Mesh | undefined
     if (def.atmosphereColor) {
@@ -986,18 +1003,16 @@ export class GlobeEngine {
       mesh.add(atmo)
     }
 
-    // Orbit line around the Sun
-    const orbitPts: THREE.Vector3[] = []
     const orbSegs = 128
-    const incRad = def.inclination * (Math.PI / 180)
-    for (let i = 0; i <= orbSegs; i++) {
-      const a = (i / orbSegs) * Math.PI * 2
-      orbitPts.push(new THREE.Vector3(
-        Math.cos(a) * def.orbitRadius,
-        Math.sin(a) * Math.cos(incRad) * def.orbitRadius,
-        Math.sin(a) * Math.sin(incRad) * def.orbitRadius,
-      ))
-    }
+    const orbitPts = (
+      def.parent
+        ? sampleSatelliteOrbitScene(def.id as SatelliteBodyId, orbSegs)
+        : samplePlanetOrbitScene(
+            def.id as PlanetaryBodyId,
+            this.cb.getSimTime(),
+            orbSegs,
+          )
+    ).map(({ x, y, z }) => new THREE.Vector3(x, y, z))
     const orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPts)
     const orbitLine = new THREE.Line(
       orbitGeo,
@@ -1558,19 +1573,13 @@ export class GlobeEngine {
     }
   }
 
-  private updateSun(simMs: number) {
-    // Reuse tmpVec1 to avoid allocating a new Vector3 every frame (60 fps = 60 allocs/s)
-    this.reusableDate.setTime(simMs)
-    const jd = satellite.jday(this.reusableDate)
-    const sun = satellite.sunPos(jd).rsun
-    const len = Math.sqrt(sun.x * sun.x + sun.y * sun.y + sun.z * sun.z) || 1
-    this.tmpVec1.set(sun.x / len, sun.y / len, sun.z / len)
+  private updateSun(simMs: number, sunPosition: CartesianPosition) {
+    this.sun.position.set(sunPosition.x, sunPosition.y, sunPosition.z)
+    this.tmpVec1.copy(this.sun.position).normalize()
     ;(this.earthMat.uniforms.uSunDir.value as THREE.Vector3).copy(this.tmpVec1)
-    // Sync moon/planet sun direction uniforms if they exist
     if (this.moonMat.uniforms.uSunDir) {
       ;(this.moonMat.uniforms.uSunDir.value as THREE.Vector3).copy(this.tmpVec1)
     }
-    this.sun.position.copy(this.tmpVec1).multiplyScalar(120)
     this.sun.rotation.y = (simMs / 1000) * 0.00005
   }
 
@@ -1613,30 +1622,37 @@ export class GlobeEngine {
     this.moonMat.uniforms.uTime.value = performance.now() * 0.001
     this.sunMat.uniforms.uTime.value = performance.now() * 0.001
     ;(this.sunCorona.material as THREE.ShaderMaterial).uniforms.uTime.value = performance.now() * 0.001
-    this.updateSun(simMs)
+    const planetPositions = getGeocentricScenePositions(simMs)
+    this.updateSun(simMs, planetPositions.sun)
+    if (this.probeGroup?.visible) {
+      for (const probe of this.probeGroup.children) {
+        const offset = probe.userData.offset
+        const anchor = probe.userData.anchor
+        if (!(offset instanceof THREE.Vector3) || (anchor !== 'earth' && anchor !== 'sun')) {
+          throw new Error(`Invalid probe scene metadata: ${probe.name || 'unnamed probe'}`)
+        }
+        probe.position.copy(offset)
+        if (anchor === 'sun') probe.position.add(this.sun.position)
+      }
+    }
     ;(this.cloudsMat.uniforms.uSunDir.value as THREE.Vector3).copy(
       this.earthMat.uniforms.uSunDir.value as THREE.Vector3,
     )
 
     // --- Moon animation & orbit positioning ---
-    const MOON_ORBIT_R = 9.5
-    const moonPeriodDays = 27.32
-    const moonAngle = ((simS / (moonPeriodDays * 86400)) * Math.PI * 2) % (Math.PI * 2)
-    const inc = (5.14 * Math.PI) / 180
-    const mx = Math.cos(moonAngle) * MOON_ORBIT_R
-    const my = Math.sin(moonAngle) * Math.cos(inc) * MOON_ORBIT_R
-    const mz = Math.sin(moonAngle) * Math.sin(inc) * MOON_ORBIT_R
-    this.moon.position.set(mx, my, mz)
-    this.moon.rotation.z = moonAngle + Math.PI
+    const moonPosition = getSatelliteScenePosition('moon', simMs)
+    this.moon.position.set(moonPosition.x, moonPosition.y, moonPosition.z)
+    this.moon.rotation.z =
+      (((simMs - J2000_MS) / (27.322 * 86400000)) * Math.PI * 2 + Math.PI) %
+      (Math.PI * 2)
     ;(this.moonMat.uniforms.uSunDir.value as THREE.Vector3).copy(
       this.earthMat.uniforms.uSunDir.value as THREE.Vector3,
     )
 
     // ── Planet Orbit Animation ────────────────────────────────────────────
     const sunPos = this.sun.position
-    const sunDir = this.earthMat.uniforms.uSunDir.value as THREE.Vector3
     for (const prt of this.planetRuntimes) {
-      this.animatePlanet(prt, simS, sunPos, sunDir, null)
+      this.animatePlanet(prt, simMs, sunPos, null, planetPositions)
     }
 
     if (this.asteroidSwarm && (this.asteroidSwarm.mainBelt.visible || this.asteroidSwarm.kuiperBelt.visible)) {
@@ -1802,26 +1818,32 @@ export class GlobeEngine {
 
   private animatePlanet(
     prt: PlanetRuntime,
-    simS: number,
+    simMs: number,
     sunPos: THREE.Vector3,
-    sunDir: THREE.Vector3,
     parentPos: THREE.Vector3 | null,
+    planetPositions: ReturnType<typeof getGeocentricScenePositions>,
   ) {
     const { def, mesh, mat, moons } = prt
-    const periodSec = def.orbitPeriodDays * 86400
-    const angle = ((simS / periodSec) * Math.PI * 2) % (Math.PI * 2)
-    const incRad = def.inclination * (Math.PI / 180)
-
-    const relX = Math.cos(angle) * def.orbitRadius
-    const relY = Math.sin(angle) * Math.cos(incRad) * def.orbitRadius
-    const relZ = Math.sin(angle) * Math.sin(incRad) * def.orbitRadius
-
-    const origin = parentPos ?? sunPos
-    mesh.position.set(origin.x + relX, origin.y + relY, origin.z + relZ)
+    const position = def.parent
+      ? getSatelliteScenePosition(def.id as SatelliteBodyId, simMs)
+      : planetPositions[def.id as PlanetaryBodyId]
+    if (!position) {
+      throw new Error(`Missing scene position for celestial body: ${def.id}`)
+    }
+    if (parentPos) {
+      mesh.position.set(
+        parentPos.x + position.x,
+        parentPos.y + position.y,
+        parentPos.z + position.z,
+      )
+    } else {
+      mesh.position.set(position.x, position.y, position.z)
+    }
+    if (prt.orbitLine) prt.orbitLine.position.copy(parentPos ?? sunPos)
 
     const rotSign = def.retrograde ? -1 : 1
     const rotSpeed = (2 * Math.PI) / (def.rotationPeriodHours * 3600)
-    mesh.rotation.z = (simS * rotSpeed * rotSign) % (Math.PI * 2)
+    mesh.rotation.z = ((simMs / 1000) * rotSpeed * rotSign) % (Math.PI * 2)
 
     // Calculate vector pointing from planet to Sun for accurate 3D lighting without garbage collection
     const bodySunDir = this.tmpVec1.copy(sunPos).sub(mesh.position).normalize()
@@ -1830,7 +1852,7 @@ export class GlobeEngine {
     ;(mat.uniforms.uSunDir.value as THREE.Vector3).copy(bodySunDir)
 
     for (const m of moons) {
-      this.animatePlanet(m, simS, sunPos, sunDir, mesh.position)
+      this.animatePlanet(m, simMs, sunPos, mesh.position, planetPositions)
     }
   }
 
@@ -1938,8 +1960,7 @@ export class GlobeEngine {
   private makeProbes(): THREE.Group {
     const group = new THREE.Group()
     for (const p of DEEP_SPACE_PROBES) {
-      // Ensure all probes sit far out in deep space (e.g. at least 22 AU), avoiding Earth's core
-      const dist = Math.max(22.0, p.distanceAu)
+      const dist = compressDistanceAu(p.distanceAu)
       const px = Math.cos(p.angleRad) * dist
       const py = Math.sin(p.angleRad) * Math.cos(p.inclinationRad) * dist
       const pz = Math.sin(p.angleRad) * Math.sin(p.inclinationRad) * dist
@@ -1948,7 +1969,10 @@ export class GlobeEngine {
       const geo = new THREE.SphereGeometry(0.08, 16, 16)
       const mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
       const mesh = new THREE.Mesh(geo, mat)
-      mesh.position.set(px, py, pz)
+      mesh.name = p.name
+      mesh.userData.offset = new THREE.Vector3(px, py, pz)
+      mesh.userData.anchor = p.id === 'jwst' ? 'earth' : 'sun'
+      mesh.position.copy(mesh.userData.offset)
 
       group.add(mesh)
     }

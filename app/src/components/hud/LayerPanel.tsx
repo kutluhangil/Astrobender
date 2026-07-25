@@ -27,6 +27,13 @@ const PRIMARY_BODIES: { id: CelestialBodyId; name: string; emoji: string; active
   { id: 'sun', name: 'Sun', emoji: '☀️', activeClass: 'border-orange-500/60 bg-orange-500/20 text-orange-200 shadow-[0_0_10px_rgba(249,115,22,0.3)]' },
 ]
 
+function formatSemiMajorAxisAu(planet: (typeof PLANETS)[number]): string {
+  if (planet.semiMajorAxisAu === undefined) {
+    throw new Error(`Missing semi-major axis for planet: ${planet.id}`)
+  }
+  return `${planet.semiMajorAxisAu.toFixed(planet.semiMajorAxisAu < 1 ? 2 : 1)} AU`
+}
+
 export default function LayerPanel({
   counts,
   visible,
@@ -105,9 +112,13 @@ export default function LayerPanel({
 
         {/* Expanded Solar System Grid */}
         {showAllPlanets && (
-          <div className="max-h-[30vh] md:max-h-[160px] overflow-y-auto space-y-1 pr-1 text-[11px] scrollbar-thin scrollbar-thumb-white/10">
-            {PLANETS.map((p) => (
-              <div key={p.id} className="space-y-0.5">
+          <>
+            <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.14em] text-cyan-300/65">
+              JPL yörüngeleri · sıkıştırılmış görsel mesafe
+            </div>
+            <div className="max-h-[30vh] md:max-h-[160px] overflow-y-auto space-y-1 pr-1 text-[11px] scrollbar-thin scrollbar-thumb-white/10">
+              {PLANETS.map((p) => (
+                <div key={p.id} className="space-y-0.5">
                 <button
                   onClick={() => onSelectBody?.(p.id)}
                   className={`w-full flex items-center justify-between rounded-md border px-2 py-1 transition-all ${
@@ -117,7 +128,12 @@ export default function LayerPanel({
                   }`}
                 >
                   <span>{p.emoji} {p.name}</span>
-                  <span className="font-mono text-[9px] text-slate-500">{p.orbitRadius} AU</span>
+                  <span
+                    className="font-mono text-[9px] text-slate-500"
+                    title="Gerçek yarı-büyük eksen; 3D görünüm sıkıştırılmıştır"
+                  >
+                    {formatSemiMajorAxisAu(p)}
+                  </span>
                 </button>
 
                 {/* Moons */}
@@ -138,9 +154,10 @@ export default function LayerPanel({
                     ))}
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {!showAllPlanets && focusBody !== 'earth' && focusBody !== 'moon' && focusBody !== 'sun' && (

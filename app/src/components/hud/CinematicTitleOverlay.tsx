@@ -66,8 +66,7 @@ export default function CinematicTitleOverlay({ bodyId }: CinematicTitleOverlayP
         {/* Control Giant Brutalist Location Title */}
         <div className="relative px-6 py-1">
           <h2
-            className="font-['Syncopate'] text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-[0.35em] text-white uppercase drop-shadow-[0_0_35px_rgba(255,255,255,0.7)]"
-            style={{ fontFamily: "'Syncopate', sans-serif" }}
+            className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-[0.35em] text-white uppercase drop-shadow-[0_0_35px_rgba(255,255,255,0.7)]"
           >
             {fact.name}
           </h2>
@@ -78,7 +77,7 @@ export default function CinematicTitleOverlay({ bodyId }: CinematicTitleOverlayP
           {/* Brutalist Red/Cyan Line */}
           <div className="h-[3px] w-36 bg-cyan-400 shadow-[0_0_12px_rgba(6,182,212,1)]" />
 
-          <div className="font-['Outfit'] font-black text-[11px] md:text-xs tracking-[0.3em] text-slate-300 uppercase mt-1">
+          <div className="font-display-heavy font-black text-[11px] md:text-xs tracking-[0.3em] text-slate-300 uppercase mt-1">
             {info.code}
           </div>
           <div className="font-mono text-[10px] tracking-[0.2em] text-slate-400 uppercase">

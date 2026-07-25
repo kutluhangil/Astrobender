@@ -23,7 +23,8 @@ export default function FallbackTable({ dataset }: { dataset: Dataset | null }) 
       .map((s) => {
         try {
           return { s, rec: satellite.twoline2satrec(s.l1, s.l2) }
-        } catch {
+        } catch (error) {
+          console.error(`Failed to parse TLE for NORAD ${s.norad} (${s.name})`, error)
           return null
         }
       })
@@ -46,8 +47,8 @@ export default function FallbackTable({ dataset }: { dataset: Dataset | null }) 
             lon: `${satellite.degreesLong(geo.longitude).toFixed(2)}°`,
             alt: `${geo.height.toFixed(0)} km`,
           })
-        } catch {
-          /* skip */
+        } catch (error) {
+          console.error(`Failed to propagate NORAD ${s.norad} (${s.name})`, error)
         }
       }
       setRows(out)
@@ -60,7 +61,9 @@ export default function FallbackTable({ dataset }: { dataset: Dataset | null }) 
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 text-slate-200">
-      <h1 className="font-mono text-xl font-semibold tracking-[0.34em]"><span className="logo-o">O</span>RBIT VEIL</h1>
+      <h1 className="font-mono text-xl font-semibold tracking-[0.34em]">
+        <span className="text-cyan-400">A</span>STROBENDER
+      </h1>
       <p className="mt-1 text-xs text-slate-400">
         Real-time orbital satellite visualization · CelesTrak TLE × SGP4 propagation
       </p>

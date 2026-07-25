@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { compressDistanceAu } from './orbital-mechanics'
 
 /**
  * 3D Asteroid & Kuiper Belt Instanced Swarm Generator.
@@ -25,7 +26,7 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
   }
   rockGeo.computeVertexNormals()
 
-  // 1. Main Asteroid Belt (Mars - Jupiter: r = 78 to 92 AU)
+  // 1. Main Asteroid Belt (roughly 2.1 to 3.3 AU)
   // Realistic carbonaceous/silicate dark grey-brown rock material
   const mainCount = 2000
   const mainMat = new THREE.MeshStandardMaterial({
@@ -40,16 +41,17 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
   const dummy = new THREE.Object3D()
 
   for (let i = 0; i < mainCount; i++) {
-    const radius = 78 + Math.random() * 14
+    const distanceAu = 2.1 + Math.random() * 1.2
+    const radius = compressDistanceAu(distanceAu)
     const angleOffset = Math.random() * Math.PI * 2
-    const speed = (2 * Math.PI) / ((1400 + Math.random() * 800) * 86400)
+    const speed = (2 * Math.PI) / (365.25 * Math.pow(distanceAu, 1.5) * 86400)
     const inc = (Math.random() - 0.5) * 0.18
     const yOffset = (Math.random() - 0.5) * 4.0
 
     mainData.push({ radius, angleOffset, speed, inc, yOffset })
   }
 
-  // 2. Kuiper Belt (Beyond Neptune: r = 130 to 175 AU)
+  // 2. Kuiper Belt (roughly 30 to 50 AU)
   // Realistic dark slate icy grey material (no glowing cyan blue!)
   const kuiperCount = 1600
   const kuiperMat = new THREE.MeshStandardMaterial({
@@ -63,9 +65,10 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
   const kuiperData: { radius: number; angleOffset: number; speed: number; inc: number; yOffset: number }[] = []
 
   for (let i = 0; i < kuiperCount; i++) {
-    const radius = 130 + Math.random() * 45
+    const distanceAu = 30 + Math.random() * 20
+    const radius = compressDistanceAu(distanceAu)
     const angleOffset = Math.random() * Math.PI * 2
-    const speed = (2 * Math.PI) / ((3200 + Math.random() * 2000) * 86400)
+    const speed = (2 * Math.PI) / (365.25 * Math.pow(distanceAu, 1.5) * 86400)
     const inc = (Math.random() - 0.5) * 0.22
     const yOffset = (Math.random() - 0.5) * 7.0
 

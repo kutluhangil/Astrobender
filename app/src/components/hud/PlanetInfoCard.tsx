@@ -31,6 +31,7 @@ export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobil
           </div>
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? 'Gezegen bilgi kartını genişlet' : 'Gezegen bilgi kartını daralt'}
             className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-300 hover:bg-white/10"
           >
             {collapsed ? '➕' : '➖'}
@@ -90,6 +91,7 @@ export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobil
             </div>
             <button
               onClick={onMobileToggle}
+              aria-label="Gezegen bilgi kartını kapat"
               className="rounded-full border border-white/10 bg-white/10 p-1.5 text-slate-300 hover:bg-white/20"
             >
               <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 stroke-current" strokeWidth="1.5">

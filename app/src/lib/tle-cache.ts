@@ -12,8 +12,8 @@ export interface CachedBundle {
   fetchedAt: number
 }
 
-function openDb(): Promise<IDBDatabase | null> {
-  return new Promise((resolve) => {
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
     try {
       const req = indexedDB.open(DB_NAME, 1)
       req.onupgradeneeded = () => {
@@ -22,17 +22,22 @@ function openDb(): Promise<IDBDatabase | null> {
         }
       }
       req.onsuccess = () => resolve(req.result)
-      req.onerror = () => resolve(null)
-    } catch {
-      resolve(null)
+      req.onerror = () => {
+        reject(new Error(`IndexedDB "${DB_NAME}" could not be opened: ${req.error?.message ?? 'unknown error'}`))
+      }
+    } catch (error) {
+      reject(
+        new Error(
+          `IndexedDB "${DB_NAME}" is unavailable: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
     }
   })
 }
 
 export async function cacheGet(key: string): Promise<CachedBundle | null> {
   const db = await openDb()
-  if (!db) return null
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     try {
       const tx = db.transaction(STORE, 'readonly')
       const req = tx.objectStore(STORE).get(key)
@@ -44,24 +49,38 @@ export async function cacheGet(key: string): Promise<CachedBundle | null> {
             : null,
         )
       }
-      req.onerror = () => resolve(null)
-    } catch {
-      resolve(null)
+      req.onerror = () => {
+        reject(new Error(`TLE cache read failed for key "${key}": ${req.error?.message ?? 'unknown error'}`))
+      }
+    } catch (error) {
+      reject(
+        new Error(
+          `TLE cache transaction could not start for key "${key}": ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
     }
   })
 }
 
 export async function cacheSet(value: CachedBundle): Promise<void> {
   const db = await openDb()
-  if (!db) return
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     try {
       const tx = db.transaction(STORE, 'readwrite')
       tx.objectStore(STORE).put(value, value.key)
       tx.oncomplete = () => resolve()
-      tx.onerror = () => resolve()
-    } catch {
-      resolve()
+      tx.onerror = () => {
+        reject(new Error(`TLE cache write failed for key "${value.key}": ${tx.error?.message ?? 'unknown error'}`))
+      }
+      tx.onabort = () => {
+        reject(new Error(`TLE cache write was aborted for key "${value.key}": ${tx.error?.message ?? 'unknown error'}`))
+      }
+    } catch (error) {
+      reject(
+        new Error(
+          `TLE cache write transaction could not start for key "${value.key}": ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
     }
   })
 }

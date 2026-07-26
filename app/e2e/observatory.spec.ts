@@ -48,6 +48,12 @@ test('body controls still navigate to Europa without changing the Earth default'
   await expect(callout).toHaveCount(0, { timeout: 7_000 })
 })
 
+test('LIVE controller exposes operational status from its information port', async ({ page }) => {
+  const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
+  await infoPort.hover()
+  await expect(page.getByText('Sistem Durumu')).toBeVisible()
+})
+
 test('keyboard search supports arrow navigation and NORAD selection', async ({ page }) => {
   const search = page.getByRole('textbox', { name: 'Gözlemevinde ara' })
   await search.fill('25544')

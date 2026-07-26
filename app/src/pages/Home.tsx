@@ -9,7 +9,7 @@ import { useTleData } from '@/hooks/useTleData'
 import { usePropagator } from '@/hooks/usePropagator'
 import IdentityBlock from '@/components/hud/IdentityBlock'
 import ClockCard from '@/components/hud/ClockCard'
-import TimeController from '@/components/hud/TimeController'
+import TimeController, { type SystemStatusNotice } from '@/components/hud/TimeController'
 import LayerPanel from '@/components/hud/LayerPanel'
 import SearchBox from '@/components/hud/SearchBox'
 import DetailPanel from '@/components/hud/DetailPanel'
@@ -102,7 +102,6 @@ export default function Home() {
   const [layersOpen, setLayersOpen] = useState(false)
   const [mobilePlanetInfoOpen, setMobilePlanetInfoOpen] = useState(false)
   const [showScaleModal, setShowScaleModal] = useState(false)
-  const [tleWarningDismissed, setTleWarningDismissed] = useState(false)
   const [isCinematicTourActive, setIsCinematicTourActive] = useState(false)
   const [cinematicTourLanguage, setCinematicTourLanguage] = useState<CinematicTourLanguage>('tr')
   const [cinematicAudioStatus, setCinematicAudioStatus] = useState(INITIAL_CINEMATIC_AUDIO_STATUS)
@@ -126,10 +125,6 @@ export default function Home() {
   const earthObservatory = useEarthObservatory(earthObservatoryOpen)
   const smallBodies = useSmallBodies(smallBodiesOpen)
   const t = (tr: string, en: string) => pickLanguage(uiLanguage, tr, en)
-
-  useEffect(() => {
-    setTleWarningDismissed(false)
-  }, [tleWarning])
 
   useEffect(() => {
     document.documentElement.lang = uiLanguage
@@ -683,6 +678,56 @@ export default function Home() {
       }
     : null
   const hoverSat = hover ? satsRef.current[hover.index] : null
+  const systemNotices: SystemStatusNotice[] = [
+    ...(tleWarning
+      ? [{
+          id: 'tle',
+          title: t('Canlı TLE güncellemesi kullanılamıyor', 'Live TLE update unavailable'),
+          summary: t(
+            'Paketlenmiş son geçerli uydu kataloğu kullanılmaya devam ediyor.',
+            'The last valid bundled satellite catalog remains in use.',
+          ),
+          technicalDetails: tleWarning,
+          retryLabel: t('Tekrar dene', 'Retry'),
+          onRetry: () => void retryTle(),
+        }]
+      : []),
+    ...(degraded
+      ? [{
+          id: 'propagator',
+          title: t('Canlı yörünge hesabı yavaşladı', 'Live propagation slowed down'),
+          summary: t(
+            'Uydu konumları korunuyor; yoğun hesaplama geçici olarak sınırlandı.',
+            'Satellite positions are preserved; intensive calculation is temporarily limited.',
+          ),
+          technicalDetails: degraded,
+        }]
+      : []),
+    ...(smallBodies.error
+      ? [{
+          id: 'small-bodies',
+          title: t('JPL yakın geçiş verisi alınamadı', 'JPL close-approach data unavailable'),
+          summary: t(
+            'Küçük cisim paneli son kullanılabilir veriyi koruyor.',
+            'The small-bodies panel retains the last available data.',
+          ),
+          technicalDetails: smallBodies.error,
+          retryLabel: t('Tekrar dene', 'Retry'),
+          onRetry: () => void smallBodies.refresh(),
+        }]
+      : []),
+    ...Object.entries(earthObservatory.errors).map(([source, details]) => ({
+      id: `earth-${source}`,
+      title: t('Dünya Gözlemevi kaynağı güncellenemedi', 'Earth Observatory source unavailable'),
+      summary: t(
+        `${source.toUpperCase()} akışı güncellenemedi; kullanılabilir önbellek verisi korunuyor.`,
+        `${source.toUpperCase()} could not be refreshed; available cached data is retained.`,
+      ),
+      technicalDetails: details,
+      retryLabel: t('Tekrar dene', 'Retry'),
+      onRetry: () => void earthObservatory.refresh(),
+    })),
+  ]
 
   const layerPanelProps = {
     counts: dataset?.counts ?? UI_GROUPS.map(() => 0),
@@ -982,7 +1027,7 @@ export default function Home() {
         className="absolute bottom-4 left-1/2 z-20 max-w-[calc(100vw-24px)] -translate-x-1/2"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <TimeController clock={clock} />
+        <TimeController clock={clock} notices={systemNotices} language={uiLanguage} />
       </div>
 
       {/* ============ FOOTER CREDITS (desktop only) ============ */}
@@ -1052,55 +1097,6 @@ export default function Home() {
           language={uiLanguage}
           onClose={() => setShowScaleModal(false)}
         />
-      )}
-
-      {/* ============ DEGRADED WARNING ============ */}
-      {tleWarning && !tleWarningDismissed && (
-        <div
-          className="absolute bottom-[136px] right-3 z-20 w-[min(288px,calc(100vw-24px))] rounded-lg border border-amber-400/30 bg-[#17120a]/90 px-3 py-2 text-[11px] text-amber-100 shadow-lg backdrop-blur-xl md:right-7"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-amber-100">
-                {t('Canlı TLE güncellemesi kullanılamıyor', 'Live TLE update unavailable')}
-              </div>
-              <div className="mt-0.5 text-amber-100/75">
-                {t('Paketlenmiş son geçerli veriyle devam ediliyor.', 'Continuing with the last valid bundled dataset.')}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setTleWarningDismissed(true)}
-              className="-mr-1 -mt-1 rounded px-1.5 py-0.5 text-base leading-none text-amber-100/70 hover:bg-amber-300/10 hover:text-amber-100"
-              aria-label={t('TLE durum uyarısını kapat', 'Dismiss TLE status warning')}
-            >
-              ×
-            </button>
-          </div>
-          <details className="mt-1.5 text-amber-100/70">
-            <summary className="w-fit cursor-pointer text-[10px] text-amber-200/90">
-              {t('Teknik ayrıntı', 'Technical details')}
-            </summary>
-            <p className="mt-1 break-words font-mono text-[9px] leading-relaxed">{tleWarning}</p>
-          </details>
-          <button
-            type="button"
-            onClick={() => {
-              setTleWarningDismissed(false)
-              void retryTle()
-            }}
-            className="mt-1.5 rounded border border-amber-300/30 px-2 py-0.5 font-mono text-[10px] text-amber-200 hover:bg-amber-300/10"
-          >
-            {t('Tekrar dene', 'Retry')}
-          </button>
-        </div>
-      )}
-      {degraded && (
-        <div className="absolute bottom-[100px] right-3 z-20 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[11px] text-amber-200 max-w-[200px] md:right-7">
-          {t('Canlı yörünge hesabı yavaşladı', 'Live propagation degraded')}: {degraded}
-        </div>
       )}
 
       {/* ============ CONTEXT LOST ============ */}

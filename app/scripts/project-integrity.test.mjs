@@ -110,6 +110,18 @@ test('light-space theme and off-body target callout are wired', () => {
   assert.match(callout, /decodeName/)
 })
 
+test('recoverable operational warnings stay in the time-controller information port', () => {
+  const home = read('src/pages/Home.tsx')
+  const timeController = read('src/components/hud/TimeController.tsx')
+
+  assert.match(home, /const systemNotices: SystemStatusNotice\[\]/)
+  assert.match(home, /<TimeController clock=\{clock\} notices=\{systemNotices\}/)
+  assert.doesNotMatch(home, /tleWarningDismissed/)
+  assert.match(timeController, /aria-controls="system-status-panel"/)
+  assert.match(timeController, /notices\.map/)
+  assert.match(timeController, /technicalDetails/)
+})
+
 test('the temporary ASTROBENDER transmission animates over the opening 3D globe', () => {
   const home = read('src/pages/Home.tsx')
   const wordmark = read('src/components/OpeningWordmark.tsx')

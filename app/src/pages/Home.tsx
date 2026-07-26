@@ -21,6 +21,10 @@ import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import type { LandingSite } from '@/lib/landing-sites'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
+import {
+  CINEMATIC_TOUR_AUDIO_PATHS,
+  type CinematicTourLanguage,
+} from '@/lib/cinematic-tour'
 import FallbackTable from '@/components/FallbackTable'
 
 const EARTH_R = 6371
@@ -31,6 +35,16 @@ interface HoverState {
   index: number
   x: number
   y: number
+}
+
+interface CinematicAudioStatus {
+  ready: boolean
+  error: string | null
+}
+
+const INITIAL_CINEMATIC_AUDIO_STATUS: Record<CinematicTourLanguage, CinematicAudioStatus> = {
+  tr: { ready: false, error: null },
+  en: { ready: false, error: null },
 }
 
 function detectWebGL(): boolean {
@@ -76,6 +90,9 @@ export default function Home() {
   const [mobilePlanetInfoOpen, setMobilePlanetInfoOpen] = useState(false)
   const [showScaleModal, setShowScaleModal] = useState(false)
   const [tleWarningDismissed, setTleWarningDismissed] = useState(false)
+  const [isCinematicTourActive, setIsCinematicTourActive] = useState(false)
+  const [cinematicTourLanguage, setCinematicTourLanguage] = useState<CinematicTourLanguage>('tr')
+  const [cinematicAudioStatus, setCinematicAudioStatus] = useState(INITIAL_CINEMATIC_AUDIO_STATUS)
 
   // Cosmic environment states
   const [audioPlaying, setAudioPlaying] = useState(false)
@@ -90,6 +107,10 @@ export default function Home() {
   }, [tleWarning])
 
   const audioSynthRef = useRef(new SpaceAudioSynth())
+  const cinematicAudioRefs = useRef<Record<CinematicTourLanguage, HTMLAudioElement | null>>({
+    tr: null,
+    en: null,
+  })
 
   const satsRef = useRef<SatInfo[]>(EMPTY_SATS)
   const noradMapRef = useRef(new Map<number, number>())
@@ -180,6 +201,64 @@ export default function Home() {
     setAudioPlaying(playing)
   }, [])
 
+  const stopCinematicTour = useCallback(() => {
+    for (const audio of Object.values(cinematicAudioRefs.current)) {
+      if (!audio) continue
+      audio.pause()
+      audio.currentTime = 0
+    }
+    engineRef.current?.stopCinematicTour()
+    setIsCinematicTourActive(false)
+  }, [])
+
+  const startCinematicTour = useCallback(() => {
+    const audio = cinematicAudioRefs.current[cinematicTourLanguage]
+    const engine = engineRef.current
+    if (!audio || !engine) {
+      setCinematicAudioStatus((current) => ({
+        ...current,
+        [cinematicTourLanguage]: {
+          ...current[cinematicTourLanguage],
+          error: 'Sinematik tur başlatılamadı: ses veya 3D sahne hazır değil.',
+        },
+      }))
+      return
+    }
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+      setCinematicAudioStatus((current) => ({
+        ...current,
+        [cinematicTourLanguage]: {
+          ...current[cinematicTourLanguage],
+          error: 'Sinematik sesin süresi okunamadı. Sayfayı yenileyip yeniden deneyin.',
+        },
+      }))
+      return
+    }
+
+    audio.currentTime = 0
+    void audio.play().then(
+      () => {
+        engine.startCinematicTour(audio.duration)
+        setCinematicAudioStatus((current) => ({
+          ...current,
+          [cinematicTourLanguage]: { ...current[cinematicTourLanguage], error: null },
+        }))
+        setIsCinematicTourActive(true)
+      },
+      (error: unknown) => {
+        engine.stopCinematicTour()
+        setIsCinematicTourActive(false)
+        setCinematicAudioStatus((current) => ({
+          ...current,
+          [cinematicTourLanguage]: {
+            ...current[cinematicTourLanguage],
+            error: `Sinematik ses başlatılamadı: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        }))
+      },
+    )
+  }, [cinematicTourLanguage])
+
   const handleTogglePlanetaryOrbits = useCallback(() => {
     setPlanetaryOrbitsVisible((v) => {
       const next = !v
@@ -266,6 +345,7 @@ export default function Home() {
         setMobilePlanetInfoOpen(false)
       },
       onTargetChanged: (body) => setFocusBody(body),
+      onTourEnded: () => setIsCinematicTourActive(false),
       orbitProvider,
       footprintProvider,
     })
@@ -276,6 +356,51 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webglOk])
+
+  useEffect(() => {
+    const cleanups = (Object.entries(CINEMATIC_TOUR_AUDIO_PATHS) as Array<[CinematicTourLanguage, string]>).map(
+      ([language, path]) => {
+        const audio = new Audio(`${import.meta.env.BASE_URL}${path}`)
+        audio.preload = 'metadata'
+        const handleMetadata = () => {
+          setCinematicAudioStatus((current) => ({
+            ...current,
+            [language]: Number.isFinite(audio.duration) && audio.duration > 0
+              ? { ready: true, error: null }
+              : { ready: false, error: 'Sinematik ses geçersiz bir süre bildirdi.' },
+          }))
+        }
+        const handleError = () => {
+          setCinematicAudioStatus((current) => ({
+            ...current,
+            [language]: { ready: false, error: `Sinematik ses yüklenemedi: ${audio.currentSrc || path}` },
+          }))
+        }
+        const handleEnded = () => {
+          engineRef.current?.stopCinematicTour()
+          setIsCinematicTourActive(false)
+        }
+
+        audio.addEventListener('loadedmetadata', handleMetadata)
+        audio.addEventListener('error', handleError)
+        audio.addEventListener('ended', handleEnded)
+        cinematicAudioRefs.current[language] = audio
+        audio.load()
+
+        return () => {
+          audio.pause()
+          audio.removeEventListener('loadedmetadata', handleMetadata)
+          audio.removeEventListener('error', handleError)
+          audio.removeEventListener('ended', handleEnded)
+          if (cinematicAudioRefs.current[language] === audio) cinematicAudioRefs.current[language] = null
+        }
+      },
+    )
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup())
+    }
+  }, [])
 
   // ---- dataset -> engine (hot swap; preserves UI state) ----
   useEffect(() => {
@@ -514,10 +639,14 @@ export default function Home() {
       {/* ============ SECOND ROW: Tour + Theme (desktop) ============ */}
       <div className="hidden md:flex absolute left-7 top-[76px] z-20 items-center gap-2">
         <CosmicTourControls
-          onSelectBody={handleSelectBody}
           currentBodyId={focusBody}
-          onStartTour={() => engineRef.current?.startCinematicTour()}
-          onStopTour={() => engineRef.current?.stopCinematicTour()}
+          language={cinematicTourLanguage}
+          isTourActive={isCinematicTourActive}
+          isAudioReady={cinematicAudioStatus[cinematicTourLanguage].ready}
+          audioError={cinematicAudioStatus[cinematicTourLanguage].error}
+          onLanguageChange={setCinematicTourLanguage}
+          onStartTour={startCinematicTour}
+          onStopTour={stopCinematicTour}
         />
         <button
           onClick={handleToggleTheme}
@@ -535,10 +664,14 @@ export default function Home() {
       {/* Mobile: Tour button just below search */}
       <div className="absolute left-3 top-[108px] z-20 md:hidden">
         <CosmicTourControls
-          onSelectBody={handleSelectBody}
           currentBodyId={focusBody}
-          onStartTour={() => engineRef.current?.startCinematicTour()}
-          onStopTour={() => engineRef.current?.stopCinematicTour()}
+          language={cinematicTourLanguage}
+          isTourActive={isCinematicTourActive}
+          isAudioReady={cinematicAudioStatus[cinematicTourLanguage].ready}
+          audioError={cinematicAudioStatus[cinematicTourLanguage].error}
+          onLanguageChange={setCinematicTourLanguage}
+          onStartTour={startCinematicTour}
+          onStopTour={stopCinematicTour}
         />
       </div>
 

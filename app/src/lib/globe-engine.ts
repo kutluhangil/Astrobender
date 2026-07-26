@@ -18,6 +18,11 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { PLANETS, type CelestialBodyId, type PlanetDef } from './planets'
 import {
+  getCinematicTourCueIndex,
+  getCinematicTourCueWindow,
+  TOUR_SEQUENCE,
+} from './cinematic-tour'
+import {
   J2000_MS,
   compressDistanceAu,
   getGeocentricScenePositions,
@@ -33,20 +38,7 @@ import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 
-export const TOUR_SEQUENCE: CelestialBodyId[] = [
-  'sun',
-  'mercury',
-  'venus',
-  'earth',
-  'moon',
-  'mars',
-  'jupiter',
-  'saturn',
-  'titan',
-  'uranus',
-  'neptune',
-  'pluto',
-]
+export { TOUR_SEQUENCE } from './cinematic-tour'
 
 /** Runtime state for a rendered planet or moon */
 interface PlanetRuntime {
@@ -82,6 +74,7 @@ export interface EngineCallbacks {
   onPinSelected?: (pin: { lat: number; lon: number; text: string; landingSite?: LandingSite | null } | null) => void
   onSelectBody?: (bodyId: CelestialBodyId) => void
   onTargetChanged?: (bodyId: CelestialBodyId) => void
+  onTourEnded?: () => void
 }
 
 interface GroupRuntime {
@@ -404,6 +397,7 @@ export class GlobeEngine {
   public isCinematicTourActive: boolean = false
   public tourTargetIndex: number = 0
   private tourStartTime: number = 0
+  private tourAudioDurationS = 0
   private flyToActive = false
   private flyToStartTime = 0
   private flyToStartCam = new THREE.Vector3()
@@ -1645,19 +1639,36 @@ export class GlobeEngine {
 
     // Camera Fly-To & Up-Close Focus Lerping — supports all celestial bodies
     if (this.isCinematicTourActive) {
+      const now = performance.now()
+      const audioElapsedS = (now - this.tourStartTime) / 1000
+      if (audioElapsedS >= this.tourAudioDurationS) {
+        this.stopCinematicTour()
+        this.cb.onTourEnded?.()
+        return
+      }
+
+      const nextCueIndex = getCinematicTourCueIndex(audioElapsedS, this.tourAudioDurationS)
+      if (nextCueIndex !== this.tourTargetIndex) {
+        this.tourTargetIndex = nextCueIndex
+        const nextBody = TOUR_SEQUENCE[this.tourTargetIndex]
+        this.setFocusTarget(nextBody)
+        this.cb.onTargetChanged?.(nextBody)
+      }
+
       const tourBodyId = TOUR_SEQUENCE[this.tourTargetIndex]
       const targetInfo = this.getTargetBodyInfo(tourBodyId)
       if (targetInfo) {
         const bodyPos = this.tmpVec2
         targetInfo.mesh.getWorldPosition(bodyPos)
-
-        const now = performance.now()
-        const elapsedS = (now - this.tourStartTime) / 1000
-        const durationPerBody = 9.0 // 9 seconds continuous IMAX orbital sweep per body
+        const cueWindow = getCinematicTourCueWindow(this.tourTargetIndex, this.tourAudioDurationS)
+        const cueProgress = Math.min(
+          1,
+          Math.max(0, (audioElapsedS - cueWindow.startS) / cueWindow.durationS),
+        )
 
         const r = Math.max(0.4, targetInfo.radius * 3.4)
-        const orbitAngle = elapsedS * 0.65
-        const heightWave = Math.sin(elapsedS * 0.4) * (r * 0.35)
+        const orbitAngle = 0.45 + cueProgress * Math.PI * 1.25
+        const heightWave = Math.sin(cueProgress * Math.PI) * (r * 0.35)
 
         const camTargetPos = this.tmpVec4.set(
           bodyPos.x + Math.cos(orbitAngle) * r,
@@ -1668,14 +1679,6 @@ export class GlobeEngine {
         this.controls.target.lerp(bodyPos, 0.08)
         this.camera.position.lerp(camTargetPos, 0.06)
         this.controls.update()
-
-        if (elapsedS >= durationPerBody) {
-          this.tourTargetIndex = (this.tourTargetIndex + 1) % TOUR_SEQUENCE.length
-          this.tourStartTime = performance.now()
-          const nextBody = TOUR_SEQUENCE[this.tourTargetIndex]
-          this.setFocusTarget(nextBody)
-          this.cb.onTargetChanged?.(nextBody)
-        }
       }
     } else if (this.flyToActive) {
       const targetInfo = this.getTargetBodyInfo(this.focusTarget)
@@ -1858,9 +1861,13 @@ export class GlobeEngine {
     return findInRuntimes(this.planetRuntimes)
   }
 
-  startCinematicTour() {
+  startCinematicTour(audioDurationS: number) {
+    if (!Number.isFinite(audioDurationS) || audioDurationS <= 0) {
+      throw new Error(`Cinematic tour requires a valid narration duration, received ${audioDurationS}`)
+    }
     this.isCinematicTourActive = true
     this.tourTargetIndex = 0
+    this.tourAudioDurationS = audioDurationS
     this.tourStartTime = performance.now()
     const firstBody = TOUR_SEQUENCE[0]
     this.setFocusTarget(firstBody)

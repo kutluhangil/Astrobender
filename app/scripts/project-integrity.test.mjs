@@ -75,6 +75,17 @@ test('celestial pointer selection flies the engine to the selected body', () => 
   assert.match(home, /onSelectBody: \(body\) => \{[\s\S]*?engine\.setFocusTarget\(body\)/)
 })
 
+test('cinematic narration asset and timeline wiring are present', () => {
+  assert.equal(existsSync(`${appRoot}/public/audio/astrobender-sinematik-uzay-turu.mp3`), true)
+  assert.equal(existsSync(`${appRoot}/public/audio/astrobender-cinematic-space-tour-en.mp3`), true)
+  const home = read('src/pages/Home.tsx')
+  const tour = read('src/lib/cinematic-tour.ts')
+  assert.match(home, /CINEMATIC_TOUR_AUDIO_PATHS/)
+  assert.match(home, /engine\.startCinematicTour\(audio\.duration\)/)
+  assert.match(home, /cinematicTourLanguage/)
+  assert.match(tour, /CINEMATIC_TOUR_SCRIPT_DURATION_S = 273/)
+})
+
 test('known invalid and duplicate textures are removed', () => {
   for (const path of [
     'public/textures/milkyway-4k.jpg',

@@ -33,7 +33,7 @@ import {
   type PlanetaryBodyId,
   type SatelliteBodyId,
 } from './orbital-mechanics'
-import { DEEP_SPACE_PROBES } from './probes'
+import { DEEP_SPACE_PROBES, probeDistanceAuAt, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
@@ -1696,9 +1696,16 @@ export class GlobeEngine {
       for (const probe of this.probeGroup.children) {
         const offset = probe.userData.offset
         const anchor = probe.userData.anchor
-        if (!(offset instanceof THREE.Vector3) || (anchor !== 'earth' && anchor !== 'sun')) {
+        const definition = probe.userData.probe as DeepSpaceProbe | undefined
+        if (!(offset instanceof THREE.Vector3) || !definition || (anchor !== 'earth' && anchor !== 'sun')) {
           throw new Error(`Invalid probe scene metadata: ${probe.name || 'unnamed probe'}`)
         }
+        const distance = compressDistanceAu(probeDistanceAuAt(definition, simMs))
+        offset.set(
+          Math.cos(definition.angleRad) * distance,
+          Math.sin(definition.angleRad) * Math.cos(definition.inclinationRad) * distance,
+          Math.sin(definition.angleRad) * Math.sin(definition.inclinationRad) * distance,
+        )
         probe.position.copy(offset)
         if (anchor === 'sun') probe.position.add(this.sun.position)
       }
@@ -2135,6 +2142,7 @@ export class GlobeEngine {
   private makeProbes(): THREE.Group {
     const group = new THREE.Group()
     for (const p of DEEP_SPACE_PROBES) {
+      if (!p.rendered) continue
       const dist = compressDistanceAu(p.distanceAu)
       const px = Math.cos(p.angleRad) * dist
       const py = Math.sin(p.angleRad) * Math.cos(p.inclinationRad) * dist
@@ -2147,6 +2155,7 @@ export class GlobeEngine {
       mesh.name = p.name
       mesh.userData.offset = new THREE.Vector3(px, py, pz)
       mesh.userData.anchor = p.id === 'jwst' ? 'earth' : 'sun'
+      mesh.userData.probe = p
       mesh.position.copy(mesh.userData.offset)
 
       group.add(mesh)

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/cinematic-tour.test.ts scripts/project-integrity.test.mjs",
+    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/cinematic-tour.test.ts scripts/project-integrity.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

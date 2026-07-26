@@ -21,9 +21,11 @@ import OpeningWordmark from '@/components/OpeningWordmark'
 import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
+import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
 import type { LandingSite } from '@/lib/landing-sites'
 import type { EarthEvent } from '@/lib/earth-observatory'
 import { useEarthObservatory } from '@/hooks/useEarthObservatory'
+import { useSmallBodies } from '@/hooks/useSmallBodies'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
   CINEMATIC_TOUR_AUDIO_PATHS,
@@ -105,8 +107,10 @@ export default function Home() {
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
+  const [smallBodiesOpen, setSmallBodiesOpen] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const earthObservatory = useEarthObservatory(earthObservatoryOpen)
+  const smallBodies = useSmallBodies(smallBodiesOpen)
 
   useEffect(() => {
     setTleWarningDismissed(false)
@@ -209,10 +213,22 @@ export default function Home() {
       if (next) {
         handleSelectBody('earth')
         setLayersOpen(false)
+        setSmallBodiesOpen(false)
       }
       return next
     })
   }, [handleSelectBody])
+
+  const handleToggleSmallBodies = useCallback(() => {
+    setSmallBodiesOpen((current) => {
+      const next = !current
+      if (next) {
+        setEarthObservatoryOpen(false)
+        setLayersOpen(false)
+      }
+      return next
+    })
+  }, [])
 
   const handleSelectEarthEvent = useCallback((event: EarthEvent) => {
     handleSelectBody('earth')
@@ -590,6 +606,8 @@ export default function Home() {
     asteroidsVisible,
     onToggleEarthObservatory: handleToggleEarthObservatory,
     earthObservatoryVisible: earthObservatoryOpen,
+    onToggleSmallBodies: handleToggleSmallBodies,
+    smallBodiesVisible: smallBodiesOpen,
   }
 
   if (!webglOk) {
@@ -749,6 +767,16 @@ export default function Home() {
             onClose={() => setEarthObservatoryOpen(false)}
             onRefresh={() => void earthObservatory.refresh()}
             onSelectEvent={handleSelectEarthEvent}
+          />
+        </div>
+      )}
+
+      {smallBodiesOpen && (
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
+          <SmallBodiesPanel
+            {...smallBodies}
+            onClose={() => setSmallBodiesOpen(false)}
+            onRefresh={() => void smallBodies.refresh()}
           />
         </div>
       )}

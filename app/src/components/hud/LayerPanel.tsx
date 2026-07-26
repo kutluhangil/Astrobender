@@ -21,6 +21,8 @@ interface LayerPanelProps {
   asteroidsVisible?: boolean
   onToggleEarthObservatory?: () => void
   earthObservatoryVisible?: boolean
+  onToggleSmallBodies?: () => void
+  smallBodiesVisible?: boolean
 }
 
 const PRIMARY_BODIES: { id: CelestialBodyId; name: string; emoji: string; activeClass: string }[] = [
@@ -55,6 +57,8 @@ export default function LayerPanel({
   asteroidsVisible = false,
   onToggleEarthObservatory,
   earthObservatoryVisible = false,
+  onToggleSmallBodies,
+  smallBodiesVisible = false,
 }: LayerPanelProps) {
   const [showAllPlanets, setShowAllPlanets] = useState(true)
 
@@ -208,15 +212,23 @@ export default function LayerPanel({
               asteroidsVisible ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 font-semibold shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            ☄️ Belts
+            ☄️ Schematic Belts
           </button>
           <button
             onClick={onToggleEarthObservatory}
-            className={`col-span-2 py-1 rounded border transition-all ${
+            className={`py-1 rounded border transition-all ${
               earthObservatoryVisible ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-semibold shadow-[0_0_8px_rgba(52,211,153,0.25)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            🌍 Earth Observatory
+            🌍 Earth Data
+          </button>
+          <button
+            onClick={onToggleSmallBodies}
+            className={`py-1 rounded border transition-all ${
+              smallBodiesVisible ? 'border-amber-400/50 bg-amber-400/15 text-amber-200 font-semibold shadow-[0_0_8px_rgba(251,191,36,0.25)]' : 'border-white/5 bg-white/5 text-slate-500'
+            }`}
+          >
+            ☄️ JPL Objects
           </button>
         </div>
       </div>

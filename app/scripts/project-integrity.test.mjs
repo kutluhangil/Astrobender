@@ -152,3 +152,20 @@ test('moon atmosphere data is consistent and obsolete visual assets are absent',
   assert.equal(existsSync(`${appRoot}/public/textures/sun-8k.jpg`), false)
   assert.equal(existsSync(`${appRoot}/src/components/hud/CinematicTitleOverlay.tsx`), false)
 })
+
+test('ambient belts are deterministic and explicitly described as schematic', () => {
+  const asteroids = read('src/lib/asteroids.ts')
+  const layers = read('src/components/hud/LayerPanel.tsx')
+
+  assert.doesNotMatch(asteroids, /Math\.random\(/)
+  assert.match(asteroids, /Deterministic schematic Asteroid/)
+  assert.match(layers, /Schematic Belts/)
+})
+
+test('JPL close approaches use a same-origin server proxy', () => {
+  const smallBodies = read('src/lib/jpl-small-bodies.ts')
+  const vite = read('vite.config.ts')
+  assert.match(smallBodies, /'\/api\/jpl-cad\?/)
+  assert.match(vite, /'\/api\/jpl-cad'/)
+  assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
+})

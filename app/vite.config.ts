@@ -11,6 +11,13 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    proxy: {
+      '/api/jpl-cad': {
+        target: 'https://ssd-api.jpl.nasa.gov',
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/api\/jpl-cad/, '/cad.api'),
+      },
+    },
   },
   resolve: {
     alias: {

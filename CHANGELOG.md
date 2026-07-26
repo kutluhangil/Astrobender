@@ -2,6 +2,7 @@
 
 ## 2026-07-26
 
+- Added live JPL CAD close approaches, a sourced seven-object asteroid/comet catalog, expanded NASA mission status, time-aware deep-space estimates, and deterministic belts labeled as schematic.
 - Added a live Earth Observatory with NASA EONET events, USGS M4.5+ earthquakes, NOAA SWPC aurora forecasts, NASA Worldview/GIBS access, explicit source errors, and globe markers.
 - Added a NASA-sourced celestial catalog, Pluto–Charon and eleven major-moon models, complete moon-system point representations, and subtle rings for every giant planet.
 - Controlled Earth ocean highlights without changing its textures or satellite points, cleared stale surface pins on body changes, aligned moon atmosphere facts, and removed duplicate visual assets.

@@ -2,15 +2,26 @@ import * as THREE from 'three'
 import { compressDistanceAu } from './orbital-mechanics'
 
 /**
- * 3D Asteroid & Kuiper Belt Instanced Swarm Generator.
- * Creates realistic, 3D cratered rocky asteroids and icy Kuiper objects
- * orbiting the Sun with real Keplerian orbital mechanics and realistic rock shading.
+ * Deterministic schematic Asteroid & Kuiper Belt instanced swarm.
+ * The belts communicate population regions and Keplerian speed ranges; their
+ * individual instances are not cataloged JPL objects.
  */
 
 export interface AsteroidSwarm {
   mainBelt: THREE.InstancedMesh
   kuiperBelt: THREE.InstancedMesh
   update: (simS: number) => void
+}
+
+function createSeededRandom(seed: number): () => number {
+  let state = seed >>> 0
+  return () => {
+    state += 0x6d2b79f5
+    let value = state
+    value = Math.imul(value ^ (value >>> 15), value | 1)
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
+  }
 }
 
 export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
@@ -39,14 +50,15 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
 
   const mainData: { radius: number; angleOffset: number; speed: number; inc: number; yOffset: number }[] = []
   const dummy = new THREE.Object3D()
+  const mainRandom = createSeededRandom(0xa57b3e1)
 
   for (let i = 0; i < mainCount; i++) {
-    const distanceAu = 2.1 + Math.random() * 1.2
+    const distanceAu = 2.1 + mainRandom() * 1.2
     const radius = compressDistanceAu(distanceAu)
-    const angleOffset = Math.random() * Math.PI * 2
+    const angleOffset = mainRandom() * Math.PI * 2
     const speed = (2 * Math.PI) / (365.25 * Math.pow(distanceAu, 1.5) * 86400)
-    const inc = (Math.random() - 0.5) * 0.18
-    const yOffset = (Math.random() - 0.5) * 4.0
+    const inc = (mainRandom() - 0.5) * 0.18
+    const yOffset = (mainRandom() - 0.5) * 4.0
 
     mainData.push({ radius, angleOffset, speed, inc, yOffset })
   }
@@ -63,14 +75,15 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
   const kuiperBelt = new THREE.InstancedMesh(rockGeo, kuiperMat, kuiperCount)
 
   const kuiperData: { radius: number; angleOffset: number; speed: number; inc: number; yOffset: number }[] = []
+  const kuiperRandom = createSeededRandom(0x4b015e2)
 
   for (let i = 0; i < kuiperCount; i++) {
-    const distanceAu = 30 + Math.random() * 20
+    const distanceAu = 30 + kuiperRandom() * 20
     const radius = compressDistanceAu(distanceAu)
-    const angleOffset = Math.random() * Math.PI * 2
+    const angleOffset = kuiperRandom() * Math.PI * 2
     const speed = (2 * Math.PI) / (365.25 * Math.pow(distanceAu, 1.5) * 86400)
-    const inc = (Math.random() - 0.5) * 0.22
-    const yOffset = (Math.random() - 0.5) * 7.0
+    const inc = (kuiperRandom() - 0.5) * 0.22
+    const yOffset = (kuiperRandom() - 0.5) * 7.0
 
     kuiperData.push({ radius, angleOffset, speed, inc, yOffset })
   }

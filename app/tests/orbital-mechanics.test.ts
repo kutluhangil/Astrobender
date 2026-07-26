@@ -71,7 +71,7 @@ test('geocentric scene keeps Earth at the origin and the Sun one compressed AU a
   )
 })
 
-test('major moons use JPL epoch elements and remain within their orbital bounds', () => {
+test('major moons use bounded mean elements and remain within their orbital bounds', () => {
   for (const [id, elements] of Object.entries(SATELLITE_ELEMENTS)) {
     const position = getSatelliteScenePosition(id as keyof typeof SATELLITE_ELEMENTS, J2000_MS)
     const distance = Math.hypot(position.x, position.y, position.z)

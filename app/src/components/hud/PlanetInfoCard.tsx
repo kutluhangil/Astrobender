@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CELESTIAL_FACTS } from '@/lib/celestial-facts'
+import { getCelestialEntry } from '@/lib/celestial-catalog'
 import type { CelestialBodyId } from '@/lib/planets'
 
 interface PlanetInfoCardProps {
@@ -11,8 +11,8 @@ interface PlanetInfoCardProps {
 
 export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobileToggle }: PlanetInfoCardProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const fact = CELESTIAL_FACTS[bodyId]
-  if (!fact) return null
+  const entry = getCelestialEntry(bodyId)
+  const fact = entry.fact
 
   return (
     <>
@@ -71,6 +71,14 @@ export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobil
             <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 text-[10px] leading-relaxed text-cyan-200/90 font-sans">
               💡 <span className="font-medium text-cyan-100">{fact.funFactTr}</span>
             </div>
+            <a
+              href={entry.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70 transition-colors hover:text-cyan-300"
+            >
+              NASA kaynağı · {entry.verifiedAt}
+            </a>
           </>
         )}
       </div>
@@ -124,6 +132,14 @@ export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobil
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 text-[9.5px] leading-relaxed text-cyan-200/90 font-sans">
             💡 <span className="font-medium text-cyan-100">{fact.funFactTr}</span>
           </div>
+          <a
+            href={entry.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70"
+          >
+            NASA kaynağı · {entry.verifiedAt}
+          </a>
         </div>
       )}
     </>

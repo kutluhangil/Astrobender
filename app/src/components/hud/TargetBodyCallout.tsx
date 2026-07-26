@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import type { GlobeEngine } from '@/lib/globe-engine'
-import { CELESTIAL_FACTS } from '@/lib/celestial-facts'
+import { getCelestialEntry } from '@/lib/celestial-catalog'
 import type { CelestialBodyId } from '@/lib/planets'
 
 interface TargetBodyCalloutProps {
@@ -61,7 +61,7 @@ function getGuideEnd(anchor: CalloutAnchor, placement: CalloutPlacement) {
 
 export default function TargetBodyCallout({ bodyId, engineRef, theme }: TargetBodyCalloutProps) {
   const [anchor, setAnchor] = useState<CalloutAnchor | null>(null)
-  const fact = CELESTIAL_FACTS[bodyId]
+  const fact = getCelestialEntry(bodyId).fact
   const [decodedName, setDecodedName] = useState(() => decodeName(fact.name.toUpperCase(), 0))
 
   useEffect(() => {

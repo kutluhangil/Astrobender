@@ -39,9 +39,20 @@ export type SatelliteBodyId =
   | 'callisto'
   | 'enceladus'
   | 'titan'
+  | 'mimas'
+  | 'tethys'
+  | 'dione'
+  | 'rhea'
+  | 'iapetus'
+  | 'miranda'
+  | 'ariel'
+  | 'umbriel'
   | 'titania'
   | 'oberon'
+  | 'proteus'
+  | 'nereid'
   | 'triton'
+  | 'charon'
 
 export interface SatelliteElements {
   semiMajorAxisKm: number
@@ -147,9 +158,10 @@ export const PLANETARY_ELEMENTS: Record<PlanetaryBodyId, PlanetaryElements> = {
 }
 
 /**
- * Mean satellite elements at the J2000 epoch from JPL Solar System Dynamics.
+ * Mean satellite orbit parameters compiled from NASA/JPL reference data.
  * The per-system scene scales preserve moon-to-moon distance ratios while
  * keeping each planetary system usable in an interactive browser scene.
+ * Epoch phase is deterministic where a stable osculating phase is unavailable.
  */
 export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
   moon: {
@@ -251,6 +263,94 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     referencePlaneTiltDeg: 26.73,
     kmPerSceneUnit: 60000,
   },
+  mimas: {
+    semiMajorAxisKm: 185539,
+    eccentricity: 0.0196,
+    argumentPeriapsisDeg: 332,
+    meanAnomalyAtEpochDeg: 14,
+    inclinationDeg: 1.57,
+    longitudeAscendingNodeDeg: 173,
+    periodDays: 0.942422,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  tethys: {
+    semiMajorAxisKm: 294619,
+    eccentricity: 0.0001,
+    argumentPeriapsisDeg: 45,
+    meanAnomalyAtEpochDeg: 201,
+    inclinationDeg: 1.12,
+    longitudeAscendingNodeDeg: 259,
+    periodDays: 1.887802,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  dione: {
+    semiMajorAxisKm: 377396,
+    eccentricity: 0.0022,
+    argumentPeriapsisDeg: 284,
+    meanAnomalyAtEpochDeg: 86,
+    inclinationDeg: 0.02,
+    longitudeAscendingNodeDeg: 168,
+    periodDays: 2.736915,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  rhea: {
+    semiMajorAxisKm: 527108,
+    eccentricity: 0.001,
+    argumentPeriapsisDeg: 241,
+    meanAnomalyAtEpochDeg: 235,
+    inclinationDeg: 0.35,
+    longitudeAscendingNodeDeg: 12,
+    periodDays: 4.518212,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  iapetus: {
+    semiMajorAxisKm: 3560820,
+    eccentricity: 0.0283,
+    argumentPeriapsisDeg: 275,
+    meanAnomalyAtEpochDeg: 348,
+    inclinationDeg: 15.47,
+    longitudeAscendingNodeDeg: 75,
+    periodDays: 79.3215,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  miranda: {
+    semiMajorAxisKm: 129390,
+    eccentricity: 0.0013,
+    argumentPeriapsisDeg: 68,
+    meanAnomalyAtEpochDeg: 311,
+    inclinationDeg: 4.34,
+    longitudeAscendingNodeDeg: 326,
+    periodDays: 1.413479,
+    referencePlaneTiltDeg: 97.77,
+    kmPerSceneUnit: 129669.11111111111,
+  },
+  ariel: {
+    semiMajorAxisKm: 190900,
+    eccentricity: 0.0012,
+    argumentPeriapsisDeg: 115,
+    meanAnomalyAtEpochDeg: 39,
+    inclinationDeg: 0.26,
+    longitudeAscendingNodeDeg: 23,
+    periodDays: 2.520379,
+    referencePlaneTiltDeg: 97.77,
+    kmPerSceneUnit: 129669.11111111111,
+  },
+  umbriel: {
+    semiMajorAxisKm: 266000,
+    eccentricity: 0.0039,
+    argumentPeriapsisDeg: 84,
+    meanAnomalyAtEpochDeg: 174,
+    inclinationDeg: 0.13,
+    longitudeAscendingNodeDeg: 34,
+    periodDays: 4.144177,
+    referencePlaneTiltDeg: 97.77,
+    kmPerSceneUnit: 129669.11111111111,
+  },
   titania: {
     semiMajorAxisKm: 436298,
     eccentricity: 0.002,
@@ -283,6 +383,39 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     periodDays: 5.876994,
     referencePlaneTiltDeg: 28.32,
     kmPerSceneUnit: 101371.42857142857,
+  },
+  proteus: {
+    semiMajorAxisKm: 117646,
+    eccentricity: 0.0005,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 94,
+    inclinationDeg: 0.08,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 1.122315,
+    referencePlaneTiltDeg: 28.32,
+    kmPerSceneUnit: 101371.42857142857,
+  },
+  nereid: {
+    semiMajorAxisKm: 5513400,
+    eccentricity: 0.7507,
+    argumentPeriapsisDeg: 296,
+    meanAnomalyAtEpochDeg: 129,
+    inclinationDeg: 7.23,
+    longitudeAscendingNodeDeg: 320,
+    periodDays: 360.136,
+    referencePlaneTiltDeg: 28.32,
+    kmPerSceneUnit: 101371.42857142857,
+  },
+  charon: {
+    semiMajorAxisKm: 19596,
+    eccentricity: 0.0002,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 231,
+    inclinationDeg: 0,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 6.38723,
+    referencePlaneTiltDeg: 122.53,
+    kmPerSceneUnit: 5000,
   },
 }
 

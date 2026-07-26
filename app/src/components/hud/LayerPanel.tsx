@@ -114,7 +114,7 @@ export default function LayerPanel({
         {showAllPlanets && (
           <>
             <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.14em] text-cyan-300/65">
-              JPL yörüngeleri · sıkıştırılmış görsel mesafe
+              Astronomik yörüngeler · sıkıştırılmış görsel mesafe
             </div>
             <div className="max-h-[30vh] md:max-h-[160px] overflow-y-auto space-y-1 pr-1 text-[11px] scrollbar-thin scrollbar-thumb-white/10">
               {PLANETS.map((p) => (

@@ -54,6 +54,7 @@ interface PlanetRuntime {
   atmo?: THREE.Mesh
   orbitLine?: THREE.Line
   ring?: THREE.Mesh
+  minorMoonPoints?: THREE.Points
   moons: PlanetRuntime[]
   ensureLoaded?: () => void
 }
@@ -338,12 +339,23 @@ const PLANET_BASE_COLORS: Record<string, string> = {
   saturn: '#cfb584',
   titan: '#a56627',
   enceladus: '#dce7ee',
+  mimas: '#c7c9ca',
+  tethys: '#d9dcdf',
+  dione: '#b6bec5',
+  rhea: '#a9acae',
+  iapetus: '#756a60',
   uranus: '#64b4c8',
+  miranda: '#a6afb5',
+  ariel: '#c1c9cd',
+  umbriel: '#71777d',
   titania: '#7d8c94',
   oberon: '#6d7479',
   neptune: '#3e6bb5',
+  proteus: '#6d7177',
+  nereid: '#8a8f96',
   triton: '#a98d91',
   pluto: '#a49889',
+  charon: '#a7a19d',
 }
 
 function createPlanetBaseTexture(planetId: string): THREE.Texture {
@@ -355,6 +367,38 @@ function createPlanetBaseTexture(planetId: string): THREE.Texture {
   const tex = new THREE.CanvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace
   return tex
+}
+
+function deterministicUnit(index: number, salt: number): number {
+  const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453
+  return value - Math.floor(value)
+}
+
+function createMinorMoonPoints(def: PlanetDef, count: number): THREE.Points {
+  const positions = new Float32Array(count * 3)
+  const innerRadius = def.radius * ((def.ring?.outerRadius ?? 2.2) + 0.5)
+  const outerRadius = def.radius * (6.2 + Math.log10(count + 1))
+  for (let index = 0; index < count; index++) {
+    const angle = deterministicUnit(index, 1) * Math.PI * 2
+    const distance = innerRadius + (outerRadius - innerRadius) * deterministicUnit(index, 2)
+    const inclination = (deterministicUnit(index, 3) - 0.5) * 0.28
+    positions[index * 3] = Math.cos(angle) * distance
+    positions[index * 3 + 1] = Math.sin(angle) * distance
+    positions[index * 3 + 2] = Math.sin(inclination) * distance
+  }
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  return new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      color: 0xb9c9d8,
+      size: Math.max(0.012, def.radius * 0.018),
+      transparent: true,
+      opacity: 0.62,
+      depthWrite: false,
+      sizeAttenuation: true,
+    }),
+  )
 }
 
 function makeRingTexture(): THREE.Texture {
@@ -879,10 +923,11 @@ export class GlobeEngine {
   private createPlanet(def: PlanetDef, loader: THREE.TextureLoader): PlanetRuntime {
     const tex = createPlanetBaseTexture(def.id)
     let isLoaded = false
-    const textureUrl = `${import.meta.env.BASE_URL}textures/${def.texture}`
     const ensureLoaded = () => {
       if (isLoaded) return
       isLoaded = true
+      if (!def.texture) return
+      const textureUrl = `${import.meta.env.BASE_URL}textures/${def.texture}`
       loader.load(
         textureUrl,
         (loadedTex) => {
@@ -1011,30 +1056,38 @@ export class GlobeEngine {
     orbitLine.visible = false
     this.scene.add(orbitLine)
 
-    // Saturn ring — 3D Shader with radial polar UV mapping
+    // Planetary ring systems. Saturn uses the detailed texture; the fainter
+    // giant-planet rings use a deliberately subtle procedural material.
     let ring: THREE.Mesh | undefined
-    if (def.hasRing) {
-      const innerR = def.radius * 1.35
-      const outerR = def.radius * 2.45
+    if (def.ring) {
+      const innerR = def.radius * def.ring.innerRadius
+      const outerR = def.radius * def.ring.outerRadius
       const ringGeo = new THREE.RingGeometry(innerR, outerR, 128)
-      const ringMat = new THREE.ShaderMaterial({
-        uniforms: {
-          uRingTex: { value: loader.load(`${import.meta.env.BASE_URL}textures/saturn-ring-alpha.png`) },
-          uInnerR: { value: innerR },
-          uOuterR: { value: outerR },
-        },
-        vertexShader: /* glsl */ `
+      const ringMat = def.ring.texture
+        ? new THREE.ShaderMaterial({
+            uniforms: {
+              uRingTex: {
+                value: loader.load(
+                  `${import.meta.env.BASE_URL}textures/${def.ring.texture}`,
+                ),
+              },
+              uInnerR: { value: innerR },
+              uOuterR: { value: outerR },
+              uOpacity: { value: def.ring.opacity },
+            },
+            vertexShader: /* glsl */ `
           varying vec3 vLocalPos;
           void main() {
             vLocalPos = position;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
-        fragmentShader: /* glsl */ `
+            fragmentShader: /* glsl */ `
           varying vec3 vLocalPos;
           uniform sampler2D uRingTex;
           uniform float uInnerR;
           uniform float uOuterR;
+          uniform float uOpacity;
 
           void main() {
             float r = length(vLocalPos.xy);
@@ -1044,14 +1097,21 @@ export class GlobeEngine {
             vec4 ringCol = texture2D(uRingTex, vec2(t, 0.5));
             float edgeFade = smoothstep(0.0, 0.04, t) * (1.0 - smoothstep(0.96, 1.0, t));
 
-            gl_FragColor = vec4(ringCol.rgb, ringCol.a * edgeFade * 0.92);
+            gl_FragColor = vec4(ringCol.rgb, ringCol.a * edgeFade * uOpacity);
           }
         `,
-        side: THREE.DoubleSide,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.NormalBlending,
-      })
+            side: THREE.DoubleSide,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.NormalBlending,
+          })
+        : new THREE.MeshBasicMaterial({
+            color: def.ring.color,
+            opacity: def.ring.opacity,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          })
       ring = new THREE.Mesh(ringGeo, ringMat)
       ring.rotation.x = Math.PI / 2
       mesh.add(ring)
@@ -1094,7 +1154,25 @@ export class GlobeEngine {
       moonRTs.push(moonRT)
     }
 
-    return { def, mesh, mat, atmo, orbitLine, ring, moons: moonRTs, ensureLoaded }
+    const remainingMoonCount = Math.max(
+      0,
+      (def.knownMoonCount ?? moonRTs.length) - moonRTs.length,
+    )
+    const minorMoonPoints =
+      remainingMoonCount > 0 ? createMinorMoonPoints(def, remainingMoonCount) : undefined
+    if (minorMoonPoints) mesh.add(minorMoonPoints)
+
+    return {
+      def,
+      mesh,
+      mat,
+      atmo,
+      orbitLine,
+      ring,
+      minorMoonPoints,
+      moons: moonRTs,
+      ensureLoaded,
+    }
   }
 
   private makeStars(): THREE.Points {

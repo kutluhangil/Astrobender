@@ -16,12 +16,23 @@ export type CelestialBodyId =
   | 'saturn'
   | 'titan'
   | 'enceladus'
+  | 'mimas'
+  | 'tethys'
+  | 'dione'
+  | 'rhea'
+  | 'iapetus'
   | 'uranus'
+  | 'miranda'
+  | 'ariel'
+  | 'umbriel'
   | 'titania'
   | 'oberon'
   | 'neptune'
+  | 'proteus'
+  | 'nereid'
   | 'triton'
   | 'pluto'
+  | 'charon'
 
 /** Planet definition used by the UI and engine */
 export interface PlanetDef {
@@ -33,7 +44,7 @@ export interface PlanetDef {
   /** Sphere geometry segments (detail) */
   segments: number
   /** Texture file name (in /textures/) */
-  texture: string
+  texture?: string
   /** Conservative color correction applied to the surface texture */
   surfaceTint?: [number, number, number]
   /** Non-spherical body proportions */
@@ -60,8 +71,16 @@ export interface PlanetDef {
   uiColor: string
   /** Active shadow glow for UI (tailwind class fragment) */
   uiGlow: string
-  /** Whether this body has rings (Saturn) */
-  hasRing?: boolean
+  /** Visible ring system; distances are ratios of the body's scene radius. */
+  ring?: {
+    innerRadius: number
+    outerRadius: number
+    color: number
+    opacity: number
+    texture?: string
+  }
+  /** Current confirmed moon count; unmodeled moons render as low-cost points. */
+  knownMoonCount?: number
   /** Child moons (orbit around this planet, not Sun) */
   moons?: PlanetDef[]
   /** Is it retrograde rotation? */
@@ -73,6 +92,32 @@ export interface PlanetDef {
 // Positions use JPL Keplerian elements in orbital-mechanics.ts. Heliocentric
 // distances share one monotonic compression curve so the full system remains
 // navigable; moons preserve their real distance ratios within each system.
+
+interface MajorMoonInput {
+  id: CelestialBodyId
+  name: string
+  radius: number
+  semiMajorAxisKm: number
+  orbitPeriodDays: number
+  inclination: number
+  parent: CelestialBodyId
+  color: [number, number, number]
+}
+
+function majorMoon(input: MajorMoonInput): PlanetDef {
+  return {
+    ...input,
+    emoji: '🌑',
+    segments: 32,
+    rotationPeriodHours: input.orbitPeriodDays * 24,
+    axialTilt: 0,
+    atmosphereColor: null,
+    atmosphereIntensity: 0,
+    surfaceTint: input.color,
+    uiColor: 'border-slate-400/40 bg-slate-400/10 text-slate-300',
+    uiGlow: '',
+  }
+}
 
 export const PLANETS: PlanetDef[] = [
   {
@@ -185,6 +230,13 @@ export const PLANETS: PlanetDef[] = [
     atmosphereIntensity: 1.2,
     uiColor: 'border-amber-600/60 bg-amber-600/20 text-amber-200',
     uiGlow: 'shadow-[0_0_10px_rgba(217,119,6,0.3)]',
+    knownMoonCount: 101,
+    ring: {
+      innerRadius: 1.72,
+      outerRadius: 1.92,
+      color: 0x8b735f,
+      opacity: 0.11,
+    },
     moons: [
       {
         id: 'io',
@@ -277,7 +329,14 @@ export const PLANETS: PlanetDef[] = [
     inclination: 2.49,
     atmosphereColor: [0.85, 0.78, 0.50],
     atmosphereIntensity: 1.0,
-    hasRing: true,
+    knownMoonCount: 274,
+    ring: {
+      innerRadius: 1.35,
+      outerRadius: 2.45,
+      color: 0xd8c69b,
+      opacity: 0.92,
+      texture: 'saturn-ring-alpha.png',
+    },
     uiColor: 'border-yellow-600/60 bg-yellow-600/20 text-yellow-200',
     uiGlow: 'shadow-[0_0_10px_rgba(202,138,4,0.3)]',
     moons: [
@@ -319,6 +378,56 @@ export const PLANETS: PlanetDef[] = [
         uiGlow: '',
         parent: 'saturn',
       },
+      majorMoon({
+        id: 'mimas',
+        name: 'Mimas',
+        radius: 0.032,
+        semiMajorAxisKm: 185539,
+        orbitPeriodDays: 0.942422,
+        inclination: 1.57,
+        parent: 'saturn',
+        color: [0.82, 0.84, 0.86],
+      }),
+      majorMoon({
+        id: 'tethys',
+        name: 'Tethys',
+        radius: 0.052,
+        semiMajorAxisKm: 294619,
+        orbitPeriodDays: 1.887802,
+        inclination: 1.12,
+        parent: 'saturn',
+        color: [0.90, 0.91, 0.92],
+      }),
+      majorMoon({
+        id: 'dione',
+        name: 'Dione',
+        radius: 0.056,
+        semiMajorAxisKm: 377396,
+        orbitPeriodDays: 2.736915,
+        inclination: 0.02,
+        parent: 'saturn',
+        color: [0.78, 0.82, 0.86],
+      }),
+      majorMoon({
+        id: 'rhea',
+        name: 'Rhea',
+        radius: 0.07,
+        semiMajorAxisKm: 527108,
+        orbitPeriodDays: 4.518212,
+        inclination: 0.35,
+        parent: 'saturn',
+        color: [0.74, 0.76, 0.78],
+      }),
+      majorMoon({
+        id: 'iapetus',
+        name: 'Iapetus',
+        radius: 0.068,
+        semiMajorAxisKm: 3560820,
+        orbitPeriodDays: 79.3215,
+        inclination: 15.47,
+        parent: 'saturn',
+        color: [0.58, 0.53, 0.48],
+      }),
     ],
   },
   {
@@ -336,9 +445,46 @@ export const PLANETS: PlanetDef[] = [
     atmosphereColor: [0.55, 0.85, 0.90],
     atmosphereIntensity: 1.3,
     retrograde: true,
+    knownMoonCount: 28,
+    ring: {
+      innerRadius: 1.55,
+      outerRadius: 2.02,
+      color: 0x91bbc2,
+      opacity: 0.18,
+    },
     uiColor: 'border-teal-400/60 bg-teal-400/20 text-teal-200',
     uiGlow: 'shadow-[0_0_10px_rgba(45,212,191,0.3)]',
     moons: [
+      majorMoon({
+        id: 'miranda',
+        name: 'Miranda',
+        radius: 0.037,
+        semiMajorAxisKm: 129390,
+        orbitPeriodDays: 1.413479,
+        inclination: 4.34,
+        parent: 'uranus',
+        color: [0.75, 0.80, 0.84],
+      }),
+      majorMoon({
+        id: 'ariel',
+        name: 'Ariel',
+        radius: 0.052,
+        semiMajorAxisKm: 190900,
+        orbitPeriodDays: 2.520379,
+        inclination: 0.26,
+        parent: 'uranus',
+        color: [0.84, 0.88, 0.90],
+      }),
+      majorMoon({
+        id: 'umbriel',
+        name: 'Umbriel',
+        radius: 0.051,
+        semiMajorAxisKm: 266000,
+        orbitPeriodDays: 4.144177,
+        inclination: 0.13,
+        parent: 'uranus',
+        color: [0.48, 0.52, 0.56],
+      }),
       {
         id: 'titania',
         name: 'Titania',
@@ -393,9 +539,36 @@ export const PLANETS: PlanetDef[] = [
     inclination: 1.77,
     atmosphereColor: [0.30, 0.45, 0.95],
     atmosphereIntensity: 1.5,
+    knownMoonCount: 16,
+    ring: {
+      innerRadius: 1.58,
+      outerRadius: 2.12,
+      color: 0x7084a8,
+      opacity: 0.14,
+    },
     uiColor: 'border-blue-500/60 bg-blue-500/20 text-blue-200',
     uiGlow: 'shadow-[0_0_10px_rgba(59,130,246,0.3)]',
     moons: [
+      majorMoon({
+        id: 'proteus',
+        name: 'Proteus',
+        radius: 0.035,
+        semiMajorAxisKm: 117646,
+        orbitPeriodDays: 1.122315,
+        inclination: 0.08,
+        parent: 'neptune',
+        color: [0.46, 0.48, 0.52],
+      }),
+      majorMoon({
+        id: 'nereid',
+        name: 'Nereid',
+        radius: 0.027,
+        semiMajorAxisKm: 5513400,
+        orbitPeriodDays: 360.136,
+        inclination: 7.23,
+        parent: 'neptune',
+        color: [0.58, 0.60, 0.64],
+      }),
       {
         id: 'triton',
         name: 'Triton',
@@ -432,8 +605,21 @@ export const PLANETS: PlanetDef[] = [
     inclination: 17.16,
     atmosphereColor: [0.65, 0.55, 0.45],
     atmosphereIntensity: 0.4,
+    knownMoonCount: 5,
     uiColor: 'border-stone-400/60 bg-stone-400/20 text-stone-200',
     uiGlow: 'shadow-[0_0_10px_rgba(168,162,158,0.3)]',
+    moons: [
+      majorMoon({
+        id: 'charon',
+        name: 'Charon',
+        radius: 0.092,
+        semiMajorAxisKm: 19596,
+        orbitPeriodDays: 6.38723,
+        inclination: 0,
+        parent: 'pluto',
+        color: [0.72, 0.70, 0.69],
+      }),
+    ],
   },
 ]
 

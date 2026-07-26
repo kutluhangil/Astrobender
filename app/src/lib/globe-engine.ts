@@ -37,7 +37,7 @@ import { DEEP_SPACE_PROBES, probeDistanceAuAt, type DeepSpaceProbe } from './pro
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
-import type { EarthEvent } from './earth-observatory'
+import type { AuroraPoint, EarthEvent } from './earth-observatory'
 
 export { TOUR_SEQUENCE } from './cinematic-tour'
 
@@ -440,6 +440,7 @@ export class GlobeEngine {
   private moonOrbitLine: THREE.Line
   private earthLandmarks: THREE.Group
   private earthObservatoryMarkers: THREE.Group
+  private auroraOverlay: THREE.Points
   private focusTarget: CelestialBodyId = 'earth'
   private planetRuntimes: PlanetRuntime[] = []
   private probeGroup: THREE.Group | null = null
@@ -598,6 +599,19 @@ export class GlobeEngine {
     this.earthObservatoryMarkers = new THREE.Group()
     this.earthObservatoryMarkers.visible = false
     this.earth.add(this.earthObservatoryMarkers)
+    this.auroraOverlay = new THREE.Points(
+      new THREE.BufferGeometry(),
+      new THREE.PointsMaterial({
+        size: 0.018,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.72,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    )
+    this.auroraOverlay.visible = false
+    this.earth.add(this.auroraOverlay)
 
     // --- Cloud Layer — 96×96 sphere (vs old 256×256 = 86% fewer vertices, no visible diff) ---
     const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-8k.jpg`)
@@ -1921,6 +1935,15 @@ export class GlobeEngine {
     } else {
       mesh.position.set(position.x, position.y, position.z)
     }
+    if (def.id === 'pluto') {
+      // JPL's heliocentric Pluto approximation represents the system barycenter.
+      // Shift Pluto opposite Charon so both bodies orbit their shared center.
+      const charon = getSatelliteScenePosition('charon', simMs)
+      const charonMassFraction = 0.1085
+      mesh.position.x -= charon.x * charonMassFraction
+      mesh.position.y -= charon.y * charonMassFraction
+      mesh.position.z -= charon.z * charonMassFraction
+    }
     if (prt.orbitLine) prt.orbitLine.position.copy(parentPos ?? sunPos)
 
     const rotSign = def.retrograde ? -1 : 1
@@ -2042,6 +2065,38 @@ export class GlobeEngine {
     this.earthObservatoryMarkers.visible = this.focusTarget === 'earth'
   }
 
+  setAuroraOverlay(points: AuroraPoint[]) {
+    this.auroraOverlay.geometry.dispose()
+    if (points.length === 0) {
+      this.auroraOverlay.geometry = new THREE.BufferGeometry()
+      this.auroraOverlay.visible = false
+      return
+    }
+    const stride = Math.max(1, Math.ceil(points.length / 1200))
+    const sampled = points.filter((_, index) => index % stride === 0)
+    const positions = new Float32Array(sampled.length * 3)
+    const colors = new Float32Array(sampled.length * 3)
+    sampled.forEach((point, index) => {
+      const phi = (90 - point.lat) * (Math.PI / 180)
+      const theta = (point.lon + 180) * (Math.PI / 180)
+      positions.set(
+        [
+          -(1.027 * Math.sin(phi) * Math.cos(theta)),
+          1.027 * Math.cos(phi),
+          1.027 * Math.sin(phi) * Math.sin(theta),
+        ],
+        index * 3,
+      )
+      const intensity = THREE.MathUtils.clamp(point.probability / 100, 0.1, 1)
+      colors.set([0.22 + intensity * 0.35, 0.25 + intensity * 0.25, 0.75 + intensity * 0.25], index * 3)
+    })
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    this.auroraOverlay.geometry = geometry
+    this.auroraOverlay.visible = this.focusTarget === 'earth'
+  }
+
   showBodyCoordinate(bodyId: CelestialBodyId, lat: number, lon: number) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
       throw new Error(`Invalid ${bodyId} coordinate: lat=${lat}, lon=${lon}`)
@@ -2117,6 +2172,8 @@ export class GlobeEngine {
     this.marker.visible = false
     this.signalCone.visible = false
     this.earthObservatoryMarkers.visible = target === 'earth'
+    this.auroraOverlay.visible =
+      target === 'earth' && this.auroraOverlay.geometry.getAttribute('position') !== undefined
     const info = this.getTargetBodyInfo(target)
     if (!info) return
     if (target === 'moon') this.loadMoonHighResolution()

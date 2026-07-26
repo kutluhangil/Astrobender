@@ -23,7 +23,11 @@ import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
 import type { LandingSite } from '@/lib/landing-sites'
-import type { EarthEvent } from '@/lib/earth-observatory'
+import type {
+  EarthEvent,
+  EarthLayerVisibility,
+  EarthSourceId,
+} from '@/lib/earth-observatory'
 import { useEarthObservatory } from '@/hooks/useEarthObservatory'
 import { useSmallBodies } from '@/hooks/useSmallBodies'
 import type { UnifiedSearchResult } from '@/lib/unified-search'
@@ -109,6 +113,11 @@ export default function Home() {
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
+  const [earthLayerVisibility, setEarthLayerVisibility] = useState<EarthLayerVisibility>({
+    eonet: true,
+    usgs: true,
+    aurora: true,
+  })
   const [smallBodiesOpen, setSmallBodiesOpen] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('tr')
@@ -251,9 +260,34 @@ export default function Home() {
     })
   }, [handleSelectBody])
 
+  const handleToggleEarthLayer = useCallback((source: EarthSourceId) => {
+    setEarthLayerVisibility((current) => ({ ...current, [source]: !current[source] }))
+  }, [])
+
   useEffect(() => {
-    engineRef.current?.setEarthObservatoryEvents(earthObservatory.events)
-  }, [earthObservatory.events])
+    const engine = engineRef.current
+    if (!engine) return
+    if (!earthObservatoryOpen) {
+      engine.setEarthObservatoryEvents([])
+      engine.setAuroraOverlay([])
+      return
+    }
+    engine.setEarthObservatoryEvents(
+      earthObservatory.events.filter((event) =>
+        event.kind === 'earthquake'
+          ? earthLayerVisibility.usgs
+          : earthLayerVisibility.eonet,
+      ),
+    )
+    engine.setAuroraOverlay(
+      earthLayerVisibility.aurora ? (earthObservatory.aurora?.points ?? []) : [],
+    )
+  }, [
+    earthLayerVisibility,
+    earthObservatory.aurora,
+    earthObservatory.events,
+    earthObservatoryOpen,
+  ])
 
   const handleToggleAudio = useCallback(() => {
     const playing = audioSynthRef.current.toggle()
@@ -883,6 +917,8 @@ export default function Home() {
             onClose={() => setEarthObservatoryOpen(false)}
             onRefresh={() => void earthObservatory.refresh()}
             onSelectEvent={handleSelectEarthEvent}
+            layerVisibility={earthLayerVisibility}
+            onToggleLayer={handleToggleEarthLayer}
           />
         </div>
       )}
@@ -1009,7 +1045,10 @@ export default function Home() {
 
       {/* ============ SCALE SANDBOX MODAL ============ */}
       {showScaleModal && (
-        <ScaleSandboxModal onClose={() => setShowScaleModal(false)} />
+        <ScaleSandboxModal
+          language={uiLanguage}
+          onClose={() => setShowScaleModal(false)}
+        />
       )}
 
       {/* ============ DEGRADED WARNING ============ */}

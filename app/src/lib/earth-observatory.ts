@@ -17,7 +17,33 @@ export interface AuroraForecast {
   maxProbability: number
   lat: number
   lon: number
+  points: AuroraPoint[]
 }
+
+export interface AuroraPoint {
+  lat: number
+  lon: number
+  probability: number
+}
+
+export type EarthSourceId = 'eonet' | 'usgs' | 'aurora'
+
+export interface EarthLayerVisibility {
+  eonet: boolean
+  usgs: boolean
+  aurora: boolean
+}
+
+export interface EarthObservatoryCache {
+  version: 1
+  sources: Partial<{
+    eonet: { fetchedAt: number; data: EarthEvent[] }
+    usgs: { fetchedAt: number; data: EarthEvent[] }
+    aurora: { fetchedAt: number; data: AuroraForecast }
+  }>
+}
+
+export const EARTH_OBSERVATORY_CACHE_KEY = 'astrobender.earth-observatory.v1'
 
 export const EARTH_DATA_URLS = {
   eonet: 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=24',
@@ -119,12 +145,14 @@ export function parseNoaaAurora(payload: unknown): AuroraForecast {
     throw new Error('NOAA SWPC response is missing a coordinates array')
   }
   let strongest: { probability: number; lat: number; lon: number } | null = null
+  const points: AuroraPoint[] = []
   for (const coordinate of payload.coordinates) {
     if (!Array.isArray(coordinate) || coordinate.length < 3) continue
     const lon = Number(coordinate[0])
     const lat = Number(coordinate[1])
     const probability = Number(coordinate[2])
     if (!validCoordinate(lat, lon) || !Number.isFinite(probability)) continue
+    if (probability >= 10) points.push({ lat, lon, probability })
     if (!strongest || probability > strongest.probability) {
       strongest = { probability, lat, lon }
     }
@@ -138,7 +166,79 @@ export function parseNoaaAurora(payload: unknown): AuroraForecast {
     maxProbability: strongest.probability,
     lat: strongest.lat,
     lon: strongest.lon,
+    points,
   }
+}
+
+function isEarthEvent(value: unknown): value is EarthEvent {
+  if (!isRecord(value)) return false
+  return (
+    typeof value.id === 'string' &&
+    (value.kind === 'natural-event' || value.kind === 'earthquake') &&
+    typeof value.title === 'string' &&
+    typeof value.subtitle === 'string' &&
+    typeof value.lat === 'number' &&
+    typeof value.lon === 'number' &&
+    validCoordinate(value.lat, value.lon) &&
+    typeof value.occurredAt === 'string' &&
+    typeof value.sourceUrl === 'string'
+  )
+}
+
+function isAuroraForecast(value: unknown): value is AuroraForecast {
+  if (!isRecord(value) || !Array.isArray(value.points)) return false
+  return (
+    typeof value.forecastAt === 'string' &&
+    typeof value.maxProbability === 'number' &&
+    typeof value.lat === 'number' &&
+    typeof value.lon === 'number' &&
+    validCoordinate(value.lat, value.lon) &&
+    value.points.every(
+      (point) =>
+        isRecord(point) &&
+        typeof point.lat === 'number' &&
+        typeof point.lon === 'number' &&
+        typeof point.probability === 'number' &&
+        validCoordinate(point.lat, point.lon),
+    )
+  )
+}
+
+export function parseEarthObservatoryCache(serialized: string): EarthObservatoryCache {
+  let payload: unknown
+  try {
+    payload = JSON.parse(serialized)
+  } catch (error) {
+    throw new Error(
+      `Earth Observatory cache contains invalid JSON: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+  }
+  if (!isRecord(payload) || payload.version !== 1 || !isRecord(payload.sources)) {
+    throw new Error('Earth Observatory cache is missing version 1 source metadata')
+  }
+  const sources: EarthObservatoryCache['sources'] = {}
+  for (const source of ['eonet', 'usgs', 'aurora'] as const) {
+    const cached = payload.sources[source]
+    if (cached === undefined) continue
+    if (!isRecord(cached) || typeof cached.fetchedAt !== 'number' || !Number.isFinite(cached.fetchedAt)) {
+      throw new Error(`Earth Observatory cache has invalid ${source}.fetchedAt`)
+    }
+    if (source === 'aurora') {
+      if (!isAuroraForecast(cached.data)) {
+        throw new Error('Earth Observatory cache has invalid aurora data')
+      }
+      sources.aurora = { fetchedAt: cached.fetchedAt, data: cached.data }
+    } else {
+      if (!Array.isArray(cached.data) || !cached.data.every(isEarthEvent)) {
+        throw new Error(`Earth Observatory cache has invalid ${source} event data`)
+      }
+      if (source === 'eonet') sources.eonet = { fetchedAt: cached.fetchedAt, data: cached.data }
+      else sources.usgs = { fetchedAt: cached.fetchedAt, data: cached.data }
+    }
+  }
+  return { version: 1, sources }
 }
 
 export async function fetchJson(url: string, signal: AbortSignal): Promise<unknown> {

@@ -28,6 +28,10 @@ export type PlanetaryBodyId =
   | 'uranus'
   | 'neptune'
   | 'pluto'
+  | 'ceres'
+  | 'haumea'
+  | 'makemake'
+  | 'eris'
 
 export type SatelliteBodyId =
   | 'moon'
@@ -37,22 +41,31 @@ export type SatelliteBodyId =
   | 'europa'
   | 'ganymede'
   | 'callisto'
+  | 'amalthea'
+  | 'himalia'
   | 'enceladus'
   | 'titan'
+  | 'pan'
   | 'mimas'
   | 'tethys'
   | 'dione'
   | 'rhea'
   | 'iapetus'
+  | 'hyperion'
   | 'miranda'
   | 'ariel'
   | 'umbriel'
   | 'titania'
   | 'oberon'
+  | 'larissa'
   | 'proteus'
   | 'nereid'
   | 'triton'
   | 'charon'
+  | 'styx'
+  | 'nix'
+  | 'kerberos'
+  | 'hydra'
 
 export interface SatelliteElements {
   semiMajorAxisKm: number
@@ -155,6 +168,38 @@ export const PLANETARY_ELEMENTS: Record<PlanetaryBodyId, PlanetaryElements> = {
     longitudePerihelionDeg: element(224.07, 0),
     longitudeAscendingNodeDeg: element(110.3, 0),
   },
+  ceres: {
+    semiMajorAxisAu: element(2.7675, 0),
+    eccentricity: element(0.0758, 0),
+    inclinationDeg: element(10.59, 0),
+    meanLongitudeDeg: element(95.99, 7821.1),
+    longitudePerihelionDeg: element(73.6, 0),
+    longitudeAscendingNodeDeg: element(80.3, 0),
+  },
+  haumea: {
+    semiMajorAxisAu: element(43.13, 0),
+    eccentricity: element(0.195, 0),
+    inclinationDeg: element(28.19, 0),
+    meanLongitudeDeg: element(211.7, 126.7),
+    longitudePerihelionDeg: element(121.9, 0),
+    longitudeAscendingNodeDeg: element(122.0, 0),
+  },
+  makemake: {
+    semiMajorAxisAu: element(45.79, 0),
+    eccentricity: element(0.159, 0),
+    inclinationDeg: element(29.0, 0),
+    meanLongitudeDeg: element(154.7, 117.55),
+    longitudePerihelionDeg: element(294.8, 0),
+    longitudeAscendingNodeDeg: element(79.6, 0),
+  },
+  eris: {
+    semiMajorAxisAu: element(67.78, 0),
+    eccentricity: element(0.44, 0),
+    inclinationDeg: element(44.04, 0),
+    meanLongitudeDeg: element(204.0, 64.52),
+    longitudePerihelionDeg: element(151.6, 0),
+    longitudeAscendingNodeDeg: element(35.95, 0),
+  },
 }
 
 /**
@@ -241,6 +286,28 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     referencePlaneTiltDeg: 3.13,
     kmPerSceneUnit: 188270,
   },
+  amalthea: {
+    semiMajorAxisKm: 181365,
+    eccentricity: 0.0032,
+    argumentPeriapsisDeg: 155,
+    meanAnomalyAtEpochDeg: 40,
+    inclinationDeg: 0.37,
+    longitudeAscendingNodeDeg: 108,
+    periodDays: 0.498179,
+    referencePlaneTiltDeg: 3.13,
+    kmPerSceneUnit: 188270,
+  },
+  himalia: {
+    semiMajorAxisKm: 11460000,
+    eccentricity: 0.16,
+    argumentPeriapsisDeg: 332,
+    meanAnomalyAtEpochDeg: 115,
+    inclinationDeg: 27.5,
+    longitudeAscendingNodeDeg: 45,
+    periodDays: 250.56,
+    referencePlaneTiltDeg: 3.13,
+    kmPerSceneUnit: 188270,
+  },
   enceladus: {
     semiMajorAxisKm: 238400,
     eccentricity: 0.005,
@@ -318,6 +385,28 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     referencePlaneTiltDeg: 26.73,
     kmPerSceneUnit: 60000,
   },
+  pan: {
+    semiMajorAxisKm: 133584,
+    eccentricity: 0.00001,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 260,
+    inclinationDeg: 0.001,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 0.57505,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  hyperion: {
+    semiMajorAxisKm: 1481009,
+    eccentricity: 0.123,
+    argumentPeriapsisDeg: 264,
+    meanAnomalyAtEpochDeg: 170,
+    inclinationDeg: 0.43,
+    longitudeAscendingNodeDeg: 168,
+    periodDays: 21.2766,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
   miranda: {
     semiMajorAxisKm: 129390,
     eccentricity: 0.0013,
@@ -373,6 +462,17 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     referencePlaneTiltDeg: 97.77,
     kmPerSceneUnit: 129669.11111111111,
   },
+  larissa: {
+    semiMajorAxisKm: 73548,
+    eccentricity: 0.0014,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 212,
+    inclinationDeg: 0.2,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 0.55465,
+    referencePlaneTiltDeg: 28.32,
+    kmPerSceneUnit: 101371.42857142857,
+  },
   triton: {
     semiMajorAxisKm: 354800,
     eccentricity: 0,
@@ -414,6 +514,50 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     inclinationDeg: 0,
     longitudeAscendingNodeDeg: 0,
     periodDays: 6.38723,
+    referencePlaneTiltDeg: 122.53,
+    kmPerSceneUnit: 5000,
+  },
+  styx: {
+    semiMajorAxisKm: 42656,
+    eccentricity: 0.0058,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 80,
+    inclinationDeg: 0.8,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 20.16155,
+    referencePlaneTiltDeg: 122.53,
+    kmPerSceneUnit: 5000,
+  },
+  nix: {
+    semiMajorAxisKm: 48694,
+    eccentricity: 0.002,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 155,
+    inclinationDeg: 0.1,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 24.85463,
+    referencePlaneTiltDeg: 122.53,
+    kmPerSceneUnit: 5000,
+  },
+  kerberos: {
+    semiMajorAxisKm: 57783,
+    eccentricity: 0.003,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 225,
+    inclinationDeg: 0.4,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 32.16756,
+    referencePlaneTiltDeg: 122.53,
+    kmPerSceneUnit: 5000,
+  },
+  hydra: {
+    semiMajorAxisKm: 64738,
+    eccentricity: 0.0059,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 300,
+    inclinationDeg: 0.2,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 38.20177,
     referencePlaneTiltDeg: 122.53,
     kmPerSceneUnit: 5000,
   },
@@ -583,6 +727,10 @@ export function getGeocentricScenePositions(
     uranus: fromEarth(heliocentric.uranus),
     neptune: fromEarth(heliocentric.neptune),
     pluto: fromEarth(heliocentric.pluto),
+    ceres: fromEarth(heliocentric.ceres),
+    haumea: fromEarth(heliocentric.haumea),
+    makemake: fromEarth(heliocentric.makemake),
+    eris: fromEarth(heliocentric.eris),
   }
 }
 

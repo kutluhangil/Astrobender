@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import type { GlobeEngine } from '@/lib/globe-engine'
 import { getCelestialEntry } from '@/lib/celestial-catalog'
+import { celestialTypeEn, celestialValueEn } from '@/lib/celestial-facts'
 import type { CelestialBodyId } from '@/lib/planets'
 import type { UiLanguage } from '@/lib/ui-language'
 
@@ -136,8 +137,8 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme, language =
         <div className="target-callout__name" aria-label={displayName}>{decodedName}</div>
         <div className="target-callout__rule" />
         <div className="target-callout__meta">
-          <span>{fact.typeTr}</span>
-          <span>{fact.radiusKm}</span>
+          <span>{language === 'tr' ? fact.typeTr : celestialTypeEn(fact.typeTr)}</span>
+          <span>{language === 'tr' ? fact.radiusKm : celestialValueEn(fact.radiusKm)}</span>
         </div>
       </section>
     </div>

@@ -2,6 +2,7 @@
 
 ## 2026-07-26
 
+- Completed the observatory acceptance pass with explicit live-data cache age, independent Earth source layers, a NOAA auroral-oval overlay, full English science copy, Pluto barycentric motion, 13 additional selectable moons/dwarf planets, and a NASA Dawn Ceres surface map.
 - Added Playwright browser E2E coverage, reduced-motion and keyboard-search support, visible focus states, and focus-triggered 8K Moon textures that cut the initial Moon payload by about 24 MiB.
 - Added bilingual observatory navigation, unified search across satellites and science catalogs, the complete 88-entry IAU constellation catalog, and sourced Earth launch/observatory/deep-space-network surface sites.
 - Added live JPL CAD close approaches, a sourced seven-object asteroid/comet catalog, expanded NASA mission status, time-aware deep-space estimates, and deterministic belts labeled as schematic.

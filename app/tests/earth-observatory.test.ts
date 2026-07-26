@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   parseEonetEvents,
+  parseEarthObservatoryCache,
   parseNoaaAurora,
   parseUsgsEarthquakes,
 } from '../src/lib/earth-observatory.ts'
@@ -63,5 +64,32 @@ test('NOAA aurora parser reports the strongest valid forecast cell', () => {
     maxProbability: 64,
     lat: 70,
     lon: 30,
+    points: [
+      { lat: 67, lon: 20, probability: 18 },
+      { lat: 70, lon: 30, probability: 64 },
+    ],
   })
+})
+
+test('Earth Observatory cache preserves source timestamps and rejects corrupt payloads', () => {
+  const cache = parseEarthObservatoryCache(JSON.stringify({
+    version: 1,
+    sources: {
+      aurora: {
+        fetchedAt: 1785031200000,
+        data: {
+          forecastAt: '2026-07-26T01:00:00Z',
+          maxProbability: 64,
+          lat: 70,
+          lon: 30,
+          points: [{ lat: 70, lon: 30, probability: 64 }],
+        },
+      },
+    },
+  }))
+  assert.equal(cache.sources.aurora?.fetchedAt, 1785031200000)
+  assert.throws(
+    () => parseEarthObservatoryCache('{"version":1,"sources":{"aurora":{"fetchedAt":"old"}}}'),
+    /invalid aurora\.fetchedAt/,
+  )
 })

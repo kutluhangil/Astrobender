@@ -13,7 +13,10 @@ export type CelestialBodyId =
   | 'europa'
   | 'ganymede'
   | 'callisto'
+  | 'amalthea'
+  | 'himalia'
   | 'saturn'
+  | 'pan'
   | 'titan'
   | 'enceladus'
   | 'mimas'
@@ -21,6 +24,7 @@ export type CelestialBodyId =
   | 'dione'
   | 'rhea'
   | 'iapetus'
+  | 'hyperion'
   | 'uranus'
   | 'miranda'
   | 'ariel'
@@ -28,11 +32,20 @@ export type CelestialBodyId =
   | 'titania'
   | 'oberon'
   | 'neptune'
+  | 'larissa'
   | 'proteus'
   | 'nereid'
   | 'triton'
   | 'pluto'
   | 'charon'
+  | 'styx'
+  | 'nix'
+  | 'kerberos'
+  | 'hydra'
+  | 'ceres'
+  | 'haumea'
+  | 'makemake'
+  | 'eris'
 
 /** Planet definition used by the UI and engine */
 export interface PlanetDef {
@@ -313,6 +326,26 @@ export const PLANETS: PlanetDef[] = [
         uiGlow: '',
         parent: 'jupiter',
       },
+      majorMoon({
+        id: 'amalthea',
+        name: 'Amalthea',
+        radius: 0.026,
+        semiMajorAxisKm: 181365,
+        orbitPeriodDays: 0.498179,
+        inclination: 0.37,
+        parent: 'jupiter',
+        color: [0.92, 0.48, 0.36],
+      }),
+      majorMoon({
+        id: 'himalia',
+        name: 'Himalia',
+        radius: 0.021,
+        semiMajorAxisKm: 11460000,
+        orbitPeriodDays: 250.56,
+        inclination: 27.5,
+        parent: 'jupiter',
+        color: [0.58, 0.54, 0.49],
+      }),
     ],
   },
   {
@@ -427,6 +460,26 @@ export const PLANETS: PlanetDef[] = [
         inclination: 15.47,
         parent: 'saturn',
         color: [0.58, 0.53, 0.48],
+      }),
+      majorMoon({
+        id: 'pan',
+        name: 'Pan',
+        radius: 0.004,
+        semiMajorAxisKm: 133584,
+        orbitPeriodDays: 0.57505,
+        inclination: 0.001,
+        parent: 'saturn',
+        color: [0.74, 0.70, 0.62],
+      }),
+      majorMoon({
+        id: 'hyperion',
+        name: 'Hyperion',
+        radius: 0.02,
+        semiMajorAxisKm: 1481009,
+        orbitPeriodDays: 21.2766,
+        inclination: 0.43,
+        parent: 'saturn',
+        color: [0.55, 0.49, 0.40],
       }),
     ],
   },
@@ -550,6 +603,16 @@ export const PLANETS: PlanetDef[] = [
     uiGlow: 'shadow-[0_0_10px_rgba(59,130,246,0.3)]',
     moons: [
       majorMoon({
+        id: 'larissa',
+        name: 'Larissa',
+        radius: 0.015,
+        semiMajorAxisKm: 73548,
+        orbitPeriodDays: 0.55465,
+        inclination: 0.2,
+        parent: 'neptune',
+        color: [0.49, 0.50, 0.54],
+      }),
+      majorMoon({
         id: 'proteus',
         name: 'Proteus',
         radius: 0.035,
@@ -619,7 +682,121 @@ export const PLANETS: PlanetDef[] = [
         parent: 'pluto',
         color: [0.72, 0.70, 0.69],
       }),
+      majorMoon({
+        id: 'styx',
+        name: 'Styx',
+        radius: 0.003,
+        semiMajorAxisKm: 42656,
+        orbitPeriodDays: 20.16155,
+        inclination: 0.8,
+        parent: 'pluto',
+        color: [0.68, 0.66, 0.64],
+      }),
+      majorMoon({
+        id: 'nix',
+        name: 'Nix',
+        radius: 0.006,
+        semiMajorAxisKm: 48694,
+        orbitPeriodDays: 24.85463,
+        inclination: 0.1,
+        parent: 'pluto',
+        color: [0.76, 0.73, 0.70],
+      }),
+      majorMoon({
+        id: 'kerberos',
+        name: 'Kerberos',
+        radius: 0.004,
+        semiMajorAxisKm: 57783,
+        orbitPeriodDays: 32.16756,
+        inclination: 0.4,
+        parent: 'pluto',
+        color: [0.58, 0.56, 0.54],
+      }),
+      majorMoon({
+        id: 'hydra',
+        name: 'Hydra',
+        radius: 0.006,
+        semiMajorAxisKm: 64738,
+        orbitPeriodDays: 38.20177,
+        inclination: 0.2,
+        parent: 'pluto',
+        color: [0.74, 0.72, 0.70],
+      }),
     ],
+  },
+  {
+    id: 'ceres',
+    name: 'Ceres',
+    emoji: '⚪',
+    radius: 0.074,
+    segments: 48,
+    texture: 'ceres-dawn-2k.webp',
+    semiMajorAxisAu: 2.7675,
+    orbitPeriodDays: 1681.63,
+    rotationPeriodHours: 9.074,
+    axialTilt: 4,
+    inclination: 10.59,
+    atmosphereColor: null,
+    atmosphereIntensity: 0,
+    knownMoonCount: 0,
+    surfaceTint: [0.62, 0.61, 0.59],
+    uiColor: 'border-stone-400/50 bg-stone-400/10 text-stone-200',
+    uiGlow: '',
+  },
+  {
+    id: 'haumea',
+    name: 'Haumea',
+    emoji: '⚪',
+    radius: 0.125,
+    segments: 48,
+    shapeScale: [1.45, 0.82, 0.72],
+    semiMajorAxisAu: 43.13,
+    orbitPeriodDays: 103774,
+    rotationPeriodHours: 3.915,
+    axialTilt: 126,
+    inclination: 28.19,
+    atmosphereColor: null,
+    atmosphereIntensity: 0,
+    knownMoonCount: 2,
+    surfaceTint: [0.78, 0.79, 0.80],
+    uiColor: 'border-slate-300/50 bg-slate-300/10 text-slate-100',
+    uiGlow: '',
+  },
+  {
+    id: 'makemake',
+    name: 'Makemake',
+    emoji: '⚪',
+    radius: 0.112,
+    segments: 48,
+    semiMajorAxisAu: 45.79,
+    orbitPeriodDays: 111845,
+    rotationPeriodHours: 22.83,
+    axialTilt: 0,
+    inclination: 29,
+    atmosphereColor: null,
+    atmosphereIntensity: 0,
+    knownMoonCount: 1,
+    surfaceTint: [0.72, 0.52, 0.42],
+    uiColor: 'border-orange-300/50 bg-orange-300/10 text-orange-100',
+    uiGlow: '',
+  },
+  {
+    id: 'eris',
+    name: 'Eris',
+    emoji: '⚪',
+    radius: 0.182,
+    segments: 48,
+    semiMajorAxisAu: 67.78,
+    orbitPeriodDays: 203830,
+    rotationPeriodHours: 25.9,
+    axialTilt: 78,
+    inclination: 44.04,
+    atmosphereColor: null,
+    atmosphereIntensity: 0,
+    knownMoonCount: 1,
+    surfaceTint: [0.82, 0.82, 0.80],
+    uiColor: 'border-zinc-300/50 bg-zinc-300/10 text-zinc-100',
+    uiGlow: '',
   },
 ]
 

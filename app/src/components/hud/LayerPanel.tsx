@@ -147,7 +147,10 @@ export default function LayerPanel({
                   <span>{p.emoji} {language === 'tr' ? CELESTIAL_FACTS[p.id].nameTr : p.name}</span>
                   <span
                     className="font-mono text-[9px] text-slate-500"
-                    title="Gerçek yarı-büyük eksen; 3D görünüm sıkıştırılmıştır"
+                    title={t(
+                      'Gerçek yarı-büyük eksen; 3D görünüm sıkıştırılmıştır',
+                      'Real semi-major axis; the 3D view is compressed',
+                    )}
                   >
                     {formatSemiMajorAxisAu(p)}
                   </span>

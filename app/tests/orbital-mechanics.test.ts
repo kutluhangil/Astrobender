@@ -8,6 +8,7 @@ import {
   getGeocentricScenePositions,
   getSatelliteScenePosition,
   heliocentricPositionAu,
+  type PlanetaryBodyId,
 } from '../src/lib/orbital-mechanics.ts'
 
 test('planetary elements preserve the real Solar System ordering', () => {
@@ -42,6 +43,18 @@ test('JPL Kepler solver returns finite heliocentric positions at J2000', () => {
     assert.ok(distance >= minDistance - 1e-9, `${id} must not be inside perihelion`)
     assert.ok(distance <= maxDistance + 1e-9, `${id} must not be outside aphelion`)
   }
+})
+
+test('modeled dwarf planets have finite distinct heliocentric positions', () => {
+  const positions = ['ceres', 'haumea', 'makemake', 'eris'].map((bodyId) =>
+    heliocentricPositionAu(bodyId as PlanetaryBodyId, J2000_MS),
+  )
+  for (const position of positions) {
+    assert.ok(Number.isFinite(position.x))
+    assert.ok(Number.isFinite(position.y))
+    assert.ok(Number.isFinite(position.z))
+  }
+  assert.equal(new Set(positions.map((position) => Math.hypot(position.x, position.y, position.z).toFixed(3))).size, 4)
 })
 
 test('compressed distances stay navigable without changing orbital ordering', () => {

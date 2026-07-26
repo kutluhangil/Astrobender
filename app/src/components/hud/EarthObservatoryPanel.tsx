@@ -1,4 +1,10 @@
-import { EARTH_DATA_URLS, type EarthEvent } from '@/lib/earth-observatory'
+import { useState } from 'react'
+import {
+  EARTH_DATA_URLS,
+  type EarthEvent,
+  type EarthLayerVisibility,
+  type EarthSourceId,
+} from '@/lib/earth-observatory'
 import type { EarthObservatoryState } from '@/hooks/useEarthObservatory'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
@@ -6,13 +12,16 @@ interface EarthObservatoryPanelProps extends EarthObservatoryState {
   onClose: () => void
   onRefresh: () => void
   onSelectEvent: (event: EarthEvent) => void
+  layerVisibility: EarthLayerVisibility
+  onToggleLayer: (source: EarthSourceId) => void
   language?: UiLanguage
 }
 
 const SOURCE_NAMES = {
-  eonet: 'NASA EONET',
-  usgs: 'USGS Deprem',
-  aurora: 'NOAA SWPC',
+  eonet: { tr: 'NASA EONET', en: 'NASA EONET' },
+  usgs: { tr: 'USGS Deprem', en: 'USGS Earthquakes' },
+  aurora: { tr: 'NOAA Aurora', en: 'NOAA Aurora' },
+  cache: { tr: 'Yerel önbellek', en: 'Local cache' },
 } as const
 
 function formatEventTime(value: string, language: UiLanguage): string {
@@ -26,18 +35,32 @@ function formatEventTime(value: string, language: UiLanguage): string {
   }).format(date)
 }
 
+function formatAge(value: number, language: UiLanguage): string {
+  const ageMinutes = Math.max(0, Math.round((Date.now() - value) / 60_000))
+  if (ageMinutes < 1) return pickLanguage(language, 'şimdi', 'just now')
+  if (ageMinutes < 60) return pickLanguage(language, `${ageMinutes} dk önce`, `${ageMinutes}m ago`)
+  const hours = Math.round(ageMinutes / 60)
+  return pickLanguage(language, `${hours} sa önce`, `${hours}h ago`)
+}
+
 export default function EarthObservatoryPanel({
   status,
   events,
   aurora,
   errors,
   updatedAt,
+  cachedSources,
+  sourceUpdatedAt,
   onClose,
   onRefresh,
   onSelectEvent,
+  layerVisibility,
+  onToggleLayer,
   language = 'tr',
 }: EarthObservatoryPanelProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const [imageryDate, setImageryDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const worldviewUrl = `${EARTH_DATA_URLS.worldview}&t=${imageryDate}`
   return (
     <section
       data-hud-surface
@@ -91,7 +114,7 @@ export default function EarthObservatoryPanel({
             className="rounded-lg border border-amber-400/25 bg-amber-400/5 px-2.5 py-2 font-mono text-[9px] text-amber-100"
           >
             <summary className="cursor-pointer">
-              {SOURCE_NAMES[source as keyof typeof SOURCE_NAMES]} {t('verisi alınamadı', 'data unavailable')}
+              {SOURCE_NAMES[source as keyof typeof SOURCE_NAMES][language]} {t('verisi alınamadı', 'data unavailable')}
             </summary>
             <p className="mt-1 break-words text-[8px] leading-relaxed text-amber-200/70">
               {message}
@@ -99,7 +122,37 @@ export default function EarthObservatoryPanel({
           </details>
         ))}
 
-        {aurora && (
+        <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={t('Dünya veri katmanları', 'Earth data layers')}>
+          {(['eonet', 'usgs', 'aurora'] as const).map((source) => (
+            <button
+              key={source}
+              type="button"
+              aria-pressed={layerVisibility[source]}
+              onClick={() => onToggleLayer(source)}
+              className={`rounded-lg border px-2 py-1.5 font-mono text-[8px] transition-colors ${
+                layerVisibility[source]
+                  ? 'border-emerald-300/40 bg-emerald-400/15 text-emerald-100'
+                  : 'border-white/10 bg-white/[0.03] text-slate-500'
+              }`}
+            >
+              {SOURCE_NAMES[source][language]}
+            </button>
+          ))}
+        </div>
+
+        {cachedSources.length > 0 && (
+          <div className="rounded-lg border border-sky-400/25 bg-sky-400/5 px-2.5 py-2 font-mono text-[8px] leading-relaxed text-sky-100">
+            {t('Önbellekten gösteriliyor:', 'Showing cached data:')}{' '}
+            {cachedSources
+              .map((source) => {
+                const fetchedAt = sourceUpdatedAt[source]
+                return `${SOURCE_NAMES[source][language]}${fetchedAt ? ` (${formatAge(fetchedAt, language)})` : ''}`
+              })
+              .join(' · ')}
+          </div>
+        )}
+
+        {aurora && layerVisibility.aurora && (
           <div className="rounded-xl border border-violet-400/25 bg-violet-400/5 p-2.5">
             <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-violet-300">
               {t('NOAA Aurora Tahmini', 'NOAA Aurora Forecast')}
@@ -121,7 +174,12 @@ export default function EarthObservatoryPanel({
             <span>{events.length}</span>
           </div>
           <div className="space-y-1">
-            {events.slice(0, 12).map((event) => (
+            {events
+              .filter((event) =>
+                event.kind === 'earthquake' ? layerVisibility.usgs : layerVisibility.eonet,
+              )
+              .slice(0, 12)
+              .map((event) => (
               <button
                 type="button"
                 key={event.id}
@@ -143,8 +201,11 @@ export default function EarthObservatoryPanel({
                   </span>
                 </div>
               </button>
-            ))}
-            {status !== 'loading' && events.length === 0 && (
+              ))}
+            {status !== 'loading' &&
+              events.filter((event) =>
+                event.kind === 'earthquake' ? layerVisibility.usgs : layerVisibility.eonet,
+              ).length === 0 && (
               <p className="rounded-lg border border-white/7 bg-white/[0.025] p-2.5 font-mono text-[9px] text-slate-500">
                 {t('Gösterilecek geçerli olay bulunamadı.', 'No valid events are available.')}
               </p>
@@ -154,7 +215,7 @@ export default function EarthObservatoryPanel({
 
         <div className="grid grid-cols-2 gap-1.5">
           <a
-            href={EARTH_DATA_URLS.worldview}
+            href={worldviewUrl}
             target="_blank"
             rel="noreferrer"
             className="rounded-lg border border-sky-400/20 bg-sky-400/5 px-2.5 py-2 font-mono text-[9px] text-sky-200 hover:bg-sky-400/10"
@@ -172,6 +233,16 @@ export default function EarthObservatoryPanel({
             <span className="mt-1 block text-[7px] text-slate-500">{t('Katman/API kaynağı', 'Layer/API source')}</span>
           </a>
         </div>
+        <label className="block rounded-lg border border-sky-400/15 bg-sky-400/[0.03] px-2.5 py-2 font-mono text-[8px] text-slate-400">
+          {t('NASA günlük görüntü tarihi', 'NASA daily imagery date')}
+          <input
+            type="date"
+            value={imageryDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(event) => setImageryDate(event.currentTarget.value)}
+            className="mt-1 block w-full rounded border border-white/10 bg-black/25 px-2 py-1 text-[9px] text-sky-100"
+          />
+        </label>
       </div>
     </section>
   )

@@ -1,8 +1,15 @@
 import { useRef, useState } from 'react'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
+import {
+  CELESTIAL_FUN_FACTS_EN,
+  celestialTypeEn,
+  celestialValueEn,
+} from '@/lib/celestial-facts'
+import type { CelestialBodyId } from '@/lib/planets'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface CelestialScaleSpec {
-  id: string
+  id: CelestialBodyId
   name: string
   nameTr: string
   emoji: string
@@ -329,9 +336,13 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
 
 interface ScaleSandboxModalProps {
   onClose: () => void
+  language?: UiLanguage
 }
 
-export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
+export default function ScaleSandboxModal({
+  onClose,
+  language = 'tr',
+}: ScaleSandboxModalProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'planets' | 'moons'>('all')
   const scrollRef = useRef<HTMLDivElement>(null)
   const dialogRef = useDialogFocus(onClose)
@@ -350,6 +361,7 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
   })
   const moonCount = SORTED_BODIES.filter(isMoon).length
   const planetAndSunCount = SORTED_BODIES.length - moonCount
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/85 p-0 md:p-4 backdrop-blur-xl animate-in fade-in duration-300">
@@ -368,18 +380,24 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
               id="scale-sandbox-title"
               className="font-mono text-lg md:text-xl font-bold text-cyan-200 tracking-wide flex items-center gap-2"
             >
-              <span>⚖️</span> GÜNEŞ SİSTEMİ GERÇEK BOYUT & ÖZELLİK KARŞILAŞTIRMASI
+              <span>⚖️</span> {t(
+                'GÜNEŞ SİSTEMİ GERÇEK BOYUT & ÖZELLİK KARŞILAŞTIRMASI',
+                'SOLAR SYSTEM TRUE SIZE & FEATURE COMPARISON',
+              )}
             </h2>
             <p className="font-mono text-xs text-slate-400 mt-1">
-              Gök cisimleri gerçek yarıçaplarına göre büyükten küçüğe sıralanmıştır. Gözlemsel 3D kaplamalar, yerçekimi ve iklim verileri.
+              {t(
+                'Gök cisimleri gerçek yarıçaplarına göre büyükten küçüğe sıralanmıştır. Gözlemsel 3D kaplamalar, yerçekimi ve iklim verileri.',
+                'Bodies are ordered by their real radii, with observational textures, gravity and climate data.',
+              )}
             </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Boyut karşılaştırmasını kapat"
+            aria-label={t('Boyut karşılaştırmasını kapat', 'Close size comparison')}
             className="rounded-lg border border-white/10 bg-white/5 px-3.5 py-1.5 font-mono text-xs text-slate-300 hover:bg-white/10 transition-all"
           >
-            Kapat ✖
+            {t('Kapat', 'Close')} ✖
           </button>
         </div>
 
@@ -395,7 +413,7 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
                   : 'border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              Tüm Gök Cisimleri ({SORTED_BODIES.length})
+              {t('Tüm Gök Cisimleri', 'All Bodies')} ({SORTED_BODIES.length})
             </button>
             <button
               onClick={() => setActiveTab('planets')}
@@ -406,7 +424,7 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
                   : 'border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              Gezegenler & Güneş ({planetAndSunCount})
+              {t('Gezegenler & Güneş', 'Planets & Sun')} ({planetAndSunCount})
             </button>
             <button
               onClick={() => setActiveTab('moons')}
@@ -417,7 +435,7 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
                   : 'border border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              Uydular ({moonCount})
+              {t('Uydular', 'Moons')} ({moonCount})
             </button>
           </div>
 
@@ -425,19 +443,19 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => scrollContainer('left')}
-              aria-label="Gök cisimlerini sola kaydır"
+              aria-label={t('Gök cisimlerini sola kaydır', 'Scroll bodies left')}
               className="flex items-center gap-1 px-3 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-mono font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-              title="Sola Kaydır"
+              title={t('Sola Kaydır', 'Scroll left')}
             >
-              ◀ SOLA
+              ◀ {t('SOLA', 'LEFT')}
             </button>
             <button
               onClick={() => scrollContainer('right')}
-              aria-label="Gök cisimlerini sağa kaydır"
+              aria-label={t('Gök cisimlerini sağa kaydır', 'Scroll bodies right')}
               className="flex items-center gap-1 px-3 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-mono font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-              title="Sağa Kaydır"
+              title={t('Sağa Kaydır', 'Scroll right')}
             >
-              SAĞA ▶
+              {t('SAĞA', 'RIGHT')} ▶
             </button>
           </div>
         </div>
@@ -463,7 +481,9 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
                       <span className="font-bold text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">
                         #{index + 1}
                       </span>
-                      <span className="uppercase text-slate-400 tracking-wider">{b.typeTr}</span>
+                      <span className="uppercase text-slate-400 tracking-wider">
+                        {language === 'tr' ? b.typeTr : celestialTypeEn(b.typeTr)}
+                      </span>
                     </div>
 
                     {/* Planet 3D Sphere Visual Preview */}
@@ -479,40 +499,48 @@ export default function ScaleSandboxModal({ onClose }: ScaleSandboxModalProps) {
                       <div className="mt-3 text-center">
                         <div className="font-mono text-base font-bold text-slate-100 flex items-center justify-center gap-1.5">
                           <span>{b.emoji}</span>
-                          <span>{b.nameTr}</span>
+                          <span>{language === 'tr' ? b.nameTr : b.name}</span>
                         </div>
-                        <div className="font-mono text-[10px] text-slate-400 uppercase">{b.name}</div>
+                        <div className="font-mono text-[10px] text-slate-400 uppercase">
+                          {language === 'tr' ? b.name : b.nameTr}
+                        </div>
                       </div>
                     </div>
 
                     {/* Technical Specs List */}
                     <div className="space-y-2 border-t border-white/5 pt-3 font-mono text-[11px]">
                       <div className="flex justify-between items-center bg-white/[0.03] p-1.5 rounded">
-                        <span className="text-slate-400">📏 Yarıçap:</span>
+                        <span className="text-slate-400">📏 {t('Yarıçap:', 'Radius:')}</span>
                         <span className="font-semibold text-cyan-200">{b.radiusKm}</span>
                       </div>
                       <div className="flex justify-between items-center bg-white/[0.03] p-1.5 rounded">
-                        <span className="text-slate-400">⚖️ Göreceli:</span>
-                        <span className="font-semibold text-amber-200">{b.ratioToEarth.toFixed(2)}× Dünya</span>
+                        <span className="text-slate-400">⚖️ {t('Göreceli:', 'Relative:')}</span>
+                        <span className="font-semibold text-amber-200">{b.ratioToEarth.toFixed(2)}× {t('Dünya', 'Earth')}</span>
                       </div>
                       <div className="flex justify-between items-center bg-white/[0.03] p-1.5 rounded">
-                        <span className="text-slate-400">⚓ Yerçekimi:</span>
+                        <span className="text-slate-400">⚓ {t('Yerçekimi:', 'Gravity:')}</span>
                         <span className="font-semibold text-emerald-200">{b.gravity}</span>
                       </div>
                       <div className="bg-white/[0.03] p-2 rounded space-y-1">
-                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">🌡️ İklim & Hava:</div>
-                        <div className="text-[10.5px] text-slate-200 font-sans leading-tight">{b.climate}</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">🌡️ {t('İklim & Hava:', 'Climate:')}</div>
+                        <div className="text-[10.5px] text-slate-200 font-sans leading-tight">
+                          {language === 'tr' ? b.climate : celestialValueEn(b.climate)}
+                        </div>
                       </div>
                       <div className="bg-white/[0.03] p-2 rounded space-y-1">
-                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">💨 Atmosfer:</div>
-                        <div className="text-[10.5px] text-slate-300 font-sans leading-tight">{b.atmosphere}</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">💨 {t('Atmosfer:', 'Atmosphere:')}</div>
+                        <div className="text-[10.5px] text-slate-300 font-sans leading-tight">
+                          {language === 'tr' ? b.atmosphere : celestialValueEn(b.atmosphere)}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Fun Fact Footer */}
                   <div className="mt-3 border-t border-white/5 pt-2 font-sans text-[10px] text-cyan-300/80 italic leading-snug">
-                    💡 {b.funFact}
+                    💡 {language === 'tr'
+                      ? b.funFact
+                      : CELESTIAL_FUN_FACTS_EN[b.id]}
                   </div>
                 </div>
               )

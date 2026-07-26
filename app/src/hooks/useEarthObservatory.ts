@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  EARTH_OBSERVATORY_CACHE_KEY,
   EARTH_DATA_URLS,
   fetchJson,
+  parseEarthObservatoryCache,
   parseEonetEvents,
   parseNoaaAurora,
   parseUsgsEarthquakes,
   type AuroraForecast,
+  type EarthObservatoryCache,
   type EarthEvent,
+  type EarthSourceId,
 } from '@/lib/earth-observatory'
 
 export interface EarthObservatoryState {
   status: 'idle' | 'loading' | 'ready' | 'partial' | 'error'
   events: EarthEvent[]
   aurora: AuroraForecast | null
-  errors: Partial<Record<'eonet' | 'usgs' | 'aurora', string>>
+  errors: Partial<Record<EarthSourceId | 'cache', string>>
   updatedAt: number | null
+  cachedSources: EarthSourceId[]
+  sourceUpdatedAt: Partial<Record<EarthSourceId, number>>
 }
 
 const INITIAL_STATE: EarthObservatoryState = {
@@ -23,9 +29,37 @@ const INITIAL_STATE: EarthObservatoryState = {
   aurora: null,
   errors: {},
   updatedAt: null,
+  cachedSources: [],
+  sourceUpdatedAt: {},
 }
 
 const REQUEST_TIMEOUT_MS = 12000
+
+function readCache(): { cache: EarthObservatoryCache; error?: string } {
+  try {
+    const serialized = window.localStorage.getItem(EARTH_OBSERVATORY_CACHE_KEY)
+    return {
+      cache: serialized
+        ? parseEarthObservatoryCache(serialized)
+        : { version: 1, sources: {} },
+    }
+  } catch (error) {
+    return {
+      cache: { version: 1, sources: {} },
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+function writeCache(cache: EarthObservatoryCache): string | undefined {
+  try {
+    window.localStorage.setItem(EARTH_OBSERVATORY_CACHE_KEY, JSON.stringify(cache))
+  } catch (error) {
+    return `Earth Observatory cache could not be saved: ${
+      error instanceof Error ? error.message : String(error)
+    }`
+  }
+}
 
 export function useEarthObservatory(enabled: boolean) {
   const [state, setState] = useState<EarthObservatoryState>(INITIAL_STATE)
@@ -38,7 +72,25 @@ export function useEarthObservatory(enabled: boolean) {
     const controller = new AbortController()
     controllerRef.current = controller
     const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-    setState((current) => ({ ...current, status: 'loading', errors: {} }))
+    const { cache, error: cacheReadError } = readCache()
+    const cachedSources = Object.keys(cache.sources) as EarthSourceId[]
+    const cachedEvents = [
+      ...(cache.sources.usgs?.data ?? []),
+      ...(cache.sources.eonet?.data ?? []),
+    ]
+    setState({
+      status: 'loading',
+      events: cachedEvents,
+      aurora: cache.sources.aurora?.data ?? null,
+      errors: cacheReadError ? { cache: cacheReadError } : {},
+      updatedAt: cachedSources.length
+        ? Math.max(...cachedSources.map((source) => cache.sources[source]?.fetchedAt ?? 0))
+        : null,
+      cachedSources,
+      sourceUpdatedAt: Object.fromEntries(
+        cachedSources.map((source) => [source, cache.sources[source]?.fetchedAt]),
+      ),
+    })
 
     try {
       const [eonetResult, usgsResult, auroraResult] = await Promise.allSettled([
@@ -48,10 +100,33 @@ export function useEarthObservatory(enabled: boolean) {
       ])
       if (generationRef.current !== generation) return
 
-      const errors: EarthObservatoryState['errors'] = {}
-      const eonetEvents = eonetResult.status === 'fulfilled' ? eonetResult.value : []
-      const earthquakes = usgsResult.status === 'fulfilled' ? usgsResult.value : []
-      const aurora = auroraResult.status === 'fulfilled' ? auroraResult.value : null
+      const errors: EarthObservatoryState['errors'] = cacheReadError
+        ? { cache: cacheReadError }
+        : {}
+      const now = Date.now()
+      const nextCache: EarthObservatoryCache = {
+        version: 1,
+        sources: { ...cache.sources },
+      }
+      const usedCachedSources: EarthSourceId[] = []
+      const eonetEvents = eonetResult.status === 'fulfilled'
+        ? eonetResult.value
+        : (cache.sources.eonet?.data ?? [])
+      const earthquakes = usgsResult.status === 'fulfilled'
+        ? usgsResult.value
+        : (cache.sources.usgs?.data ?? [])
+      const aurora = auroraResult.status === 'fulfilled'
+        ? auroraResult.value
+        : (cache.sources.aurora?.data ?? null)
+      if (eonetResult.status === 'fulfilled') {
+        nextCache.sources.eonet = { fetchedAt: now, data: eonetEvents }
+      } else if (cache.sources.eonet) usedCachedSources.push('eonet')
+      if (usgsResult.status === 'fulfilled') {
+        nextCache.sources.usgs = { fetchedAt: now, data: earthquakes }
+      } else if (cache.sources.usgs) usedCachedSources.push('usgs')
+      if (auroraResult.status === 'fulfilled') {
+        nextCache.sources.aurora = { fetchedAt: now, data: auroraResult.value }
+      } else if (cache.sources.aurora) usedCachedSources.push('aurora')
       if (eonetResult.status === 'rejected') {
         errors.eonet = eonetResult.reason instanceof Error
           ? eonetResult.reason.message
@@ -67,13 +142,30 @@ export function useEarthObservatory(enabled: boolean) {
           ? auroraResult.reason.message
           : String(auroraResult.reason)
       }
-      const failureCount = Object.keys(errors).length
+      const cacheWriteError = writeCache(nextCache)
+      if (cacheWriteError) errors.cache = cacheWriteError
+      const sourceFailureCount = ['eonet', 'usgs', 'aurora'].filter(
+        (source) => errors[source as EarthSourceId],
+      ).length
+      const sourceUpdatedAt = Object.fromEntries(
+        (Object.keys(nextCache.sources) as EarthSourceId[]).map((source) => [
+          source,
+          nextCache.sources[source]?.fetchedAt,
+        ]),
+      )
       setState({
-        status: failureCount === 0 ? 'ready' : failureCount === 3 ? 'error' : 'partial',
+        status:
+          sourceFailureCount === 0
+            ? 'ready'
+            : sourceFailureCount === 3 && usedCachedSources.length === 0
+              ? 'error'
+              : 'partial',
         events: [...earthquakes, ...eonetEvents],
         aurora,
         errors,
-        updatedAt: Date.now(),
+        updatedAt: now,
+        cachedSources: usedCachedSources,
+        sourceUpdatedAt,
       })
     } finally {
       window.clearTimeout(timeoutId)

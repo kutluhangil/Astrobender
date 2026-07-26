@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { getCelestialEntry } from '@/lib/celestial-catalog'
+import {
+  CELESTIAL_FUN_FACTS_EN,
+  celestialTypeEn,
+  celestialValueEn,
+} from '@/lib/celestial-facts'
 import type { CelestialBodyId } from '@/lib/planets'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
@@ -9,16 +14,6 @@ interface PlanetInfoCardProps {
   mobileExpanded?: boolean
   onMobileToggle?: () => void
   language?: UiLanguage
-}
-
-function englishType(typeTr: string): string {
-  if (typeTr.includes('Yıldız')) return 'Star'
-  if (typeTr.includes('Karasal')) return 'Terrestrial Planet'
-  if (typeTr.includes('Gaz Devi')) return 'Gas Giant'
-  if (typeTr.includes('Buz Devi')) return 'Ice Giant'
-  if (typeTr.includes('Cüce Gezegen')) return 'Dwarf Planet'
-  if (typeTr.includes('Uydu')) return 'Natural Satellite'
-  return typeTr
 }
 
 export default function PlanetInfoCard({
@@ -33,7 +28,9 @@ export default function PlanetInfoCard({
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
   const primaryName = language === 'tr' ? fact.nameTr : fact.name
   const secondaryName = language === 'tr' ? fact.name : fact.nameTr
-  const bodyType = language === 'tr' ? fact.typeTr : englishType(fact.typeTr)
+  const bodyType = language === 'tr' ? fact.typeTr : celestialTypeEn(fact.typeTr)
+  const value = (text: string) => language === 'tr' ? text : celestialValueEn(text)
+  const funFact = language === 'tr' ? fact.funFactTr : CELESTIAL_FUN_FACTS_EN[bodyId]
 
   return (
     <>
@@ -64,33 +61,33 @@ export default function PlanetInfoCard({
             <div className="grid grid-cols-2 gap-1.5 text-[10.5px] font-mono mb-2.5">
               <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
                 <div className="text-[8.5px] uppercase tracking-wider text-slate-500 mb-0.5">{t('Yarıçap', 'Radius')}</div>
-                <div className="font-medium text-slate-200 truncate">{fact.radiusKm}</div>
+                <div className="font-medium text-slate-200 truncate">{value(fact.radiusKm)}</div>
               </div>
               <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
                 <div className="text-[8.5px] uppercase tracking-wider text-slate-500 mb-0.5">{t("Güneş'e Uzaklık", 'Distance from Sun')}</div>
-                <div className="font-medium text-slate-200 truncate">{fact.distFromSunAu}</div>
+                <div className="font-medium text-slate-200 truncate">{value(fact.distFromSunAu)}</div>
               </div>
               <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
                 <div className="text-[8.5px] uppercase tracking-wider text-slate-500 mb-0.5">{t('Eksen Dönüşü', 'Rotation')}</div>
-                <div className="font-medium text-slate-200 truncate">{fact.rotationPeriod}</div>
+                <div className="font-medium text-slate-200 truncate">{value(fact.rotationPeriod)}</div>
               </div>
               <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
                 <div className="text-[8.5px] uppercase tracking-wider text-slate-500 mb-0.5">{t('Yörünge Periyodu', 'Orbital Period')}</div>
-                <div className="font-medium text-slate-200 truncate">{fact.orbitPeriod}</div>
+                <div className="font-medium text-slate-200 truncate">{value(fact.orbitPeriod)}</div>
               </div>
             </div>
             <div className="space-y-1 text-[10.5px] font-mono mb-2.5">
               <div className="flex items-center justify-between text-slate-400">
                 <span>{t('Uydu Sayısı:', 'Moons:')}</span>
-                <span className="text-cyan-300 font-semibold">{fact.moonsCount}</span>
+                <span className="text-cyan-300 font-semibold">{value(fact.moonsCount)}</span>
               </div>
               <div className="flex items-center justify-between text-slate-400">
                 <span>{t('Atmosfer:', 'Atmosphere:')}</span>
-                <span className="text-slate-200 truncate max-w-[150px] text-right">{fact.atmosphere}</span>
+                <span className="text-slate-200 truncate max-w-[150px] text-right">{value(fact.atmosphere)}</span>
               </div>
             </div>
             <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 text-[10px] leading-relaxed text-cyan-200/90 font-sans">
-              💡 <span className="font-medium text-cyan-100">{fact.funFactTr}</span>
+              💡 <span className="font-medium text-cyan-100">{funFact}</span>
             </div>
             <a
               href={entry.sourceUrl}
@@ -131,27 +128,27 @@ export default function PlanetInfoCard({
           <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono mb-2">
             <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
               <div className="text-[8px] uppercase tracking-wider text-slate-500 mb-0.5">{t('Yarıçap', 'Radius')}</div>
-              <div className="font-medium text-slate-200 truncate">{fact.radiusKm}</div>
+              <div className="font-medium text-slate-200 truncate">{value(fact.radiusKm)}</div>
             </div>
             <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
               <div className="text-[8px] uppercase tracking-wider text-slate-500 mb-0.5">{t("Güneş'e Uzaklık", 'Distance from Sun')}</div>
-              <div className="font-medium text-slate-200 truncate">{fact.distFromSunAu}</div>
+              <div className="font-medium text-slate-200 truncate">{value(fact.distFromSunAu)}</div>
             </div>
             <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
               <div className="text-[8px] uppercase tracking-wider text-slate-500 mb-0.5">{t('Eksen Dönüşü', 'Rotation')}</div>
-              <div className="font-medium text-slate-200 truncate">{fact.rotationPeriod}</div>
+              <div className="font-medium text-slate-200 truncate">{value(fact.rotationPeriod)}</div>
             </div>
             <div className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
               <div className="text-[8px] uppercase tracking-wider text-slate-500 mb-0.5">{t('Yörünge Periyodu', 'Orbital Period')}</div>
-              <div className="font-medium text-slate-200 truncate">{fact.orbitPeriod}</div>
+              <div className="font-medium text-slate-200 truncate">{value(fact.orbitPeriod)}</div>
             </div>
           </div>
           <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1">
             <span>{t('Atmosfer:', 'Atmosphere:')}</span>
-            <span className="text-slate-200 truncate max-w-[160px] text-right">{fact.atmosphere}</span>
+            <span className="text-slate-200 truncate max-w-[160px] text-right">{value(fact.atmosphere)}</span>
           </div>
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 text-[9.5px] leading-relaxed text-cyan-200/90 font-sans">
-            💡 <span className="font-medium text-cyan-100">{fact.funFactTr}</span>
+            💡 <span className="font-medium text-cyan-100">{funFact}</span>
           </div>
           <a
             href={entry.sourceUrl}

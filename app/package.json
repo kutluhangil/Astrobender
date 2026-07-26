@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/cinematic-tour.test.ts scripts/project-integrity.test.mjs",
+    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts scripts/project-integrity.test.mjs",
+    "test:e2e": "playwright test",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "verify": "npm test && npm run lint && npm run build && npm run test:e2e",
     "preview": "vite preview",
     "verify:textures": "node scripts/verify-moon-textures.mjs"
   },
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.62.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

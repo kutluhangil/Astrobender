@@ -30,6 +30,11 @@ canvas {
   display: block;
 }
 
+:where(button, a, input, summary):focus-visible {
+  outline: 2px solid rgba(94, 228, 255, 0.92);
+  outline-offset: 2px;
+}
+
 /* orbit-ring O logo accent */
 .logo-o {
   position: relative;
@@ -282,6 +287,15 @@ canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .opening-wordmark--leaving,
   .opening-wordmark__cursor {
     animation: none;

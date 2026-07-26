@@ -399,12 +399,14 @@ export default function Home() {
       case 'surface-site': {
         selectSat(null)
         handleSelectBody(result.site.bodyId)
-        engineRef.current?.showBodyCoordinate(result.site.bodyId, result.site.lat, result.site.lon)
-        setSelectedPin({
-          lat: result.site.lat,
-          lon: result.site.lon,
-          text: uiLanguage === 'tr' ? result.site.nameTr : result.site.name,
-          landingSite: result.site,
+        window.requestAnimationFrame(() => {
+          engineRef.current?.showBodyCoordinate(result.site.bodyId, result.site.lat, result.site.lon)
+          setSelectedPin({
+            lat: result.site.lat,
+            lon: result.site.lon,
+            text: uiLanguage === 'tr' ? result.site.nameTr : result.site.name,
+            landingSite: result.site,
+          })
         })
         return
       }
@@ -714,7 +716,7 @@ export default function Home() {
       </div>
 
       {/* Top-right (desktop only): Search */}
-      <div className="hidden md:block absolute right-7 top-6 z-20 w-[300px]">
+      <div className="hidden md:block absolute right-4 top-[338px] z-20 w-[310px]">
         <SearchBox
           sats={sats}
           earthEvents={earthObservatory.events}

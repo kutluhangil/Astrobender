@@ -36,6 +36,7 @@ export default function SearchBox({
 }: SearchBoxProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsId = useId()
 
@@ -47,6 +48,7 @@ export default function SearchBox({
     }, language),
     [closeApproaches, earthEvents, language, query, sats],
   )
+  const visibleActiveIndex = Math.min(activeIndex, Math.max(0, results.length - 1))
 
   const choose = (result: UnifiedSearchResult) => {
     onSelectResult(result)
@@ -72,10 +74,19 @@ export default function SearchBox({
         onChange={(e) => {
           setQuery(e.target.value)
           setOpen(true)
+          setActiveIndex(0)
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && results.length > 0) choose(results[0])
+          if (e.key === 'Enter' && results.length > 0) choose(results[visibleActiveIndex])
+          if (e.key === 'ArrowDown' && results.length > 0) {
+            e.preventDefault()
+            setActiveIndex((index) => (index + 1) % results.length)
+          }
+          if (e.key === 'ArrowUp' && results.length > 0) {
+            e.preventDefault()
+            setActiveIndex((index) => (index - 1 + results.length) % results.length)
+          }
           if (e.key === 'Escape') {
             if (query) setQuery('')
             else inputRef.current?.blur()
@@ -90,18 +101,27 @@ export default function SearchBox({
         aria-label={pickLanguage(language, 'Gözlemevinde ara', 'Search the observatory')}
         aria-expanded={open && results.length > 0}
         aria-controls={resultsId}
+        aria-activedescendant={open && results.length > 0 ? `${resultsId}-${visibleActiveIndex}` : undefined}
         className="w-full rounded-xl border border-white/10 bg-[#0a0e14]/70 py-2.5 pl-9 pr-3 font-mono text-xs text-slate-200 placeholder-slate-500 outline-none backdrop-blur-xl focus:border-sky-400/40"
       />
       {open && results.length > 0 && (
         <div
           id={resultsId}
+          role="listbox"
+          aria-label={pickLanguage(language, 'Arama sonuçları', 'Search results')}
           className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-[360px] overflow-y-auto rounded-xl border border-white/10 bg-[#0b0f16]/95 backdrop-blur-xl"
         >
-          {results.map((result) => (
+          {results.map((result, index) => (
             <button
               key={result.id}
+              id={`${resultsId}-${index}`}
+              role="option"
+              aria-selected={index === visibleActiveIndex}
               onClick={() => choose(result)}
-              className="flex min-h-[42px] w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-sky-400/10 focus:bg-sky-400/10 focus:outline-none"
+              onMouseEnter={() => setActiveIndex(index)}
+              className={`flex min-h-[42px] w-full items-center gap-2.5 px-3 py-1.5 text-left focus:outline-none ${
+                index === visibleActiveIndex ? 'bg-sky-400/10' : 'hover:bg-sky-400/10'
+              }`}
             >
               <span className="w-4 shrink-0 text-center text-[11px] text-cyan-300">
                 {RESULT_ICONS[result.kind]}

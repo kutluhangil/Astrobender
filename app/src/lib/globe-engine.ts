@@ -436,6 +436,7 @@ export class GlobeEngine {
   private signalCone: THREE.Mesh
   private moon: THREE.Mesh
   private moonMat: THREE.ShaderMaterial
+  private moonHighResolutionRequested = false
   private moonOrbitLine: THREE.Line
   private earthLandmarks: THREE.Group
   private earthObservatoryMarkers: THREE.Group
@@ -526,7 +527,7 @@ export class GlobeEngine {
     this.controls.dampingFactor = 0.08
     this.controls.minDistance = 1.35
     this.controls.maxDistance = 8000.0
-    this.controls.autoRotate = true
+    this.controls.autoRotate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
     this.controls.autoRotateSpeed = 0.25
 
     // --- Earth ---
@@ -633,9 +634,9 @@ export class GlobeEngine {
     this.scene.add(atmo)
 
     // --- Moon (8K Ultra HD) ---
-    const moonTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-8k.jpg`)
-    const moonBumpTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-bump-8k.jpg`)
-    const moonSpecTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-specular-8k.jpg`)
+    const moonTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-4k.webp`)
+    const moonBumpTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-bump-4k.webp`)
+    const moonSpecTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-specular-4k.webp`)
 
     moonTex.colorSpace = THREE.SRGBColorSpace
     moonTex.anisotropy = 16
@@ -767,12 +768,9 @@ export class GlobeEngine {
     // SOLAR SYSTEM PLANETS & MOONS — dynamic from PLANETS config
     // ═══════════════════════════════════════════════════════════════════════
     this.planetRuntimes = PLANETS.map((def) => this.createPlanet(def, loader))
-    // Stagger loading of background planet textures so initial scene load stays ultra-fast
-    this.planetRuntimes.forEach((prt, idx) => {
-      setTimeout(() => {
-        prt.ensureLoaded?.()
-      }, 800 + idx * 300)
-    })
+    // Detailed planet and moon textures are loaded on focus. Loading every 2K–8K
+    // source in the background exhausts the WebGL texture budget on long sessions;
+    // distant bodies keep their lightweight procedural preview until selected.
 
     this.scene.add(this.makeStars())
 
@@ -2067,6 +2065,51 @@ export class GlobeEngine {
     this.showBodyCoordinate('earth', lat, lon)
   }
 
+  private loadMoonHighResolution() {
+    if (this.moonHighResolutionRequested) return
+    this.moonHighResolutionRequested = true
+    const loader = new THREE.TextureLoader()
+    const paths = [
+      `${import.meta.env.BASE_URL}textures/moon-8k.jpg`,
+      `${import.meta.env.BASE_URL}textures/moon-bump-8k.jpg`,
+      `${import.meta.env.BASE_URL}textures/moon-specular-8k.jpg`,
+    ] as const
+    void Promise.all(paths.map((path) => loader.loadAsync(path))).then(
+      ([surface, bump, specular]) => {
+        if (this.disposed) {
+          surface.dispose()
+          bump.dispose()
+          specular.dispose()
+          return
+        }
+        surface.colorSpace = THREE.SRGBColorSpace
+        for (const texture of [surface, bump, specular]) {
+          texture.anisotropy = 16
+          texture.needsUpdate = true
+        }
+        surface.minFilter = THREE.LinearMipmapLinearFilter
+        surface.magFilter = THREE.LinearFilter
+        const previous = [
+          this.moonMat.uniforms.uMoonTex.value as THREE.Texture,
+          this.moonMat.uniforms.uMoonBump.value as THREE.Texture,
+          this.moonMat.uniforms.uMoonSpec.value as THREE.Texture,
+        ]
+        this.moonMat.uniforms.uMoonTex.value = surface
+        this.moonMat.uniforms.uMoonBump.value = bump
+        this.moonMat.uniforms.uMoonSpec.value = specular
+        previous.forEach((texture) => texture.dispose())
+      },
+      (error: unknown) => {
+        this.moonHighResolutionRequested = false
+        console.error(
+          `Moon 8K texture upgrade failed for ${paths.join(', ')}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
+      },
+    )
+  }
+
   setFocusTarget(target: CelestialBodyId) {
     const isSameTarget = this.focusTarget === target
     this.focusTarget = target
@@ -2076,6 +2119,7 @@ export class GlobeEngine {
     this.earthObservatoryMarkers.visible = target === 'earth'
     const info = this.getTargetBodyInfo(target)
     if (!info) return
+    if (target === 'moon') this.loadMoonHighResolution()
     info.ensureLoaded?.()
 
     // Dynamically adjust camera near clipping plane so small moons are never sliced off

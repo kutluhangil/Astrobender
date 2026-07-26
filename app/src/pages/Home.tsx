@@ -20,7 +20,10 @@ import CosmicTourControls from '@/components/hud/CosmicTourControls'
 import OpeningWordmark from '@/components/OpeningWordmark'
 import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
+import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import type { LandingSite } from '@/lib/landing-sites'
+import type { EarthEvent } from '@/lib/earth-observatory'
+import { useEarthObservatory } from '@/hooks/useEarthObservatory'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
   CINEMATIC_TOUR_AUDIO_PATHS,
@@ -101,7 +104,9 @@ export default function Home() {
   const [probesVisible, setProbesVisible] = useState(false)
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
+  const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const earthObservatory = useEarthObservatory(earthObservatoryOpen)
 
   useEffect(() => {
     setTleWarningDismissed(false)
@@ -197,6 +202,33 @@ export default function Home() {
     setLayersOpen(false)
     setMobilePlanetInfoOpen(false)
   }, [])
+
+  const handleToggleEarthObservatory = useCallback(() => {
+    setEarthObservatoryOpen((current) => {
+      const next = !current
+      if (next) {
+        handleSelectBody('earth')
+        setLayersOpen(false)
+      }
+      return next
+    })
+  }, [handleSelectBody])
+
+  const handleSelectEarthEvent = useCallback((event: EarthEvent) => {
+    handleSelectBody('earth')
+    engineRef.current?.showEarthCoordinate(event.lat, event.lon)
+    const lat = `${Math.abs(event.lat).toFixed(2)}° ${event.lat >= 0 ? 'N' : 'S'}`
+    const lon = `${Math.abs(event.lon).toFixed(2)}° ${event.lon >= 0 ? 'E' : 'W'}`
+    setSelectedPin({
+      lat: event.lat,
+      lon: event.lon,
+      text: `${event.title}: ${lat}, ${lon}`,
+    })
+  }, [handleSelectBody])
+
+  useEffect(() => {
+    engineRef.current?.setEarthObservatoryEvents(earthObservatory.events)
+  }, [earthObservatory.events])
 
   const handleToggleAudio = useCallback(() => {
     const playing = audioSynthRef.current.toggle()
@@ -556,6 +588,8 @@ export default function Home() {
     constellationsVisible,
     onToggleAsteroids: handleToggleAsteroids,
     asteroidsVisible,
+    onToggleEarthObservatory: handleToggleEarthObservatory,
+    earthObservatoryVisible: earthObservatoryOpen,
   }
 
   if (!webglOk) {
@@ -707,6 +741,17 @@ export default function Home() {
       <div className="absolute bottom-7 left-7 z-20 max-md:hidden">
         <LayerPanel {...layerPanelProps} />
       </div>
+
+      {earthObservatoryOpen && (
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
+          <EarthObservatoryPanel
+            {...earthObservatory}
+            onClose={() => setEarthObservatoryOpen(false)}
+            onRefresh={() => void earthObservatory.refresh()}
+            onSelectEvent={handleSelectEarthEvent}
+          />
+        </div>
+      )}
 
       {/* ============ MOBILE: FAB + Bottom Sheet ============ */}
       {/* Floating Action Button — bottom-right */}

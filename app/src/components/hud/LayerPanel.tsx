@@ -19,6 +19,8 @@ interface LayerPanelProps {
   constellationsVisible?: boolean
   onToggleAsteroids?: () => void
   asteroidsVisible?: boolean
+  onToggleEarthObservatory?: () => void
+  earthObservatoryVisible?: boolean
 }
 
 const PRIMARY_BODIES: { id: CelestialBodyId; name: string; emoji: string; activeClass: string }[] = [
@@ -51,6 +53,8 @@ export default function LayerPanel({
   constellationsVisible = false,
   onToggleAsteroids,
   asteroidsVisible = false,
+  onToggleEarthObservatory,
+  earthObservatoryVisible = false,
 }: LayerPanelProps) {
   const [showAllPlanets, setShowAllPlanets] = useState(true)
 
@@ -205,6 +209,14 @@ export default function LayerPanel({
             }`}
           >
             ☄️ Belts
+          </button>
+          <button
+            onClick={onToggleEarthObservatory}
+            className={`col-span-2 py-1 rounded border transition-all ${
+              earthObservatoryVisible ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-semibold shadow-[0_0_8px_rgba(52,211,153,0.25)]' : 'border-white/5 bg-white/5 text-slate-500'
+            }`}
+          >
+            🌍 Earth Observatory
           </button>
         </div>
       </div>

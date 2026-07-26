@@ -37,6 +37,7 @@ import { DEEP_SPACE_PROBES } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
+import type { EarthEvent } from './earth-observatory'
 
 export { TOUR_SEQUENCE } from './cinematic-tour'
 
@@ -437,6 +438,7 @@ export class GlobeEngine {
   private moonMat: THREE.ShaderMaterial
   private moonOrbitLine: THREE.Line
   private earthLandmarks: THREE.Group
+  private earthObservatoryMarkers: THREE.Group
   private focusTarget: CelestialBodyId = 'earth'
   private planetRuntimes: PlanetRuntime[] = []
   private probeGroup: THREE.Group | null = null
@@ -592,6 +594,9 @@ export class GlobeEngine {
       this.earthLandmarks.add(sprite)
     }
     this.earth.add(this.earthLandmarks)
+    this.earthObservatoryMarkers = new THREE.Group()
+    this.earthObservatoryMarkers.visible = false
+    this.earth.add(this.earthObservatoryMarkers)
 
     // --- Cloud Layer — 96×96 sphere (vs old 256×256 = 86% fewer vertices, no visible diff) ---
     const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-8k.jpg`)
@@ -1995,12 +2000,66 @@ export class GlobeEngine {
     this.isCinematicTourActive = false
   }
 
+  setEarthObservatoryEvents(events: EarthEvent[]) {
+    let previousTexture: THREE.Texture | null = null
+    for (const child of this.earthObservatoryMarkers.children) {
+      if (child instanceof THREE.Sprite) {
+        previousTexture ??= child.material.map
+        child.material.dispose()
+      }
+    }
+    previousTexture?.dispose()
+    this.earthObservatoryMarkers.clear()
+    if (events.length === 0) return
+
+    const markerTexture = makeRingTexture()
+    for (const event of events.slice(0, 48)) {
+      const phi = (90 - event.lat) * (Math.PI / 180)
+      const theta = (event.lon + 180) * (Math.PI / 180)
+      const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: markerTexture,
+          color: event.kind === 'earthquake' ? 0xfb923c : 0x34d399,
+          transparent: true,
+          opacity: 0.88,
+          depthWrite: false,
+        }),
+      )
+      sprite.position.set(
+        -(1.022 * Math.sin(phi) * Math.cos(theta)),
+        1.022 * Math.cos(phi),
+        1.022 * Math.sin(phi) * Math.sin(theta),
+      )
+      sprite.scale.setScalar(event.kind === 'earthquake' ? 0.038 : 0.032)
+      sprite.userData = { earthEvent: event }
+      this.earthObservatoryMarkers.add(sprite)
+    }
+    this.earthObservatoryMarkers.visible = this.focusTarget === 'earth'
+  }
+
+  showEarthCoordinate(lat: number, lon: number) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      throw new Error(`Invalid Earth coordinate: lat=${lat}, lon=${lon}`)
+    }
+    const phi = (90 - lat) * (Math.PI / 180)
+    const theta = (lon + 180) * (Math.PI / 180)
+    const localPosition = new THREE.Vector3(
+      -(1.032 * Math.sin(phi) * Math.cos(theta)),
+      1.032 * Math.cos(phi),
+      1.032 * Math.sin(phi) * Math.sin(theta),
+    )
+    this.earth.updateMatrixWorld(true)
+    this.pinMarker.position.copy(localPosition.applyMatrix4(this.earth.matrixWorld))
+    this.pinMarker.visible = true
+  }
+
   setFocusTarget(target: CelestialBodyId) {
     const isSameTarget = this.focusTarget === target
     this.focusTarget = target
     this.pinMarker.visible = false
     this.marker.visible = false
     this.signalCone.visible = false
+    this.earthObservatoryMarkers.visible = target === 'earth'
     const info = this.getTargetBodyInfo(target)
     if (!info) return
     info.ensureLoaded?.()

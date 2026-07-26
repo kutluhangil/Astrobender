@@ -4,7 +4,18 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const appRoot = fileURLToPath(new URL('..', import.meta.url))
+const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 const read = (path) => readFileSync(new URL(path, `${new URL('..', import.meta.url)}/`), 'utf8')
+const readRepository = (path) => readFileSync(new URL(path, `${new URL('../../', import.meta.url)}/`), 'utf8')
+
+test('root Vercel configuration builds the nested app and exposes the JPL CAD function', () => {
+  const vercel = JSON.parse(readRepository('vercel.json'))
+  assert.equal(vercel.installCommand, 'npm --prefix app ci')
+  assert.equal(vercel.buildCommand, 'npm --prefix app run build')
+  assert.equal(vercel.outputDirectory, 'app/dist')
+  assert.equal(existsSync(`${repositoryRoot}/api/jpl-cad.ts`), true)
+  assert.match(readRepository('api/jpl-cad.ts'), /app\/api\/jpl-cad/)
+})
 
 test('ASTROBENDER is the only product name in the application source', () => {
   const fallback = read('src/components/FallbackTable.tsx')

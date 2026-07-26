@@ -2,6 +2,7 @@
 
 ## 2026-07-26
 
+- Fixed Vercel root builds by installing and building the nested app package explicitly, publishing `app/dist`, and exposing the JPL CAD API function at the repository root.
 - Added sourced, bilingual physical profiles for every selectable planet, dwarf planet, and moon, including chemistry, mass, density, gravity, representative temperature, and explicit unknown-value handling; target callouts now fade in and dissolve after five seconds.
 - Completed the observatory acceptance pass with explicit live-data cache age, independent Earth source layers, a NOAA auroral-oval overlay, full English science copy, Pluto barycentric motion, 13 additional selectable moons/dwarf planets, and a NASA Dawn Ceres surface map.
 - Added Playwright browser E2E coverage, reduced-motion and keyboard-search support, visible focus states, and focus-triggered 8K Moon textures that cut the initial Moon payload by about 24 MiB.

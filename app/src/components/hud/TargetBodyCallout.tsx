@@ -64,6 +64,8 @@ function getGuideEnd(anchor: CalloutAnchor, placement: CalloutPlacement) {
 
 export default function TargetBodyCallout({ bodyId, engineRef, theme, language = 'tr' }: TargetBodyCalloutProps) {
   const [anchor, setAnchor] = useState<CalloutAnchor | null>(null)
+  const [visible, setVisible] = useState(true)
+  const [leaving, setLeaving] = useState(false)
   const fact = getCelestialEntry(bodyId).fact
   const displayName = language === 'tr' ? fact.nameTr : fact.name
   const [decodedName, setDecodedName] = useState(() => decodeName(displayName.toUpperCase(), 0))
@@ -97,6 +99,15 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme, language =
     return () => window.clearInterval(intervalId)
   }, [displayName])
 
+  useEffect(() => {
+    const leaveTimer = window.setTimeout(() => setLeaving(true), 5000)
+    const hideTimer = window.setTimeout(() => setVisible(false), 5700)
+    return () => {
+      window.clearTimeout(leaveTimer)
+      window.clearTimeout(hideTimer)
+    }
+  }, [bodyId])
+
   const geometry = useMemo(() => {
     if (!anchor) return null
     const placement = getPlacement(anchor)
@@ -105,7 +116,7 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme, language =
     return { placement, start, end }
   }, [anchor])
 
-  if (!anchor || !geometry) return null
+  if (!visible || !anchor || !geometry) return null
 
   const transform = geometry.placement === 'northwest'
     ? 'translate(-100%, -100%)'
@@ -116,7 +127,7 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme, language =
         : 'translate(0, 0)'
 
   return (
-    <div className={`pointer-events-none fixed inset-0 z-30 select-none target-callout target-callout--${theme}`} aria-live="polite">
+    <div className={`pointer-events-none fixed inset-0 z-30 select-none target-callout target-callout--${theme}${leaving ? ' target-callout--leaving' : ''}`} aria-live="polite">
       <svg className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
         <line
           className="target-callout__guide"

@@ -94,6 +94,7 @@ export default function Home() {
   const [showFoot, setShowFoot] = useState(true)
   const [follow, setFollow] = useState(false)
   const [focusBody, setFocusBody] = useState<CelestialBodyId>('earth')
+  const [bodySelectionRevision, setBodySelectionRevision] = useState(0)
   const [selectedPin, setSelectedPin] = useState<{ lat: number; lon: number; text: string; landingSite?: LandingSite | null } | null>(null)
   const [fps, setFps] = useState(0)
 
@@ -219,6 +220,7 @@ export default function Home() {
   const handleSelectBody = useCallback((body: CelestialBodyId) => {
     setSelectedPin(null)
     setFocusBody(body)
+    setBodySelectionRevision((current) => current + 1)
     engineRef.current?.setFocusTarget(body)
     // Close mobile panels when selecting a body
     setLayersOpen(false)
@@ -484,6 +486,7 @@ export default function Home() {
       onPinSelected: (pin) => setSelectedPin(pin),
       onSelectBody: (body) => {
         setFocusBody(body)
+        setBodySelectionRevision((current) => current + 1)
         engine.setFocusTarget(body)
         setLayersOpen(false)
         setMobilePlanetInfoOpen(false)
@@ -1027,7 +1030,7 @@ export default function Home() {
 
       {/* ============ CELESTIAL TARGET CALLOUT ============ */}
       <TargetBodyCallout
-        key={`${focusBody}-${uiLanguage}`}
+        key={`${focusBody}-${uiLanguage}-${bodySelectionRevision}`}
         bodyId={focusBody}
         engineRef={engineRef}
         theme={theme}

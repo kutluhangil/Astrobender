@@ -41,7 +41,11 @@ test('body controls still navigate to Europa without changing the Earth default'
   await expect(page.getByRole('heading', { name: 'Dünya (Earth)' })).toBeVisible()
   await page.getByRole('button', { name: '🧊 Europa', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Europa (Europa)' })).toBeVisible()
-  await expect(page.getByText('HEDEF KİLİDİ / EUROPA')).toBeVisible()
+  await expect(page.getByText('Fiziksel Profil').first()).toBeVisible()
+  await expect(page.getByText(/olası küresel tuzlu okyanus/).first()).toBeVisible()
+  const callout = page.getByText('HEDEF KİLİDİ / EUROPA')
+  await expect(callout).toBeVisible()
+  await expect(callout).toHaveCount(0, { timeout: 7_000 })
 })
 
 test('keyboard search supports arrow navigation and NORAD selection', async ({ page }) => {

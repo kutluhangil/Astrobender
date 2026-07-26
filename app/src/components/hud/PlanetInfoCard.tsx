@@ -17,7 +17,7 @@ export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobil
   return (
     <>
       {/* ===== DESKTOP: always visible top-right panel ===== */}
-      <div className="hidden md:block pointer-events-auto w-[310px] max-w-[calc(100vw-32px)] rounded-2xl border border-cyan-500/20 bg-[#0a0e17]/90 p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl transition-all animate-in fade-in slide-in-from-right-4 duration-300">
+      <div data-hud-surface className="hidden md:block pointer-events-auto w-[310px] max-w-[calc(100vw-32px)] rounded-2xl border border-cyan-500/20 bg-[#0a0e17]/90 p-3.5 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl transition-all animate-in fade-in slide-in-from-right-4 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
           <div className="flex items-center gap-2.5">
@@ -77,7 +77,7 @@ export default function PlanetInfoCard({ bodyId, mobileExpanded = false, onMobil
 
       {/* ===== MOBILE: slide-up card when expanded ===== */}
       {mobileExpanded && (
-        <div className="md:hidden pointer-events-auto fixed bottom-[148px] left-3 right-3 z-30 rounded-2xl border border-cyan-500/20 bg-[#0a0e17]/95 p-3.5 shadow-[0_0_40px_rgba(0,0,0,0.9)] backdrop-blur-2xl animate-in slide-in-from-bottom-4 duration-300">
+        <div data-hud-surface className="md:hidden pointer-events-auto fixed bottom-[148px] left-3 right-3 z-30 rounded-2xl border border-cyan-500/20 bg-[#0a0e17]/95 p-3.5 shadow-[0_0_40px_rgba(0,0,0,0.9)] backdrop-blur-2xl animate-in slide-in-from-bottom-4 duration-300">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
             <div className="flex items-center gap-2.5">

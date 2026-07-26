@@ -54,6 +54,7 @@ export default function DetailPanel({
 
   return (
     <div
+      data-hud-surface
       className="pointer-events-auto absolute z-20 rounded-xl border border-white/10 bg-[#0a0e14]/80 backdrop-blur-xl
         /* Mobile: bottom sheet above time controller */
         max-md:inset-x-3 max-md:bottom-[148px] max-md:max-h-[44vh] max-md:overflow-y-auto

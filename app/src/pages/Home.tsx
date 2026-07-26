@@ -15,8 +15,9 @@ import SearchBox from '@/components/hud/SearchBox'
 import DetailPanel from '@/components/hud/DetailPanel'
 import type { Telemetry } from '@/components/hud/DetailPanel'
 import PlanetInfoCard from '@/components/hud/PlanetInfoCard'
-import CinematicTitleOverlay from '@/components/hud/CinematicTitleOverlay'
+import TargetBodyCallout from '@/components/hud/TargetBodyCallout'
 import CosmicTourControls from '@/components/hud/CosmicTourControls'
+import OpeningWordmark from '@/components/OpeningWordmark'
 import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import type { LandingSite } from '@/lib/landing-sites'
@@ -565,9 +566,14 @@ export default function Home() {
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#04060a] font-sans text-slate-200">
+    <div
+      className="relative h-full w-full overflow-hidden bg-[#04060a] font-sans text-slate-200"
+      data-space-theme={theme}
+    >
       {/* 3D Canvas */}
       <div ref={mountRef} className="absolute inset-0" onClick={handleCanvasClick} />
+
+      {status !== 'loading' && !(status === 'error' && !dataset) && <OpeningWordmark />}
 
       {/* ============ HOVER TOOLTIP ============ */}
       {hover && tooltipPos && hoverSat && (
@@ -627,7 +633,7 @@ export default function Home() {
           title="Tema Değiştir"
           aria-label="Karanlık ve açık tema arasında geçiş yap"
         >
-          {theme === 'light' ? '🦴' : '🌌'}
+          {theme === 'light' ? '☀️' : '🌌'}
         </button>
       </div>
 
@@ -657,7 +663,7 @@ export default function Home() {
           }`}
           title="Karanlık Uzay / Kemik Beyazı Teması Değiştir"
         >
-          {theme === 'light' ? '🦴 KEMİK BEYAZI UZAY' : '🌌 KARANLIK UZAY'}
+          {theme === 'light' ? '☀️ AYDINLIK UZAY' : '🌌 KARANLIK UZAY'}
         </button>
       </div>
 
@@ -677,7 +683,7 @@ export default function Home() {
 
       {/* ============ TARGET COORDINATES PIN BADGE ============ */}
       {selectedPin && (
-        <div className="absolute left-3 right-3 top-[155px] z-30 flex items-center gap-3 rounded-xl border border-sky-400/40 bg-[#0a0e14]/85 px-4 py-2.5 backdrop-blur-xl shadow-[0_0_15px_rgba(56,189,248,0.25)] md:left-auto md:right-7 md:top-20 md:w-auto">
+        <div data-hud-surface className="absolute left-3 right-3 top-[155px] z-30 flex items-center gap-3 rounded-xl border border-sky-400/40 bg-[#0a0e14]/85 px-4 py-2.5 backdrop-blur-xl shadow-[0_0_15px_rgba(56,189,248,0.25)] md:left-auto md:right-7 md:top-20 md:w-auto">
           <span className="relative flex h-3 w-3 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
             <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
@@ -790,8 +796,8 @@ export default function Home() {
         </>
       )}
 
-      {/* ============ CINEMATIC OVERLAY ============ */}
-      <CinematicTitleOverlay key={focusBody} bodyId={focusBody} />
+      {/* ============ CELESTIAL TARGET CALLOUT ============ */}
+      <TargetBodyCallout key={focusBody} bodyId={focusBody} engineRef={engineRef} theme={theme} />
 
       {/* ============ LANDING SITE MODAL ============ */}
       {selectedPin?.landingSite && (

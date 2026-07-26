@@ -29,7 +29,7 @@ export default function CosmicTourControls({
   const languageLabel = language === 'tr' ? 'TR' : 'ENG'
 
   return (
-    <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-[#0a0e17]/85 px-2.5 py-2 md:px-3.5 backdrop-blur-xl shadow-[0_0_25px_rgba(6,182,212,0.25)]">
+    <div data-hud-surface className="pointer-events-auto flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-[#0a0e17]/85 px-2.5 py-2 md:px-3.5 backdrop-blur-xl shadow-[0_0_25px_rgba(6,182,212,0.25)]">
       {!isTourActive ? (
         <>
           <button

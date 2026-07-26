@@ -27,7 +27,7 @@ export default function ClockCard({ clock }: ClockCardProps) {
   )
 
   return (
-    <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/10 bg-[#0a0e14]/70 px-2.5 py-1.5 backdrop-blur-xl md:gap-4 md:px-5 md:py-2.5">
+    <div data-hud-surface className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/10 bg-[#0a0e14]/70 px-2.5 py-1.5 backdrop-blur-xl md:gap-4 md:px-5 md:py-2.5">
       {/* Time — always visible */}
       <div className="font-mono text-sm font-medium tabular-nums tracking-wider text-slate-100 md:text-2xl">
         {now > 0 ? formatClockTime(now) : '--:--:--'}

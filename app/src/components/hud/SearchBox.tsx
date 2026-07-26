@@ -52,7 +52,7 @@ export default function SearchBox({ sats, onSelect }: SearchBoxProps) {
   }
 
   return (
-    <div className="pointer-events-auto relative">
+    <div data-hud-surface className="pointer-events-auto relative">
       <svg
         viewBox="0 0 16 16"
         className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 stroke-slate-500"

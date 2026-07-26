@@ -40,6 +40,12 @@ import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 
 export { TOUR_SEQUENCE } from './cinematic-tour'
 
+export interface BodyScreenAnchor {
+  x: number
+  y: number
+  radius: number
+}
+
 /** Runtime state for a rendered planet or moon */
 interface PlanetRuntime {
   def: PlanetDef
@@ -1861,6 +1867,38 @@ export class GlobeEngine {
     return findInRuntimes(this.planetRuntimes)
   }
 
+  /** Current viewport anchor for an in-scene celestial body. */
+  getBodyScreenAnchor(id: CelestialBodyId): BodyScreenAnchor | null {
+    const info = this.getTargetBodyInfo(id)
+    if (!info) return null
+
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return null
+
+    const center = this.tmpVec1
+    const projected = this.tmpVec2
+    const scale = this.tmpVec3
+    info.mesh.getWorldPosition(center)
+    const distance = this.camera.position.distanceTo(center)
+    if (!Number.isFinite(distance) || distance <= 0) return null
+
+    projected.copy(center).project(this.camera)
+    if (projected.z < -1 || projected.z > 1) return null
+
+    info.mesh.getWorldScale(scale)
+    const worldRadius = info.radius * Math.max(scale.x, scale.y, scale.z)
+    const radius = Math.max(
+      12,
+      (worldRadius / (distance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2))) * (rect.height / 2),
+    )
+
+    return {
+      x: rect.left + (projected.x * 0.5 + 0.5) * rect.width,
+      y: rect.top + (-projected.y * 0.5 + 0.5) * rect.height,
+      radius,
+    }
+  }
+
   startCinematicTour(audioDurationS: number) {
     if (!Number.isFinite(audioDurationS) || audioDurationS <= 0) {
       throw new Error(`Cinematic tour requires a valid narration duration, received ${audioDurationS}`)
@@ -1907,19 +1945,27 @@ export class GlobeEngine {
   setTheme(theme: 'dark' | 'light') {
     this.currentTheme = theme
     if (theme === 'light') {
-      // Bone White / Ivory Space Theme (#f4efe6)
-      this.scene.background = new THREE.Color(0xf4efe6)
+      // Cool daylight space keeps planet texture contrast while making the scene readable.
+      this.scene.background = new THREE.Color(0xe8f1f6)
+      this.renderer.setClearColor(0xe8f1f6, 1)
       if (this.starsMat) {
-        this.starsMat.color.setHex(0x334155) // Dark slate stars for bone white space
-        this.starsMat.opacity = 0.75
+        this.starsMat.color.setHex(0x173a52)
+        this.starsMat.opacity = 0.82
       }
+      this.bloom.strength = 0.2
+      this.bloom.radius = 0.12
+      this.bloom.threshold = 1.05
     } else {
       // Deep Dark Space Theme
       this.scene.background = null
+      this.renderer.setClearColor(0x000000, 1)
       if (this.starsMat) {
         this.starsMat.color.setHex(0xffffff)
         this.starsMat.opacity = 0.45
       }
+      this.bloom.strength = 0.45
+      this.bloom.radius = 0.25
+      this.bloom.threshold = 0.98
     }
   }
 

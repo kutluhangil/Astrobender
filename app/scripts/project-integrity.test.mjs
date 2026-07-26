@@ -86,6 +86,35 @@ test('cinematic narration asset and timeline wiring are present', () => {
   assert.match(tour, /CINEMATIC_TOUR_SCRIPT_DURATION_S = 273/)
 })
 
+test('light-space theme and off-body target callout are wired', () => {
+  const home = read('src/pages/Home.tsx')
+  const engine = read('src/lib/globe-engine.ts')
+  const callout = read('src/components/hud/TargetBodyCallout.tsx')
+
+  assert.match(home, /data-space-theme=\{theme\}/)
+  assert.match(home, /TargetBodyCallout/)
+  assert.match(engine, /getBodyScreenAnchor/)
+  assert.match(engine, /0xe8f1f6/)
+  assert.match(callout, /TARGET LOCK/)
+  assert.match(callout, /decodeName/)
+})
+
+test('the temporary ASTROBENDER transmission animates over the opening 3D globe', () => {
+  const home = read('src/pages/Home.tsx')
+  const wordmark = read('src/components/OpeningWordmark.tsx')
+  const styles = read('src/index.css')
+
+  assert.match(home, /OpeningWordmark/)
+  assert.match(home, /status !== 'loading'[\s\S]*?<OpeningWordmark/)
+  assert.match(wordmark, /SCRAMBLE_DURATION_MS = 1100/)
+  assert.match(wordmark, /VISIBLE_DURATION_MS = 3600/)
+  assert.match(wordmark, /EXOLINK_Ω7F2A/)
+  assert.match(wordmark, /prefers-reduced-motion/)
+  assert.match(styles, /\.opening-wordmark/)
+  assert.match(styles, /\.opening-wordmark--leaving/)
+  assert.doesNotMatch(styles, /\.intro-splash/)
+})
+
 test('known invalid and duplicate textures are removed', () => {
   for (const path of [
     'public/textures/milkyway-4k.jpg',

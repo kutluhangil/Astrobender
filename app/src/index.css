@@ -48,3 +48,247 @@ canvas {
   transform: translateY(-50%) rotate(-18deg);
   pointer-events: none;
 }
+
+/* Opening transmission: the live scene stays interactive behind the wordmark. */
+.opening-wordmark {
+  position: absolute;
+  z-index: 10;
+  top: 56%;
+  left: 50%;
+  display: flex;
+  width: min(82vw, 840px);
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  text-align: center;
+  user-select: none;
+}
+
+.opening-wordmark__title {
+  color: rgba(241, 250, 253, 0.92);
+  font-family: 'Avenir Next Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  font-size: clamp(30px, 7vw, 86px);
+  font-weight: 800;
+  letter-spacing: clamp(0.12em, 0.8vw, 0.24em);
+  line-height: 1;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.78), 0 0 24px rgba(94, 228, 255, 0.2);
+  white-space: nowrap;
+}
+
+.opening-wordmark__protocol {
+  display: flex;
+  min-height: 1.5em;
+  margin-top: clamp(12px, 2vw, 20px);
+  align-items: center;
+  color: rgba(94, 228, 255, 0.82);
+  font: 700 clamp(7px, 1vw, 10px)/1.5 ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 12px rgba(94, 228, 255, 0.62);
+  white-space: nowrap;
+}
+
+.opening-wordmark__protocol::before,
+.opening-wordmark__protocol::after {
+  content: '';
+  width: clamp(18px, 5vw, 58px);
+  height: 1px;
+  margin: 0 clamp(8px, 1.5vw, 16px);
+  background: linear-gradient(90deg, transparent, rgba(94, 228, 255, 0.72));
+}
+
+.opening-wordmark__protocol::after {
+  background: linear-gradient(90deg, rgba(94, 228, 255, 0.72), transparent);
+}
+
+.opening-wordmark__cursor {
+  margin-left: 0.18em;
+  animation: opening-cursor-blink 520ms steps(1, end) infinite;
+}
+
+.opening-wordmark--leaving {
+  animation: opening-wordmark-exit 440ms ease-in forwards;
+}
+
+@keyframes opening-cursor-blink {
+  50% { opacity: 0; }
+}
+
+@keyframes opening-wordmark-exit {
+  to {
+    opacity: 0;
+    filter: blur(4px);
+    scale: 1.015;
+  }
+}
+
+/* Focused celestial label — always anchored outside the selected body's silhouette. */
+.target-callout {
+  --target-ink: #d8f8ff;
+  --target-muted: #81b7c6;
+  --target-signal: #51d8f7;
+  --target-surface: rgba(3, 12, 18, 0.76);
+}
+
+.target-callout--light {
+  --target-ink: #0c2f42;
+  --target-muted: #40697a;
+  --target-signal: #087d9d;
+  --target-surface: rgba(247, 252, 255, 0.88);
+}
+
+.target-callout__card {
+  position: absolute;
+  width: min(248px, calc(100vw - 32px));
+  padding: 10px 12px 11px;
+  border: 1px solid color-mix(in srgb, var(--target-signal) 58%, transparent);
+  background: var(--target-surface);
+  box-shadow: 0 14px 34px rgba(2, 12, 18, 0.2), 0 0 24px color-mix(in srgb, var(--target-signal) 17%, transparent);
+  backdrop-filter: blur(14px);
+  color: var(--target-ink);
+  animation: target-callout-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.target-callout__eyebrow,
+.target-callout__meta {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.target-callout__eyebrow {
+  color: var(--target-signal);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.target-callout__name {
+  margin-top: 7px;
+  font-family: 'Avenir Next Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: 0.17em;
+  line-height: 0.9;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--target-signal) 18%, transparent);
+}
+
+.target-callout__rule {
+  width: 100%;
+  height: 2px;
+  margin-top: 9px;
+  background: var(--target-signal);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--target-signal) 70%, transparent);
+  transform-origin: left;
+  animation: target-rule-grow 360ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.target-callout__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--target-muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.target-callout__meta span:last-child { text-align: right; }
+
+.target-callout__guide {
+  stroke: var(--target-signal);
+  stroke-width: 1.25;
+  stroke-dasharray: 1 8;
+  stroke-linecap: round;
+  opacity: 0.9;
+  animation: target-guide-draw 440ms 90ms ease-out both;
+}
+
+.target-callout__endpoint {
+  fill: var(--target-signal);
+  filter: drop-shadow(0 0 6px var(--target-signal));
+  animation: target-endpoint-in 300ms 420ms ease-out both;
+}
+
+/* Light Space is a cool daylight instrumentation mode, not a flat ivory canvas. */
+[data-space-theme='light'] {
+  color: #102c3d;
+}
+
+[data-space-theme='light'] [data-hud-surface] {
+  border-color: rgba(19, 72, 96, 0.18) !important;
+  background-color: rgba(249, 253, 255, 0.84) !important;
+  box-shadow: 0 12px 32px rgba(20, 76, 104, 0.14);
+}
+
+[data-space-theme='light'] [data-hud-surface] [class~='text-slate-100'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-slate-200'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-slate-300'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-white'] {
+  color: #102c3d !important;
+}
+
+[data-space-theme='light'] [data-hud-surface] [class~='text-slate-400'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-slate-500'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-slate-600'] {
+  color: #527082 !important;
+}
+
+[data-space-theme='light'] [data-hud-surface] [class~='text-cyan-100'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-cyan-200'],
+[data-space-theme='light'] [data-hud-surface] [class~='text-cyan-300'] {
+  color: #075d78 !important;
+}
+
+[data-space-theme='light'] [data-hud-ink] [class~='text-slate-100'] {
+  color: #102c3d !important;
+}
+
+[data-space-theme='light'] [data-hud-ink] [class~='text-slate-400'] {
+  color: #527082 !important;
+}
+
+[data-space-theme='light'] [data-hud-surface] [class*='bg-white'],
+[data-space-theme='light'] [data-hud-surface] [class*='bg-\[\#0a0e'],
+[data-space-theme='light'] [data-hud-surface] [class*='bg-\[\#0b0f'] {
+  background-color: rgba(224, 239, 247, 0.58) !important;
+}
+
+[data-space-theme='light'] .light-space-status {
+  border-color: rgba(19, 72, 96, 0.22) !important;
+  background: rgba(249, 253, 255, 0.88) !important;
+  color: #102c3d !important;
+  box-shadow: 0 12px 30px rgba(20, 76, 104, 0.15);
+}
+
+@keyframes target-callout-enter {
+  from { opacity: 0; filter: blur(5px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@keyframes target-rule-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes target-guide-draw {
+  from { stroke-dashoffset: 130; opacity: 0; }
+  to { stroke-dashoffset: 0; opacity: 0.9; }
+}
+
+@keyframes target-endpoint-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opening-wordmark--leaving,
+  .opening-wordmark__cursor {
+    animation: none;
+  }
+
+  .target-callout__card,
+  .target-callout__rule,
+  .target-callout__guide,
+  .target-callout__endpoint { animation: none; }
+}

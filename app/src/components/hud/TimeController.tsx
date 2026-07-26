@@ -9,7 +9,7 @@ interface TimeControllerProps {
 export default function TimeController({ clock }: TimeControllerProps) {
   const live = clock.playing && clock.speed === 1
   return (
-    <div className="pointer-events-auto flex items-center gap-0.5 overflow-x-auto rounded-full border border-white/10 bg-[#0a0e14]/75 p-1 md:p-1.5 backdrop-blur-xl">
+    <div data-hud-surface className="pointer-events-auto flex items-center gap-0.5 overflow-x-auto rounded-full border border-white/10 bg-[#0a0e14]/75 p-1 md:p-1.5 backdrop-blur-xl">
       {SPEEDS.map((s) => {
         const active = clock.playing && clock.speed === s
         return (

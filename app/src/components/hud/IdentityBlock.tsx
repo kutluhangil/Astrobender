@@ -4,7 +4,7 @@ interface IdentityBlockProps {
 
 export default function IdentityBlock({ total }: IdentityBlockProps) {
   return (
-    <div className="pointer-events-none select-none">
+    <div data-hud-ink className="pointer-events-none select-none">
       <h1 className="font-mono text-base font-bold tracking-[0.34em] text-slate-100 md:text-2xl md:tracking-[0.38em]">
         <span className="inline-block text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]">A</span>STROBENDER
       </h1>

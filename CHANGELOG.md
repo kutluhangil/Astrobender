@@ -2,6 +2,7 @@
 
 ## 2026-07-26
 
+- Controlled Earth ocean highlights without changing its textures or satellite points, cleared stale surface pins on body changes, aligned moon atmosphere facts, and removed duplicate visual assets.
 - Added a temporary PriceSpawn-inspired ASTROBENDER character scramble with an alien transmission line over the opening Earth.
 - Reworked the daylight space theme for high-contrast scene and HUD visibility, and replaced centered planet titles with animated off-body target callouts.
 - Added an English narration track and a TR/ENG selector for the synchronized cinematic tour.

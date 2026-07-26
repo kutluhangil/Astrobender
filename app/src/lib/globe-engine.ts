@@ -195,7 +195,8 @@ void main() {
   vec3 v = normalize(cameraPosition - vPosW);
   vec3 h = normalize(uSunDir + v);
   float specAmount = pow(max(dot(n, h), 0.0), 32.0) * specMask * dayMix;
-  vec3 sunSpecColor = vec3(1.0, 0.95, 0.85) * specAmount * 1.2;
+  float controlledSpec = min(specAmount, 0.35);
+  vec3 sunSpecColor = vec3(1.0, 0.95, 0.85) * controlledSpec * 0.45;
   col += sunSpecColor;
 
   // Atmosphere Rim

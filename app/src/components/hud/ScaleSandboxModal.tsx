@@ -28,7 +28,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '274.0 m/s² (27.9g)',
     climate: '5,500°C Yüzey / 15 Milyon°C Çekirdek',
     atmosphere: 'Hidrojen (%73), Helyum (%25)',
-    texture: 'sun-8k.jpg',
+    texture: 'sun-map.jpg',
     funFact: 'Güneş Sistemimizin toplam kütlesinin %99.86\'sını tek başına oluşturur.',
   },
   {

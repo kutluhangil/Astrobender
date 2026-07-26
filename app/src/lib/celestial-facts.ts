@@ -195,7 +195,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     rotationPeriod: '16.69 gün',
     orbitPeriod: '16.69 gün',
     moonsCount: '0',
-    atmosphere: 'Karbondioksit, Azot',
+    atmosphere: 'Çok ince CO₂, Oksijen ve Hidrojen egzosferi',
     funFactTr: 'Güneş Sistemi\'nde krater yoğunluğu en yüksek olan en eski yüzeye sahiptir.',
   },
   saturn: {
@@ -223,7 +223,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     rotationPeriod: '15.94 gün',
     orbitPeriod: '15.94 gün',
     moonsCount: '0',
-    atmosphere: 'Azot (%98.4), Metan (%1.4)',
+    atmosphere: 'Azot (%95), Metan (%5)',
     funFactTr: 'Yoğun atmosferi ve sıvı metan/etan gölleri olan tek uydudur.',
   },
   enceladus: {

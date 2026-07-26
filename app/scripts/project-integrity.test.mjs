@@ -128,3 +128,27 @@ test('known invalid and duplicate textures are removed', () => {
     assert.equal(existsSync(`${appRoot}/${path}`), false, path)
   }
 })
+
+test('body changes clear stale surface pins and keep Earth highlights controlled', () => {
+  const home = read('src/pages/Home.tsx')
+  const engine = read('src/lib/globe-engine.ts')
+
+  assert.match(
+    home,
+    /const handleSelectBody[\s\S]*?setSelectedPin\(null\)[\s\S]*?setFocusBody\(body\)/,
+  )
+  assert.match(engine, /min\(specAmount,\s*0\.35\)/)
+  assert.doesNotMatch(engine, /sunSpecColor[\s\S]{0,100}specAmount \* 1\.2/)
+})
+
+test('moon atmosphere data is consistent and obsolete visual assets are absent', () => {
+  const facts = read('src/lib/celestial-facts.ts')
+  const sandbox = read('src/components/hud/ScaleSandboxModal.tsx')
+
+  assert.doesNotMatch(facts, /atmosphere: 'Karbondioksit, Azot'/)
+  assert.match(facts, /Çok ince CO₂, Oksijen ve Hidrojen egzosferi/)
+  assert.match(facts, /atmosphere: 'Azot \(%95\), Metan \(%5\)'/)
+  assert.match(sandbox, /texture: 'sun-map\.jpg'/)
+  assert.equal(existsSync(`${appRoot}/public/textures/sun-8k.jpg`), false)
+  assert.equal(existsSync(`${appRoot}/src/components/hud/CinematicTitleOverlay.tsx`), false)
+})

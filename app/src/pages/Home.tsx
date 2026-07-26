@@ -190,6 +190,7 @@ export default function Home() {
   )
 
   const handleSelectBody = useCallback((body: CelestialBodyId) => {
+    setSelectedPin(null)
     setFocusBody(body)
     engineRef.current?.setFocusTarget(body)
     // Close mobile panels when selecting a body

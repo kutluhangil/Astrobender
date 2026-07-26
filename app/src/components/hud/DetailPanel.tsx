@@ -1,5 +1,6 @@
 import { UI_GROUPS, formatUtc } from '@/lib/satellites'
 import type { SatInfo } from '@/lib/satellites'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 export interface Telemetry {
   lat: number
@@ -20,6 +21,7 @@ interface DetailPanelProps {
   onToggleFoot: () => void
   onToggleFollow: () => void
   onClose: () => void
+  language?: UiLanguage
 }
 
 function fmtLat(lat: number): string {
@@ -39,16 +41,18 @@ export default function DetailPanel({
   onToggleFoot,
   onToggleFollow,
   onClose,
+  language = 'tr',
 }: DetailPanelProps) {
   const group = UI_GROUPS[sat.group]
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
   const metrics: [string, string][] = telemetry
     ? [
-        ['Altitude', `${telemetry.alt.toFixed(1)} km`],
-        ['Speed', `${telemetry.speed.toFixed(2)} km/s`],
-        ['Latitude', fmtLat(telemetry.lat)],
-        ['Longitude', fmtLon(telemetry.lon)],
-        ['Period', `${telemetry.period.toFixed(1)} min`],
-        ['Inclination', `${telemetry.incl.toFixed(2)}°`],
+        [t('İrtifa', 'Altitude'), `${telemetry.alt.toFixed(1)} km`],
+        [t('Hız', 'Speed'), `${telemetry.speed.toFixed(2)} km/s`],
+        [t('Enlem', 'Latitude'), fmtLat(telemetry.lat)],
+        [t('Boylam', 'Longitude'), fmtLon(telemetry.lon)],
+        [t('Periyot', 'Period'), `${telemetry.period.toFixed(1)} min`],
+        [t('Eğim', 'Inclination'), `${telemetry.incl.toFixed(2)}°`],
       ]
     : []
 
@@ -79,7 +83,7 @@ export default function DetailPanel({
         <button
           onClick={onClose}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-white/10 hover:text-slate-200"
-          aria-label="Close"
+          aria-label={t('Kapat', 'Close')}
         >
           <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 stroke-current" strokeWidth="1.4">
             <path d="M1 1l8 8M9 1l-8 8" />
@@ -102,20 +106,20 @@ export default function DetailPanel({
         </div>
       ) : (
         <div className="mt-3 px-4 text-xs text-slate-500">
-          Propagation unavailable for this object.
+          {t('Bu cisim için yörünge hesabı kullanılamıyor.', 'Propagation unavailable for this object.')}
         </div>
       )}
 
       <div className="mt-2 px-4 font-mono text-[10px] tracking-wider text-slate-600">
-        TLE {sat.epochMs ? formatUtc(sat.epochMs) : 'unknown'}
+        TLE {sat.epochMs ? formatUtc(sat.epochMs) : t('bilinmiyor', 'unknown')}
       </div>
 
       <div className="mt-3 flex gap-1.5 px-4 pb-4">
         {(
           [
-            ['Orbit', showOrbit, onToggleOrbit],
-            ['Footprint', showFoot, onToggleFoot],
-            ['Follow', follow, onToggleFollow],
+            [t('Yörünge', 'Orbit'), showOrbit, onToggleOrbit],
+            [t('İz Alanı', 'Footprint'), showFoot, onToggleFoot],
+            [t('Takip', 'Follow'), follow, onToggleFollow],
           ] as const
         ).map(([label, val, fn]) => (
           <button

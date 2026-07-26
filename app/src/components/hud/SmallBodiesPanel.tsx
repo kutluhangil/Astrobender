@@ -5,6 +5,7 @@ import {
   type CloseApproach,
 } from '@/lib/jpl-small-bodies'
 import { DEEP_SPACE_PROBES } from '@/lib/probes'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface SmallBodiesPanelProps {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -13,6 +14,7 @@ interface SmallBodiesPanelProps {
   updatedAt: number | null
   onClose: () => void
   onRefresh: () => void
+  language?: UiLanguage
 }
 
 type PanelTab = 'approaches' | 'catalog' | 'missions'
@@ -28,27 +30,29 @@ export default function SmallBodiesPanel({
   updatedAt,
   onClose,
   onRefresh,
+  language = 'tr',
 }: SmallBodiesPanelProps) {
   const [tab, setTab] = useState<PanelTab>('approaches')
   const [selected, setSelected] = useState<CloseApproach | null>(null)
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
 
   return (
     <section
       data-hud-surface
-      aria-label="JPL Küçük Cisim Gözlemevi"
+      aria-label={t('JPL Küçük Cisim Gözlemevi', 'JPL Small-Body Observatory')}
       className="pointer-events-auto w-[360px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-amber-400/25 bg-[#120e08]/94 shadow-[0_0_36px_rgba(245,158,11,0.1)] backdrop-blur-2xl"
     >
       <header className="flex items-start justify-between border-b border-white/10 px-3.5 py-3">
         <div>
           <div className="font-mono text-[9px] uppercase tracking-[0.24em] text-amber-300/70">
-            JPL Small-Body Data
+            {t('JPL Küçük Cisim Verisi', 'JPL Small-Body Data')}
           </div>
           <h2 className="mt-0.5 font-mono text-sm font-bold tracking-[0.1em] text-amber-100">
-            KÜÇÜK CİSİM GÖZLEMEVİ
+            {t('KÜÇÜK CİSİM GÖZLEMEVİ', 'SMALL-BODY OBSERVATORY')}
           </h2>
           <p className="mt-1 font-mono text-[8px] text-slate-500">
             CAD · SBDB · NASA MISSIONS
-            {updatedAt ? ` · ${new Date(updatedAt).toLocaleTimeString('tr-TR')}` : ''}
+            {updatedAt ? ` · ${new Date(updatedAt).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US')}` : ''}
           </p>
         </div>
         <div className="flex gap-1">
@@ -56,7 +60,7 @@ export default function SmallBodiesPanel({
             type="button"
             onClick={onRefresh}
             disabled={status === 'loading'}
-            aria-label="JPL verilerini yenile"
+            aria-label={t('JPL verilerini yenile', 'Refresh JPL data')}
             className="rounded-md border border-amber-400/20 bg-amber-400/10 px-2 py-1 font-mono text-[10px] text-amber-200 disabled:opacity-40"
           >
             ↻
@@ -64,7 +68,7 @@ export default function SmallBodiesPanel({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Küçük Cisim Gözlemevini kapat"
+            aria-label={t('Küçük Cisim Gözlemevini kapat', 'Close Small-Body Observatory')}
             className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-300"
           >
             ✕
@@ -74,9 +78,9 @@ export default function SmallBodiesPanel({
 
       <div className="grid grid-cols-3 border-b border-white/10 p-1">
         {([
-          ['approaches', `Yakın Geçiş ${approaches.length}`],
-          ['catalog', 'Katalog 7'],
-          ['missions', `Görevler ${DEEP_SPACE_PROBES.length}`],
+          ['approaches', `${t('Yakın Geçiş', 'Approaches')} ${approaches.length}`],
+          ['catalog', `${t('Katalog', 'Catalog')} 7`],
+          ['missions', `${t('Görevler', 'Missions')} ${DEEP_SPACE_PROBES.length}`],
         ] as const).map(([id, label]) => (
           <button
             type="button"
@@ -96,12 +100,12 @@ export default function SmallBodiesPanel({
           <div className="space-y-1.5">
             {status === 'loading' && (
               <p className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 font-mono text-[9px] text-amber-100">
-                JPL yakın geçiş verileri alınıyor…
+                {t('JPL yakın geçiş verileri alınıyor…', 'Loading JPL close-approach data…')}
               </p>
             )}
             {error && (
               <details className="rounded-lg border border-red-400/25 bg-red-400/5 p-2.5 font-mono text-[9px] text-red-200">
-                <summary>JPL CAD verisi alınamadı</summary>
+                <summary>{t('JPL CAD verisi alınamadı', 'JPL CAD data unavailable')}</summary>
                 <p className="mt-1 break-words text-[8px] text-red-200/70">{error}</p>
               </details>
             )}
@@ -129,13 +133,13 @@ export default function SmallBodiesPanel({
               <div className="rounded-lg border border-amber-400/25 bg-amber-400/5 p-2.5 font-mono text-[8px] text-slate-300">
                 <div className="font-semibold text-amber-200">{selected.fullName}</div>
                 <div className="mt-1 grid grid-cols-2 gap-1 text-slate-400">
-                  <span>Nominal: {distanceLabel(selected.distanceAu)}</span>
-                  <span>Çap: {selected.diameterKm === null ? 'Bilinmiyor' : `${selected.diameterKm.toFixed(3)} km`}</span>
-                  <span>Min: {selected.minimumDistanceAu === null ? '—' : distanceLabel(selected.minimumDistanceAu)}</span>
-                  <span>Maks: {selected.maximumDistanceAu === null ? '—' : distanceLabel(selected.maximumDistanceAu)}</span>
+                  <span>{t('Nominal', 'Nominal')}: {distanceLabel(selected.distanceAu)}</span>
+                  <span>{t('Çap', 'Diameter')}: {selected.diameterKm === null ? t('Bilinmiyor', 'Unknown') : `${selected.diameterKm.toFixed(3)} km`}</span>
+                  <span>{t('Min', 'Min')}: {selected.minimumDistanceAu === null ? '—' : distanceLabel(selected.minimumDistanceAu)}</span>
+                  <span>{t('Maks', 'Max')}: {selected.maximumDistanceAu === null ? '—' : distanceLabel(selected.maximumDistanceAu)}</span>
                 </div>
                 <a href={JPL_CAD_SOURCE_URL} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-amber-300">
-                  JPL CAD kaynağı ↗
+                  {t('JPL CAD kaynağı', 'JPL CAD source')} ↗
                 </a>
               </div>
             )}
@@ -152,9 +156,13 @@ export default function SmallBodiesPanel({
                 rel="noreferrer"
                 className="block rounded-lg border border-white/7 bg-white/[0.03] p-2.5 hover:border-amber-400/25"
               >
-                <span className="font-mono text-[10px] font-semibold text-amber-100">{body.nameTr}</span>
+                <span className="font-mono text-[10px] font-semibold text-amber-100">
+                  {language === 'tr' ? body.nameTr : body.name}
+                </span>
                 <span className="ml-2 font-mono text-[7px] uppercase text-slate-500">{body.kind}</span>
-                <p className="mt-1 text-[9px] leading-relaxed text-slate-400">{body.summaryTr}</p>
+                <p className="mt-1 text-[9px] leading-relaxed text-slate-400">
+                  {body.summaryTr}
+                </p>
               </a>
             ))}
           </div>
@@ -172,7 +180,7 @@ export default function SmallBodiesPanel({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[10px] font-semibold text-cyan-100">
-                    {probe.emoji} {probe.nameTr}
+                    {probe.emoji} {language === 'tr' ? probe.nameTr : probe.name}
                   </span>
                   <span className="font-mono text-[7px] text-slate-500">{probe.launchYear}</span>
                 </div>

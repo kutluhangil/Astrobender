@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState, type RefObject } from 'react'
 import type { GlobeEngine } from '@/lib/globe-engine'
 import { getCelestialEntry } from '@/lib/celestial-catalog'
 import type { CelestialBodyId } from '@/lib/planets'
+import type { UiLanguage } from '@/lib/ui-language'
 
 interface TargetBodyCalloutProps {
   bodyId: CelestialBodyId
   engineRef: RefObject<GlobeEngine | null>
   theme: 'dark' | 'light'
+  language?: UiLanguage
 }
 
 interface CalloutAnchor {
@@ -59,10 +61,11 @@ function getGuideEnd(anchor: CalloutAnchor, placement: CalloutPlacement) {
   }
 }
 
-export default function TargetBodyCallout({ bodyId, engineRef, theme }: TargetBodyCalloutProps) {
+export default function TargetBodyCallout({ bodyId, engineRef, theme, language = 'tr' }: TargetBodyCalloutProps) {
   const [anchor, setAnchor] = useState<CalloutAnchor | null>(null)
   const fact = getCelestialEntry(bodyId).fact
-  const [decodedName, setDecodedName] = useState(() => decodeName(fact.name.toUpperCase(), 0))
+  const displayName = language === 'tr' ? fact.nameTr : fact.name
+  const [decodedName, setDecodedName] = useState(() => decodeName(displayName.toUpperCase(), 0))
 
   useEffect(() => {
     let frameId = 0
@@ -87,11 +90,11 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme }: TargetBo
     let tick = 0
     const intervalId = window.setInterval(() => {
       tick += 1
-      setDecodedName(decodeName(fact.name.toUpperCase(), tick))
+      setDecodedName(decodeName(displayName.toUpperCase(), tick))
       if (tick >= 13) window.clearInterval(intervalId)
     }, 32)
     return () => window.clearInterval(intervalId)
-  }, [fact.name])
+  }, [displayName])
 
   const geometry = useMemo(() => {
     if (!anchor) return null
@@ -127,8 +130,10 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme }: TargetBo
         className="target-callout__card"
         style={{ left: geometry.start.x, top: geometry.start.y, transform }}
       >
-        <div className="target-callout__eyebrow">TARGET LOCK / {bodyId.toUpperCase()}</div>
-        <div className="target-callout__name" aria-label={fact.name}>{decodedName}</div>
+        <div className="target-callout__eyebrow">
+          {language === 'tr' ? 'HEDEF KİLİDİ' : 'TARGET LOCK'} / {bodyId.toUpperCase()}
+        </div>
+        <div className="target-callout__name" aria-label={displayName}>{decodedName}</div>
         <div className="target-callout__rule" />
         <div className="target-callout__meta">
           <span>{fact.typeTr}</span>

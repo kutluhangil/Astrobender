@@ -2044,20 +2044,27 @@ export class GlobeEngine {
     this.earthObservatoryMarkers.visible = this.focusTarget === 'earth'
   }
 
-  showEarthCoordinate(lat: number, lon: number) {
+  showBodyCoordinate(bodyId: CelestialBodyId, lat: number, lon: number) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
-      throw new Error(`Invalid Earth coordinate: lat=${lat}, lon=${lon}`)
+      throw new Error(`Invalid ${bodyId} coordinate: lat=${lat}, lon=${lon}`)
     }
+    const body = this.getTargetBodyInfo(bodyId)
+    if (!body) throw new Error(`Cannot show coordinate for unknown body: ${bodyId}`)
     const phi = (90 - lat) * (Math.PI / 180)
     const theta = (lon + 180) * (Math.PI / 180)
+    const markerRadius = body.radius * 1.032
     const localPosition = new THREE.Vector3(
-      -(1.032 * Math.sin(phi) * Math.cos(theta)),
-      1.032 * Math.cos(phi),
-      1.032 * Math.sin(phi) * Math.sin(theta),
+      -(markerRadius * Math.sin(phi) * Math.cos(theta)),
+      markerRadius * Math.cos(phi),
+      markerRadius * Math.sin(phi) * Math.sin(theta),
     )
-    this.earth.updateMatrixWorld(true)
-    this.pinMarker.position.copy(localPosition.applyMatrix4(this.earth.matrixWorld))
+    body.mesh.updateMatrixWorld(true)
+    this.pinMarker.position.copy(localPosition.applyMatrix4(body.mesh.matrixWorld))
     this.pinMarker.visible = true
+  }
+
+  showEarthCoordinate(lat: number, lon: number) {
+    this.showBodyCoordinate('earth', lat, lon)
   }
 
   setFocusTarget(target: CelestialBodyId) {

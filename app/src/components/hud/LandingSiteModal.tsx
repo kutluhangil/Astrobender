@@ -1,13 +1,17 @@
 import type { LandingSite } from '@/lib/landing-sites'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface LandingSiteModalProps {
   site: LandingSite
   onClose: () => void
+  language?: UiLanguage
 }
 
-export default function LandingSiteModal({ site, onClose }: LandingSiteModalProps) {
+export default function LandingSiteModal({ site, onClose, language = 'tr' }: LandingSiteModalProps) {
   const dialogRef = useDialogFocus(onClose)
+  const isLanding = !site.kind || site.kind === 'landing'
+  const siteName = language === 'tr' ? site.nameTr : site.name
 
   return (
     <div
@@ -27,32 +31,40 @@ export default function LandingSiteModal({ site, onClose }: LandingSiteModalProp
               id="landing-site-title"
               className="font-mono text-xs font-bold tracking-wide text-amber-200 uppercase"
             >
-              {site.nameTr}
+              {siteName}
             </h3>
             <p className="font-mono text-[10px] text-amber-400/90">{site.name}</p>
           </div>
         </div>
         <button
           onClick={onClose}
-          aria-label="İniş alanı ayrıntılarını kapat"
+          aria-label={pickLanguage(language, 'Yüzey noktası ayrıntılarını kapat', 'Close surface site details')}
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-400 hover:bg-white/10"
         >
-          Kapat ✖
+          {pickLanguage(language, 'Kapat', 'Close')} ✖
         </button>
       </div>
 
       {/* Landing Details Grid */}
       <div className="grid grid-cols-2 gap-2 text-[10.5px] font-mono mb-3">
         <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2">
-          <div className="text-[8.5px] uppercase tracking-wider text-amber-400/70 mb-0.5">İniş Yılı</div>
+          <div className="text-[8.5px] uppercase tracking-wider text-amber-400/70 mb-0.5">
+            {pickLanguage(language, isLanding ? 'İniş Yılı' : 'Kuruluş Yılı', isLanding ? 'Landing Year' : 'Established')}
+          </div>
           <div className="font-bold text-amber-200">{site.year}</div>
         </div>
         <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2">
-          <div className="text-[8.5px] uppercase tracking-wider text-amber-400/70 mb-0.5">Uzay Ajansı</div>
-          <div className="font-bold text-amber-200 truncate">{site.agencyTr}</div>
+          <div className="text-[8.5px] uppercase tracking-wider text-amber-400/70 mb-0.5">
+            {pickLanguage(language, 'Kurum', 'Organization')}
+          </div>
+          <div className="font-bold text-amber-200 truncate">
+            {language === 'tr' ? site.agencyTr : site.agency}
+          </div>
         </div>
         <div className="rounded-lg border border-white/5 bg-white/[0.03] p-2 col-span-2">
-          <div className="text-[8.5px] uppercase tracking-wider text-slate-500 mb-0.5">Yüzey Koordinatı</div>
+          <div className="text-[8.5px] uppercase tracking-wider text-slate-500 mb-0.5">
+            {pickLanguage(language, 'Yüzey Koordinatı', 'Surface Coordinates')}
+          </div>
           <div className="font-mono text-[10px] text-slate-300">
             {Math.abs(site.lat).toFixed(2)}° {site.lat >= 0 ? 'N' : 'S'}, {Math.abs(site.lon).toFixed(2)}° {site.lon >= 0 ? 'E' : 'W'}
           </div>
@@ -61,8 +73,20 @@ export default function LandingSiteModal({ site, onClose }: LandingSiteModalProp
 
       {/* Historical Description */}
       <div className="rounded-xl border border-amber-500/30 bg-amber-950/30 p-2.5 text-[11px] leading-relaxed text-amber-100/90 font-sans">
-        🚀 <span className="font-medium text-amber-100">{site.detailsTr}</span>
+        {site.emoji} <span className="font-medium text-amber-100">
+          {language === 'en' && site.detailsEn ? site.detailsEn : site.detailsTr}
+        </span>
       </div>
+      {site.sourceUrl && (
+        <a
+          href={site.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-flex font-mono text-[8px] uppercase tracking-[0.15em] text-amber-300/75 hover:text-amber-200"
+        >
+          {pickLanguage(language, 'Resmî kaynak', 'Official source')} ↗
+        </a>
+      )}
     </div>
   )
 }

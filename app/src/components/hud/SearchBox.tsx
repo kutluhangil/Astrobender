@@ -1,51 +1,55 @@
-import { useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import type { SatInfo } from '@/lib/satellites'
+import type { EarthEvent } from '@/lib/earth-observatory'
+import type { CloseApproach } from '@/lib/jpl-small-bodies'
+import {
+  searchObservatory,
+  type UnifiedSearchResult,
+} from '@/lib/unified-search'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface SearchBoxProps {
   sats: SatInfo[]
-  onSelect: (index: number) => void
+  earthEvents: EarthEvent[]
+  closeApproaches: CloseApproach[]
+  language: UiLanguage
+  onSelectResult: (result: UnifiedSearchResult) => void
 }
 
-/** subsequence fuzzy match: does `q` appear in `name` in order? */
-function fuzzy(name: string, q: string): boolean {
-  let i = 0
-  for (const ch of name) {
-    if (ch === q[i]) i++
-    if (i >= q.length) return true
-  }
-  return false
+const RESULT_ICONS: Record<UnifiedSearchResult['kind'], string> = {
+  satellite: '◉',
+  body: '🪐',
+  'surface-site': '⌖',
+  'earth-event': '◆',
+  'small-body': '☄',
+  'close-approach': '↝',
+  mission: '🚀',
+  constellation: '✦',
 }
 
-export default function SearchBox({ sats, onSelect }: SearchBoxProps) {
+export default function SearchBox({
+  sats,
+  earthEvents,
+  closeApproaches,
+  language,
+  onSelectResult,
+}: SearchBoxProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const resultsId = useId()
 
-  const results = useMemo(() => {
-    const q = query.trim().toUpperCase()
-    if (q.length < 2) return []
-    const exact: number[] = []
-    const prefix: number[] = []
-    const nameHits: number[] = []
-    const fuzzyHits: number[] = []
-    const isNum = /^\d+$/.test(q)
-    for (let i = 0; i < sats.length; i++) {
-      const s = sats[i]
-      if (isNum) {
-        const id = String(s.norad)
-        if (id === q) exact.push(i)
-        else if (id.startsWith(q)) prefix.push(i)
-      }
-      const nm = s.name.toUpperCase()
-      if (nm.includes(q)) nameHits.push(i)
-      else if (!isNum && fuzzy(nm, q)) fuzzyHits.push(i)
-      if (exact.length + prefix.length + nameHits.length + fuzzyHits.length >= 24) break
-    }
-    return [...exact, ...prefix, ...nameHits, ...fuzzyHits].slice(0, 8)
-  }, [query, sats])
+  const results = useMemo(
+    () => searchObservatory(query, {
+      satellites: sats,
+      earthEvents,
+      closeApproaches,
+    }, language),
+    [closeApproaches, earthEvents, language, query, sats],
+  )
 
-  const choose = (index: number) => {
-    onSelect(index)
+  const choose = (result: UnifiedSearchResult) => {
+    onSelectResult(result)
     setQuery('')
     setOpen(false)
     inputRef.current?.blur()
@@ -78,20 +82,37 @@ export default function SearchBox({ sats, onSelect }: SearchBoxProps) {
             setOpen(false)
           }
         }}
-        placeholder="Search satellite or NORAD id…"
+        placeholder={pickLanguage(
+          language,
+          'Uydu, gezegen, görev, konum veya NORAD ara…',
+          'Search satellites, worlds, missions, sites or NORAD…',
+        )}
+        aria-label={pickLanguage(language, 'Gözlemevinde ara', 'Search the observatory')}
+        aria-expanded={open && results.length > 0}
+        aria-controls={resultsId}
         className="w-full rounded-xl border border-white/10 bg-[#0a0e14]/70 py-2.5 pl-9 pr-3 font-mono text-xs text-slate-200 placeholder-slate-500 outline-none backdrop-blur-xl focus:border-sky-400/40"
       />
       {open && results.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1.5 overflow-hidden rounded-xl border border-white/10 bg-[#0b0f16]/95 backdrop-blur-xl">
-          {results.map((i) => (
+        <div
+          id={resultsId}
+          className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-[360px] overflow-y-auto rounded-xl border border-white/10 bg-[#0b0f16]/95 backdrop-blur-xl"
+        >
+          {results.map((result) => (
             <button
-              key={sats[i].norad}
-              onClick={() => choose(i)}
-              className="flex min-h-[36px] w-full items-center justify-between gap-2 px-3 py-1.5 text-left hover:bg-sky-400/10"
+              key={result.id}
+              onClick={() => choose(result)}
+              className="flex min-h-[42px] w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-sky-400/10 focus:bg-sky-400/10 focus:outline-none"
             >
-              <span className="truncate font-mono text-xs text-slate-200">{sats[i].name}</span>
-              <span className="shrink-0 font-mono text-[10px] tabular-nums text-slate-500">
-                #{sats[i].norad}
+              <span className="w-4 shrink-0 text-center text-[11px] text-cyan-300">
+                {RESULT_ICONS[result.kind]}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-mono text-[11px] text-slate-200">
+                  {result.title}
+                </span>
+                <span className="block truncate font-mono text-[8px] uppercase tracking-[0.1em] text-slate-500">
+                  {result.subtitle}
+                </span>
               </span>
             </button>
           ))}

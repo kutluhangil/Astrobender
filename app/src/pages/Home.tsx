@@ -26,6 +26,8 @@ import type { LandingSite } from '@/lib/landing-sites'
 import type { EarthEvent } from '@/lib/earth-observatory'
 import { useEarthObservatory } from '@/hooks/useEarthObservatory'
 import { useSmallBodies } from '@/hooks/useSmallBodies'
+import type { UnifiedSearchResult } from '@/lib/unified-search'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
   CINEMATIC_TOUR_AUDIO_PATHS,
@@ -109,12 +111,19 @@ export default function Home() {
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
   const [smallBodiesOpen, setSmallBodiesOpen] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [uiLanguage, setUiLanguage] = useState<UiLanguage>('tr')
+  const [searchNotice, setSearchNotice] = useState<string | null>(null)
   const earthObservatory = useEarthObservatory(earthObservatoryOpen)
   const smallBodies = useSmallBodies(smallBodiesOpen)
+  const t = (tr: string, en: string) => pickLanguage(uiLanguage, tr, en)
 
   useEffect(() => {
     setTleWarningDismissed(false)
   }, [tleWarning])
+
+  useEffect(() => {
+    document.documentElement.lang = uiLanguage
+  }, [uiLanguage])
 
   const audioSynthRef = useRef(new SpaceAudioSynth())
   const cinematicAudioRefs = useRef<Record<CinematicTourLanguage, HTMLAudioElement | null>>({
@@ -376,6 +385,55 @@ export default function Home() {
     // Close mobile panel on satellite selection
     setLayersOpen(false)
   }, [])
+
+  const handleSearchResult = useCallback((result: UnifiedSearchResult) => {
+    setSearchNotice(null)
+    switch (result.kind) {
+      case 'satellite':
+        selectSat(result.satelliteIndex)
+        return
+      case 'body':
+        selectSat(null)
+        handleSelectBody(result.bodyId)
+        return
+      case 'surface-site': {
+        selectSat(null)
+        handleSelectBody(result.site.bodyId)
+        engineRef.current?.showBodyCoordinate(result.site.bodyId, result.site.lat, result.site.lon)
+        setSelectedPin({
+          lat: result.site.lat,
+          lon: result.site.lon,
+          text: uiLanguage === 'tr' ? result.site.nameTr : result.site.name,
+          landingSite: result.site,
+        })
+        return
+      }
+      case 'earth-event':
+        selectSat(null)
+        handleSelectEarthEvent(result.event)
+        return
+      case 'small-body':
+      case 'close-approach':
+      case 'mission':
+        setEarthObservatoryOpen(false)
+        setSmallBodiesOpen(true)
+        setLayersOpen(false)
+        setSearchNotice(
+          uiLanguage === 'tr'
+            ? `${result.title} için JPL gözlemevi açıldı.`
+            : `JPL observatory opened for ${result.title}.`,
+        )
+        return
+      case 'constellation':
+        setConstellationsVisible(true)
+        engineRef.current?.setConstellationsVisible(true)
+        setSearchNotice(
+          result.constellation.renderedFigure
+            ? `${result.title} · ${uiLanguage === 'tr' ? 'temsili yıldız çizgisi görünür' : 'representative star figure visible'}`
+            : `${result.title} · ${uiLanguage === 'tr' ? 'IAU kataloğunda; resmî çizgi şekli yok' : 'IAU catalog; no official stick figure'}`,
+        )
+    }
+  }, [handleSelectBody, handleSelectEarthEvent, selectSat, uiLanguage])
 
   // ---- engine lifecycle (created once) ----
   useEffect(() => {
@@ -657,7 +715,13 @@ export default function Home() {
 
       {/* Top-right (desktop only): Search */}
       <div className="hidden md:block absolute right-7 top-6 z-20 w-[300px]">
-        <SearchBox sats={sats} onSelect={selectSat} />
+        <SearchBox
+          sats={sats}
+          earthEvents={earthObservatory.events}
+          closeApproaches={smallBodies.approaches}
+          language={uiLanguage}
+          onSelectResult={handleSearchResult}
+        />
       </div>
 
       {/* Mobile top-right: Planet info icon + Theme toggle */}
@@ -670,8 +734,8 @@ export default function Home() {
               ? 'border-cyan-400/60 bg-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.4)]'
               : 'border-white/10 bg-[#0a0e14]/70'
           }`}
-          title="Gezegen Bilgisi"
-          aria-label="Gezegen bilgisini aç veya kapat"
+          title={t('Gezegen Bilgisi', 'Body Information')}
+          aria-label={t('Gezegen bilgisini aç veya kapat', 'Open or close body information')}
         >
           🪐
         </button>
@@ -683,22 +747,37 @@ export default function Home() {
               ? 'border-amber-900/20 bg-[#f8f6f0]/95 text-amber-950 shadow-[0_0_15px_rgba(217,119,6,0.15)]'
               : 'border-cyan-500/30 bg-[#0a0e17]/85 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
           }`}
-          title="Tema Değiştir"
-          aria-label="Karanlık ve açık tema arasında geçiş yap"
+          title={t('Tema Değiştir', 'Change Theme')}
+          aria-label={t('Karanlık ve açık tema arasında geçiş yap', 'Switch between dark and light themes')}
         >
           {theme === 'light' ? '☀️' : '🌌'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setUiLanguage((language) => language === 'tr' ? 'en' : 'tr')}
+          className="flex h-9 min-w-9 items-center justify-center rounded-full border border-white/10 bg-[#0a0e14]/70 px-2 font-mono text-[9px] text-cyan-200 backdrop-blur-xl"
+          aria-label={uiLanguage === 'tr' ? 'Arayüzü İngilizce yap' : 'Switch interface to Turkish'}
+        >
+          {uiLanguage === 'tr' ? 'EN' : 'TR'}
         </button>
       </div>
 
       {/* Mobile search bar: below top bar */}
       <div className="absolute left-3 right-3 top-[56px] z-20 md:hidden">
-        <SearchBox sats={sats} onSelect={selectSat} />
+        <SearchBox
+          sats={sats}
+          earthEvents={earthObservatory.events}
+          closeApproaches={smallBodies.approaches}
+          language={uiLanguage}
+          onSelectResult={handleSearchResult}
+        />
       </div>
 
       {/* ============ SECOND ROW: Tour + Theme (desktop) ============ */}
       <div className="hidden md:flex absolute left-7 top-[76px] z-20 items-center gap-2">
         <CosmicTourControls
           currentBodyId={focusBody}
+          uiLanguage={uiLanguage}
           language={cinematicTourLanguage}
           isTourActive={isCinematicTourActive}
           isAudioReady={cinematicAudioStatus[cinematicTourLanguage].ready}
@@ -714,9 +793,17 @@ export default function Home() {
               ? 'border-amber-900/20 bg-[#f8f6f0]/95 text-amber-950 hover:bg-[#ffffff] shadow-[0_0_15px_rgba(217,119,6,0.15)]'
               : 'border-cyan-500/30 bg-[#0a0e17]/85 text-cyan-300 hover:text-cyan-100 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
           }`}
-          title="Karanlık Uzay / Kemik Beyazı Teması Değiştir"
+          title={t('Karanlık / aydınlık uzay temasını değiştir', 'Switch dark/light space theme')}
         >
-          {theme === 'light' ? '☀️ AYDINLIK UZAY' : '🌌 KARANLIK UZAY'}
+          {theme === 'light' ? `☀️ ${t('AYDINLIK UZAY', 'LIGHT SPACE')}` : `🌌 ${t('KARANLIK UZAY', 'DARK SPACE')}`}
+        </button>
+        <button
+          type="button"
+          onClick={() => setUiLanguage((language) => language === 'tr' ? 'en' : 'tr')}
+          className="pointer-events-auto rounded-xl border border-cyan-500/25 bg-[#0a0e17]/85 px-3 py-2 font-mono text-[10px] font-semibold text-cyan-200 backdrop-blur-xl"
+          aria-label={uiLanguage === 'tr' ? 'Arayüzü İngilizce yap' : 'Switch interface to Turkish'}
+        >
+          {uiLanguage === 'tr' ? 'TR → EN' : 'EN → TR'}
         </button>
       </div>
 
@@ -724,6 +811,7 @@ export default function Home() {
       <div className="absolute left-3 top-[108px] z-20 md:hidden">
         <CosmicTourControls
           currentBodyId={focusBody}
+          uiLanguage={uiLanguage}
           language={cinematicTourLanguage}
           isTourActive={isCinematicTourActive}
           isAudioReady={cinematicAudioStatus[cinematicTourLanguage].ready}
@@ -742,28 +830,54 @@ export default function Home() {
             <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
           </span>
           <div className="flex-1 min-w-0">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-sky-400">Target Coordinates</div>
-            <div className="font-mono text-xs font-semibold text-slate-100 truncate">{selectedPin.text}</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-sky-400">
+              {t('Hedef Koordinatlar', 'Target Coordinates')}
+            </div>
+            <div className="font-mono text-xs font-semibold text-slate-100 truncate">
+              {selectedPin.landingSite
+                ? (uiLanguage === 'tr' ? selectedPin.landingSite.nameTr : selectedPin.landingSite.name)
+                : selectedPin.text}
+            </div>
           </div>
           <button
             onClick={() => setSelectedPin(null)}
             className="ml-2 shrink-0 rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white"
-            aria-label="Seçili koordinatı kapat"
+            aria-label={t('Seçili koordinatı kapat', 'Close selected coordinates')}
           >
             ✕
           </button>
         </div>
       )}
 
+      {searchNotice && (
+        <div
+          data-hud-surface
+          role="status"
+          aria-live="polite"
+          className="absolute left-1/2 top-[128px] z-30 w-[min(520px,calc(100vw-24px))] -translate-x-1/2 rounded-xl border border-cyan-400/25 bg-[#091017]/90 px-3 py-2 text-center font-mono text-[9px] text-cyan-100 shadow-[0_0_20px_rgba(34,211,238,0.12)] backdrop-blur-xl"
+        >
+          {searchNotice}
+          <button
+            type="button"
+            onClick={() => setSearchNotice(null)}
+            className="ml-2 text-cyan-300/60 hover:text-cyan-200"
+            aria-label={uiLanguage === 'tr' ? 'Arama bildirimini kapat' : 'Dismiss search notice'}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* ============ DESKTOP LEFT PANEL: Layer Panel ============ */}
       <div className="absolute bottom-7 left-7 z-20 max-md:hidden">
-        <LayerPanel {...layerPanelProps} />
+        <LayerPanel {...layerPanelProps} language={uiLanguage} />
       </div>
 
       {earthObservatoryOpen && (
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
           <EarthObservatoryPanel
             {...earthObservatory}
+            language={uiLanguage}
             onClose={() => setEarthObservatoryOpen(false)}
             onRefresh={() => void earthObservatory.refresh()}
             onSelectEvent={handleSelectEarthEvent}
@@ -775,6 +889,7 @@ export default function Home() {
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
           <SmallBodiesPanel
             {...smallBodies}
+            language={uiLanguage}
             onClose={() => setSmallBodiesOpen(false)}
             onRefresh={() => void smallBodies.refresh()}
           />
@@ -790,7 +905,7 @@ export default function Home() {
             ? 'border-cyan-400/60 bg-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.5)] rotate-45'
             : 'border-white/20 bg-[#0a0e14]/80 shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
         }`}
-        aria-label={layersOpen ? 'Close layers panel' : 'Open layers panel'}
+        aria-label={layersOpen ? t('Katman panelini kapat', 'Close layers panel') : t('Katman panelini aç', 'Open layers panel')}
       >
         {layersOpen ? '✕' : '🌌'}
       </button>
@@ -816,7 +931,7 @@ export default function Home() {
         </div>
         <div className="bg-[#0a0e14]/95 border-x border-b border-white/10 max-h-[80vh] overflow-y-auto">
           <div className="px-3 pb-4 pt-1">
-            <LayerPanel {...layerPanelProps} />
+          <LayerPanel {...layerPanelProps} language={uiLanguage} />
           </div>
         </div>
       </div>
@@ -841,6 +956,7 @@ export default function Home() {
       {selSat && (
         <DetailPanel
           sat={selSat}
+          language={uiLanguage}
           telemetry={telemetry}
           showOrbit={showOrbit}
           showFoot={showFoot}
@@ -857,12 +973,13 @@ export default function Home() {
         <>
           {/* Desktop only: top-right panel */}
           <div className="hidden md:block absolute top-4 right-4 z-20">
-            <PlanetInfoCard bodyId={focusBody} />
+            <PlanetInfoCard bodyId={focusBody} language={uiLanguage} />
           </div>
           {/* Mobile only: slide-up sheet controlled by 🪐 icon */}
           <div className="md:hidden">
             <PlanetInfoCard
               bodyId={focusBody}
+              language={uiLanguage}
               mobileExpanded={mobilePlanetInfoOpen}
               onMobileToggle={() => setMobilePlanetInfoOpen(false)}
             />
@@ -871,11 +988,21 @@ export default function Home() {
       )}
 
       {/* ============ CELESTIAL TARGET CALLOUT ============ */}
-      <TargetBodyCallout key={focusBody} bodyId={focusBody} engineRef={engineRef} theme={theme} />
+      <TargetBodyCallout
+        key={`${focusBody}-${uiLanguage}`}
+        bodyId={focusBody}
+        engineRef={engineRef}
+        theme={theme}
+        language={uiLanguage}
+      />
 
       {/* ============ LANDING SITE MODAL ============ */}
       {selectedPin?.landingSite && (
-        <LandingSiteModal site={selectedPin.landingSite} onClose={() => setSelectedPin(null)} />
+        <LandingSiteModal
+          site={selectedPin.landingSite}
+          language={uiLanguage}
+          onClose={() => setSelectedPin(null)}
+        />
       )}
 
       {/* ============ SCALE SANDBOX MODAL ============ */}
@@ -892,20 +1019,26 @@ export default function Home() {
         >
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <div className="font-medium text-amber-100">Canlı TLE güncellemesi kullanılamıyor</div>
-              <div className="mt-0.5 text-amber-100/75">Paketlenmiş son geçerli veriyle devam ediliyor.</div>
+              <div className="font-medium text-amber-100">
+                {t('Canlı TLE güncellemesi kullanılamıyor', 'Live TLE update unavailable')}
+              </div>
+              <div className="mt-0.5 text-amber-100/75">
+                {t('Paketlenmiş son geçerli veriyle devam ediliyor.', 'Continuing with the last valid bundled dataset.')}
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setTleWarningDismissed(true)}
               className="-mr-1 -mt-1 rounded px-1.5 py-0.5 text-base leading-none text-amber-100/70 hover:bg-amber-300/10 hover:text-amber-100"
-              aria-label="TLE durum uyarısını kapat"
+              aria-label={t('TLE durum uyarısını kapat', 'Dismiss TLE status warning')}
             >
               ×
             </button>
           </div>
           <details className="mt-1.5 text-amber-100/70">
-            <summary className="w-fit cursor-pointer text-[10px] text-amber-200/90">Teknik ayrıntı</summary>
+            <summary className="w-fit cursor-pointer text-[10px] text-amber-200/90">
+              {t('Teknik ayrıntı', 'Technical details')}
+            </summary>
             <p className="mt-1 break-words font-mono text-[9px] leading-relaxed">{tleWarning}</p>
           </details>
           <button
@@ -916,13 +1049,13 @@ export default function Home() {
             }}
             className="mt-1.5 rounded border border-amber-300/30 px-2 py-0.5 font-mono text-[10px] text-amber-200 hover:bg-amber-300/10"
           >
-            Tekrar dene
+            {t('Tekrar dene', 'Retry')}
           </button>
         </div>
       )}
       {degraded && (
         <div className="absolute bottom-[100px] right-3 z-20 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[11px] text-amber-200 max-w-[200px] md:right-7">
-          Live propagation degraded: {degraded}
+          {t('Canlı yörünge hesabı yavaşladı', 'Live propagation degraded')}: {degraded}
         </div>
       )}
 
@@ -930,12 +1063,12 @@ export default function Home() {
       {ctxLost && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#04060a]/90">
           <div className="rounded-2xl border border-white/10 bg-[#0a0e14] px-6 py-5 text-center mx-4">
-            <div className="text-sm text-slate-200">Graphics context lost</div>
+            <div className="text-sm text-slate-200">{t('Grafik bağlamı kayboldu', 'Graphics context lost')}</div>
             <button
               onClick={() => window.location.reload()}
               className="mt-3 rounded-lg border border-sky-400/40 px-3 py-1 text-xs text-sky-200 hover:bg-sky-400/10"
             >
-              Reload
+              {t('Yeniden yükle', 'Reload')}
             </button>
           </div>
         </div>

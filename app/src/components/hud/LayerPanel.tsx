@@ -1,5 +1,11 @@
 import { UI_GROUPS } from '@/lib/satellites'
 import { PLANETS, type CelestialBodyId, findPlanetDef } from '@/lib/planets'
+import {
+  IAU_CONSTELLATIONS,
+  IAU_CONSTELLATIONS_SOURCE_URL,
+} from '@/lib/constellations'
+import { CELESTIAL_FACTS } from '@/lib/celestial-facts'
+import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { useState } from 'react'
 
 interface LayerPanelProps {
@@ -23,12 +29,13 @@ interface LayerPanelProps {
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
   smallBodiesVisible?: boolean
+  language?: UiLanguage
 }
 
-const PRIMARY_BODIES: { id: CelestialBodyId; name: string; emoji: string; activeClass: string }[] = [
-  { id: 'earth', name: 'Earth', emoji: '🌍', activeClass: 'border-cyan-500/60 bg-cyan-500/20 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.3)]' },
-  { id: 'moon', name: 'Moon', emoji: '🌕', activeClass: 'border-amber-500/60 bg-amber-500/20 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.3)]' },
-  { id: 'sun', name: 'Sun', emoji: '☀️', activeClass: 'border-orange-500/60 bg-orange-500/20 text-orange-200 shadow-[0_0_10px_rgba(249,115,22,0.3)]' },
+const PRIMARY_BODIES: { id: CelestialBodyId; name: string; nameTr: string; emoji: string; activeClass: string }[] = [
+  { id: 'earth', name: 'Earth', nameTr: 'Dünya', emoji: '🌍', activeClass: 'border-cyan-500/60 bg-cyan-500/20 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.3)]' },
+  { id: 'moon', name: 'Moon', nameTr: 'Ay', emoji: '🌕', activeClass: 'border-amber-500/60 bg-amber-500/20 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.3)]' },
+  { id: 'sun', name: 'Sun', nameTr: 'Güneş', emoji: '☀️', activeClass: 'border-orange-500/60 bg-orange-500/20 text-orange-200 shadow-[0_0_10px_rgba(249,115,22,0.3)]' },
 ]
 
 function formatSemiMajorAxisAu(planet: (typeof PLANETS)[number]): string {
@@ -59,8 +66,10 @@ export default function LayerPanel({
   earthObservatoryVisible = false,
   onToggleSmallBodies,
   smallBodiesVisible = false,
+  language = 'tr',
 }: LayerPanelProps) {
   const [showAllPlanets, setShowAllPlanets] = useState(true)
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
 
   const currentDef = findPlanetDef(focusBody)
   const currentLabel = focusBody === 'earth' ? '🌍 Earth' : focusBody === 'moon' ? '🌕 Moon' : focusBody === 'sun' ? '☀️ Sun' : currentDef ? `${currentDef.emoji} ${currentDef.name}` : focusBody
@@ -73,7 +82,7 @@ export default function LayerPanel({
           onClick={onToggleScaleSandbox}
           className="flex-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 py-1 font-mono text-[9.5px] font-semibold text-cyan-200 hover:bg-cyan-500/20 transition-all"
         >
-          ⚖️ Scale Sandbox
+          ⚖️ {t('Ölçek Laboratuvarı', 'Scale Sandbox')}
         </button>
         <button
           onClick={onToggleAudio}
@@ -83,7 +92,7 @@ export default function LayerPanel({
               : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
           }`}
         >
-          {audioPlaying ? '🔊 Ambient On' : '🔇 Mute'}
+          {audioPlaying ? `🔊 ${t('Ortam Açık', 'Ambient On')}` : `🔇 ${t('Sessiz', 'Mute')}`}
         </button>
       </div>
 
@@ -91,13 +100,13 @@ export default function LayerPanel({
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-slate-500">
-            Target Body (3D Globe)
+            {t('Hedef Gök Cismi (3B Küre)', 'Target Body (3D Globe)')}
           </div>
           <button
             onClick={() => setShowAllPlanets(!showAllPlanets)}
             className="font-mono text-[9px] text-cyan-400 hover:text-cyan-300 underline"
           >
-            {showAllPlanets ? 'Compact' : 'Solar System 🪐'}
+            {showAllPlanets ? t('Daralt', 'Compact') : t('Güneş Sistemi 🪐', 'Solar System 🪐')}
           </button>
         </div>
 
@@ -113,7 +122,7 @@ export default function LayerPanel({
                   : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              {b.emoji} {b.name}
+              {b.emoji} {language === 'tr' ? b.nameTr : b.name}
             </button>
           ))}
         </div>
@@ -122,7 +131,7 @@ export default function LayerPanel({
         {showAllPlanets && (
           <>
             <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.14em] text-cyan-300/65">
-              Astronomik yörüngeler · sıkıştırılmış görsel mesafe
+              {t('Astronomik yörüngeler · sıkıştırılmış görsel mesafe', 'Astronomical orbits · compressed visual distance')}
             </div>
             <div className="max-h-[30vh] md:max-h-[160px] overflow-y-auto space-y-1 pr-1 text-[11px] scrollbar-thin scrollbar-thumb-white/10">
               {PLANETS.map((p) => (
@@ -135,7 +144,7 @@ export default function LayerPanel({
                       : 'border-white/5 bg-white/[0.03] text-slate-300 hover:bg-white/10'
                   }`}
                 >
-                  <span>{p.emoji} {p.name}</span>
+                  <span>{p.emoji} {language === 'tr' ? CELESTIAL_FACTS[p.id].nameTr : p.name}</span>
                   <span
                     className="font-mono text-[9px] text-slate-500"
                     title="Gerçek yarı-büyük eksen; 3D görünüm sıkıştırılmıştır"
@@ -157,7 +166,7 @@ export default function LayerPanel({
                             : 'border-white/5 bg-white/[0.02] text-slate-400 hover:bg-white/10'
                         }`}
                       >
-                        {m.emoji} {m.name}
+                        {m.emoji} {language === 'tr' ? CELESTIAL_FACTS[m.id].nameTr : m.name}
                       </button>
                     ))}
                   </div>
@@ -170,7 +179,7 @@ export default function LayerPanel({
 
         {!showAllPlanets && focusBody !== 'earth' && focusBody !== 'moon' && focusBody !== 'sun' && (
           <div className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1.5 font-mono text-[11px] text-cyan-200 flex items-center justify-between">
-            <span>Active Target:</span>
+            <span>{t('Etkin Hedef:', 'Active Target:')}</span>
             <span className="font-semibold">{currentLabel}</span>
           </div>
         )}
@@ -179,7 +188,7 @@ export default function LayerPanel({
       {/* Cosmic Layers Toggles */}
       <div className="border-t border-white/5 pt-2">
         <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-500">
-          Cosmic Environments
+          {t('Kozmik Katmanlar', 'Cosmic Environments')}
         </div>
         <div className="grid grid-cols-2 gap-1 font-mono text-[9px] mt-1.5">
           <button
@@ -188,7 +197,7 @@ export default function LayerPanel({
               planetaryOrbitsVisible ? 'border-cyan-500/50 bg-cyan-500/20 text-cyan-200 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.3)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            🪐 Orbits
+            🪐 {t('Yörüngeler', 'Orbits')}
           </button>
           <button
             onClick={onToggleProbes}
@@ -196,7 +205,7 @@ export default function LayerPanel({
               probesVisible ? 'border-cyan-500/50 bg-cyan-500/20 text-cyan-200 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.3)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            🛰️ Probes
+            🛰️ {t('Sondalar', 'Probes')}
           </button>
           <button
             onClick={onToggleConstellations}
@@ -204,7 +213,7 @@ export default function LayerPanel({
               constellationsVisible ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-200 font-semibold shadow-[0_0_8px_rgba(99,102,241,0.3)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            ✨ Stars
+            ✨ {t(`Takımyıldızlar ${IAU_CONSTELLATIONS.length}`, `Constellations ${IAU_CONSTELLATIONS.length}`)}
           </button>
           <button
             onClick={onToggleAsteroids}
@@ -212,7 +221,7 @@ export default function LayerPanel({
               asteroidsVisible ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 font-semibold shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            ☄️ Schematic Belts
+            ☄️ {t('Şematik Kuşaklar', 'Schematic Belts')}
           </button>
           <button
             onClick={onToggleEarthObservatory}
@@ -220,7 +229,7 @@ export default function LayerPanel({
               earthObservatoryVisible ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-semibold shadow-[0_0_8px_rgba(52,211,153,0.25)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            🌍 Earth Data
+            🌍 {t('Dünya Verisi', 'Earth Data')}
           </button>
           <button
             onClick={onToggleSmallBodies}
@@ -228,15 +237,28 @@ export default function LayerPanel({
               smallBodiesVisible ? 'border-amber-400/50 bg-amber-400/15 text-amber-200 font-semibold shadow-[0_0_8px_rgba(251,191,36,0.25)]' : 'border-white/5 bg-white/5 text-slate-500'
             }`}
           >
-            ☄️ JPL Objects
+            ☄️ {t('JPL Cisimleri', 'JPL Objects')}
           </button>
         </div>
+        {constellationsVisible && (
+          <a
+            href={IAU_CONSTELLATIONS_SOURCE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1.5 block rounded-md border border-indigo-400/20 bg-indigo-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-indigo-200/80 hover:bg-indigo-400/10"
+          >
+            {t(
+              'IAU kataloğu: 88/88 · 5 temsili çizgi görünümü. IAU resmî çizgi şekli tanımlamaz.',
+              'IAU catalog: 88/88 · 5 representative line figures. The IAU defines no official stick figures.',
+            )} ↗
+          </a>
+        )}
       </div>
 
       {/* Satellite Layers */}
       <div>
         <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-500">
-          Earth Satellites
+          {t('Dünya Uyduları', 'Earth Satellites')}
         </div>
         <div className="space-y-0.5 max-h-[20vh] md:max-h-[140px] overflow-y-auto pr-1">
           {UI_GROUPS.map((g, i) => (

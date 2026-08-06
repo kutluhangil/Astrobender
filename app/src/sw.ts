@@ -46,7 +46,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         const cache = await caches.open(TEXTURE_CACHE)
-        const cached = await cache.match(event.request)
+        const cached = await cache.match(event.request, { ignoreVary: true })
         if (cached) return cached
         const response = await fetch(event.request)
         if (response.ok) await cache.put(event.request, response.clone())
@@ -97,7 +97,7 @@ self.addEventListener('message', (event) => {
       let done = 0
       for (const textureUrl of urls) {
         try {
-          const existing = await cache.match(textureUrl)
+          const existing = await cache.match(textureUrl, { ignoreVary: true })
           if (!existing) {
             const response = await fetch(textureUrl)
             if (response.ok) await cache.put(textureUrl, response)

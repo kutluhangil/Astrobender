@@ -77,6 +77,8 @@ export function usePrepareOfflineTextures() {
         return
       }
     }
+    // TS narrowing only: the catch above always returns before this point,
+    // so `manifest` is never actually null here.
     if (!manifest) return
 
     const registration = await navigator.serviceWorker.ready

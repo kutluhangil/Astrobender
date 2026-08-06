@@ -72,3 +72,16 @@ test('a viewed texture is cached and reused offline', async ({ page, context }) 
 
   await context.setOffline(false)
 })
+
+test('prepare-for-offline downloads and caches every texture', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible()
+  await page.getByRole('button', { name: /Çevrimdışı için hazırla/ }).click()
+  await expect(page.getByText(/Çevrimdışı için hazır/)).toBeVisible({ timeout: 60_000 })
+
+  const cachedCount = await page.evaluate(async () => {
+    const cache = await caches.open('astrobender-textures-v1')
+    return (await cache.keys()).length
+  })
+  expect(cachedCount).toBeGreaterThan(20)
+})

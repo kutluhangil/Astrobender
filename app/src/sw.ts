@@ -85,3 +85,32 @@ self.addEventListener('fetch', (event) => {
     })(),
   )
 })
+
+self.addEventListener('message', (event) => {
+  if (!event.data || event.data.type !== 'PREPARE_OFFLINE_TEXTURES') return
+  const { urls } = event.data as { urls: string[] }
+  const client = event.source as Client | null
+
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(TEXTURE_CACHE)
+      let done = 0
+      for (const textureUrl of urls) {
+        try {
+          const existing = await cache.match(textureUrl)
+          if (!existing) {
+            const response = await fetch(textureUrl)
+            if (response.ok) await cache.put(textureUrl, response)
+          }
+        } catch {
+          // Network drop mid-batch: leave this one uncached. Already-cached
+          // entries are preserved, and re-running the action later only
+          // fetches what's still missing.
+        }
+        done += 1
+        client?.postMessage({ type: 'PREPARE_OFFLINE_PROGRESS', done, total: urls.length })
+      }
+      client?.postMessage({ type: 'PREPARE_OFFLINE_COMPLETE', done, total: urls.length })
+    })(),
+  )
+})

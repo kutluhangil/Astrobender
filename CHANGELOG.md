@@ -4,6 +4,9 @@
 
 - Added installable PWA support: the app shell, cinematic narration, and small data files precache for offline use; the existing per-body color fallback renders the full scene with zero cached textures; viewed textures cache automatically for reuse offline; and an explicit "prepare for offline" control downloads the full 85 MB texture set on request.
 - Fixed the service worker's offline handling: cached narration audio now answers Range requests with genuine 206 responses (required for Safari playback), stale app-shell cache entries are pruned on install, the offline-texture message handler validates incoming URLs, the same-origin JPL API proxy is explicitly excluded from shell caching, and install failures now log to the console before rethrowing.
+- Fixed offline-mode interface issues: prepare-offline error copy is now bilingual, the offline banner shifts the identity and clock cards instead of covering them, the prepare-offline control hides behind the mobile layer sheet, the ready state can be re-run to pick up newly deployed textures, and the generated PWA icons are supersampled to remove jagged edges.
+- Fixed the cinematic tour start button being unclickable on desktop, where the layer panel overlapped it.
+- Hardened the prepare-offline download: its service worker message listener is torn down on unmount, and a stalled download now surfaces a retry message instead of hanging.
 
 ## 2026-07-26
 

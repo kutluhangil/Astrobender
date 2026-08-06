@@ -70,6 +70,17 @@ test('a viewed texture is cached and reused offline', async ({ page, context }) 
   })
   expect(cachedAfterReload).toBeGreaterThan(0)
 
+  // Cache *presence* isn't the same as cache *serviceability* — actually
+  // fetch one of the cached texture URLs while offline and confirm the
+  // fetch listener's cache-first branch really answers it.
+  const servedStatus = await page.evaluate(async () => {
+    const cache = await caches.open('astrobender-textures-v1')
+    const [firstKey] = await cache.keys()
+    const response = await fetch(firstKey.url)
+    return response.status
+  })
+  expect(servedStatus).toBe(200)
+
   await context.setOffline(false)
 })
 
@@ -144,6 +155,37 @@ test('offline range request against precached narration audio returns 206', asyn
   expect(result.contentRange).toMatch(/^bytes 0-99\/\d+$/)
   expect(result.contentLength).toBe('100')
   expect(result.bodyLength).toBe(100)
+
+  await context.setOffline(false)
+})
+
+test('cinematic tour narration is playable after an offline reload', async ({ page, context }) => {
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible()
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready
+  })
+  // As with the tests above, reload once online first so this navigation is
+  // actually service-worker-controlled before going offline.
+  await page.reload()
+  await expect(page.locator('canvas')).toBeVisible()
+
+  await context.setOffline(true)
+  await page.reload()
+  await expect(page.locator('canvas')).toBeVisible()
+
+  // The start-tour button stays disabled until the narration <audio>
+  // element's metadata finishes loading — while offline, that load can only
+  // succeed if the precached MP3 is actually served from the app-shell
+  // cache. Waiting for "enabled" here is the real proof the narration is
+  // available offline. (Not asserting a click-through to the active-tour
+  // state here: on desktop, the LayerPanel sidebar visually overlaps this
+  // button's position — a pre-existing layout issue unrelated to PWA/offline
+  // work, tracked separately rather than worked around in this test.)
+  const startTourButton = page.getByRole('button', {
+    name: /SİNEMATİK UZAY TURUNU BAŞLAT|START CINEMATIC SPACE TOUR/,
+  })
+  await expect(startTourButton).toBeEnabled({ timeout: 15_000 })
 
   await context.setOffline(false)
 })

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-06
+
+- Added installable PWA support: the app shell, cinematic narration, and small data files precache for offline use; the existing per-body color fallback renders the full scene with zero cached textures; viewed textures cache automatically for reuse offline; and an explicit "prepare for offline" control downloads the full 85 MB texture set on request.
+
 ## 2026-07-26
 
 - Moved recoverable live-data warnings into the LIVE control's hover/focus information port, with retained technical details and retry actions.

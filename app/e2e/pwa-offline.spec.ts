@@ -85,3 +85,25 @@ test('prepare-for-offline downloads and caches every texture', async ({ page }) 
   })
   expect(cachedCount).toBeGreaterThan(20)
 })
+
+test('core scene still works after going offline', async ({ page, context }) => {
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible()
+  await page.waitForFunction(async () => {
+    if (!('serviceWorker' in navigator)) return false
+    const registration = await navigator.serviceWorker.getRegistration()
+    return registration?.active != null
+  })
+
+  await context.setOffline(true)
+  await page.reload()
+
+  await expect(page.locator('canvas')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /A STROBENDER/ })).toBeVisible()
+
+  const search = page.getByRole('textbox', { name: 'Gözlemevinde ara' })
+  await search.fill('Mars')
+  await expect(page.getByRole('listbox', { name: 'Arama sonuçları' })).toBeVisible()
+
+  await context.setOffline(false)
+})

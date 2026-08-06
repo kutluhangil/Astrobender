@@ -114,3 +114,36 @@ test('core scene still works after going offline', async ({ page, context }) => 
 
   await context.setOffline(false)
 })
+
+test('offline range request against precached narration audio returns 206', async ({ page, context }) => {
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible()
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready
+  })
+  // As with the tests above, reload once online first so this navigation is
+  // actually service-worker-controlled before going offline.
+  await page.reload()
+  await expect(page.locator('canvas')).toBeVisible()
+
+  await context.setOffline(true)
+
+  const result = await page.evaluate(async () => {
+    const response = await fetch('/audio/astrobender-sinematik-uzay-turu.mp3', {
+      headers: { Range: 'bytes=0-99' },
+    })
+    return {
+      status: response.status,
+      contentRange: response.headers.get('content-range'),
+      contentLength: response.headers.get('content-length'),
+      bodyLength: (await response.arrayBuffer()).byteLength,
+    }
+  })
+
+  expect(result.status).toBe(206)
+  expect(result.contentRange).toMatch(/^bytes 0-99\/\d+$/)
+  expect(result.contentLength).toBe('100')
+  expect(result.bodyLength).toBe(100)
+
+  await context.setOffline(false)
+})

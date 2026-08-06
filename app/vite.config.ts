@@ -13,15 +13,18 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       injectManifest: {
-        // js/css/html for the app shell, mp3 for cinematic-tour narration,
-        // json/txt for the small catalog/TLE snapshot files under
-        // public/data. Textures (jpg/webp/png) are deliberately excluded —
-        // see Task 5 for why they're runtime-cached instead of precached.
-        globPatterns: ['**/*.{js,css,html,mp3,json,txt}'],
-        // vite-plugin-pwa's default precache limit is 2 MiB. The two
-        // narration MP3s (~5.4 MB, ~6.8 MB) and the TLE snapshot (~2.7 MB)
-        // are intentionally precached (Global Constraints: narration must
-        // work offline), so the limit must be raised to fit them.
+        // js/css/html for the app shell, json/txt for the small
+        // catalog/TLE snapshot files under public/data. Textures
+        // (jpg/webp/png) and the cinematic-tour narration MP3s are
+        // deliberately excluded from precache — both are large,
+        // rarely-needed-on-first-visit assets that would otherwise compete
+        // for bandwidth with the initial render, so they're runtime-cached
+        // (textures) or runtime-cached-plus-explicit-prepare (audio)
+        // instead. See sw.ts.
+        globPatterns: ['**/*.{js,css,html,json,txt}'],
+        // vite-plugin-pwa's default precache limit is 2 MiB. The TLE
+        // snapshot (~2.7 MB) is intentionally precached as part of the app
+        // shell, so the limit must be raised to fit it.
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
       },
       devOptions: {

@@ -126,7 +126,10 @@ test('core scene still works after going offline', async ({ page, context }) => 
   await context.setOffline(false)
 })
 
-test('offline range request against precached narration audio returns 206', async ({ page, context }) => {
+test('offline range request against runtime-cached narration audio returns 206', async ({
+  page,
+  context,
+}) => {
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible()
   await page.evaluate(async () => {
@@ -136,6 +139,21 @@ test('offline range request against precached narration audio returns 206', asyn
   // actually service-worker-controlled before going offline.
   await page.reload()
   await expect(page.locator('canvas')).toBeVisible()
+
+  // Narration audio is runtime-cached (not precached), so the service
+  // worker has no copy until something actually requests it. Warm the
+  // cache with the exact same kind of request the offline assertion below
+  // makes — a ranged fetch — while still online: this is precisely what
+  // the SW's cache-first /audio/ branch has to handle on a genuine cache
+  // miss (fetch the full file, cache it, synthesize the 206 for the reply).
+  const warmStatus = await page.evaluate(async () => {
+    const response = await fetch('/audio/astrobender-sinematik-uzay-turu.mp3', {
+      headers: { Range: 'bytes=0-99' },
+    })
+    await response.arrayBuffer()
+    return response.status
+  })
+  expect(warmStatus).toBe(206)
 
   await context.setOffline(true)
 
@@ -169,6 +187,25 @@ test('cinematic tour narration is playable after an offline reload', async ({ pa
   // actually service-worker-controlled before going offline.
   await page.reload()
   await expect(page.locator('canvas')).toBeVisible()
+
+  // Narration audio is runtime-cached (not precached): the offline reload
+  // below can only succeed if the service worker already holds a full copy
+  // of both tracks from an earlier online request. Home.tsx's own mount
+  // effect requests both narration tracks (preload="metadata") to learn
+  // their durations, which is what actually warms this cache during normal
+  // use — but that request races this test's reload, so wait for the
+  // runtime audio cache to actually contain both tracks before going
+  // offline rather than relying on that race resolving in time.
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const cache = await caches.open('astrobender-audio-v1')
+          return (await cache.keys()).length
+        }),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThanOrEqual(2)
 
   await context.setOffline(true)
   await page.reload()

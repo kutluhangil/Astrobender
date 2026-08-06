@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { CINEMATIC_TOUR_AUDIO_PATHS } from '@/lib/cinematic-tour'
 
 export type PrepareOfflineStatus = 'idle' | 'loading-manifest' | 'downloading' | 'done' | 'error'
 
@@ -21,6 +22,19 @@ interface TextureManifest {
 }
 
 const MANIFEST_URL = `${import.meta.env.BASE_URL}data/texture-manifest.json`
+
+// Cinematic-tour narration is runtime-cached (see sw.ts), not part of the
+// texture manifest, so "prepare for offline" has to fetch it explicitly —
+// otherwise the guarantee ("prepare for offline" or "play the tour once"
+// means narration works offline) only holds for the second case.
+const NARRATION_AUDIO_URLS = Object.values(CINEMATIC_TOUR_AUDIO_PATHS).map(
+  (path) => `${import.meta.env.BASE_URL}${path}`,
+)
+
+// public/audio/*.mp3 sizes, not tracked by the texture manifest — update if
+// the narration files change. Only used to make the control's displayed
+// size estimate match what it actually downloads.
+const NARRATION_AUDIO_BYTES = 6_817_789 + 5_412_192
 
 // Language-neutral error codes for the two conditions this hook can name
 // itself — the hook has no `language` prop, so it can't pick copy. The
@@ -71,7 +85,7 @@ export function usePrepareOfflineTextures() {
       .then((manifest) => {
         if (cancelled) return
         manifestRef.current = manifest
-        setState((prev) => ({ ...prev, totalBytes: manifest.totalBytes }))
+        setState((prev) => ({ ...prev, totalBytes: manifest.totalBytes + NARRATION_AUDIO_BYTES }))
       })
       .catch(() => {
         // Preview-only fetch failure: the button just won't show a size
@@ -117,8 +131,10 @@ export function usePrepareOfflineTextures() {
       return
     }
 
-    const urls = manifest.files.map((f) => `${import.meta.env.BASE_URL}textures/${f.file}`)
-    setState({ status: 'downloading', done: 0, total: urls.length, totalBytes: manifest.totalBytes, error: null })
+    const textureUrls = manifest.files.map((f) => `${import.meta.env.BASE_URL}textures/${f.file}`)
+    const urls = [...textureUrls, ...NARRATION_AUDIO_URLS]
+    const totalBytes = manifest.totalBytes + NARRATION_AUDIO_BYTES
+    setState({ status: 'downloading', done: 0, total: urls.length, totalBytes, error: null })
 
     await new Promise<void>((resolve) => {
       let stallTimer: ReturnType<typeof setTimeout>

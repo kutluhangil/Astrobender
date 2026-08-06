@@ -5,7 +5,8 @@ declare const self: ServiceWorkerGlobalScope
 
 const APP_SHELL_CACHE = 'astrobender-shell-v1'
 const TEXTURE_CACHE = 'astrobender-textures-v1'
-const CURRENT_CACHES = [APP_SHELL_CACHE, TEXTURE_CACHE]
+const AUDIO_CACHE = 'astrobender-audio-v1'
+const CURRENT_CACHES = [APP_SHELL_CACHE, TEXTURE_CACHE, AUDIO_CACHE]
 
 // vite-plugin-pwa's injectManifest strategy replaces this literal with the
 // real array of { url, revision } entries for the built app shell.
@@ -65,6 +66,15 @@ function isCacheableTexture(response: Response): boolean {
   return response.ok && (response.headers.get('content-type') ?? '').startsWith('image/')
 }
 
+// Sibling to isCacheableTexture, same reasoning: the cinematic-tour
+// narration MP3s are runtime-cached rather than precached (see
+// vite.config.ts), so a deploy that drops or renames one must not let the
+// SPA rewrite's 200 text/html get cached under the audio URL and served as
+// "narration" forever.
+function isCacheableAudio(response: Response): boolean {
+  return response.ok && (response.headers.get('content-type') ?? '').startsWith('audio/')
+}
+
 // Builds a 206 Partial Content response from a cached full response, for a
 // single-range `Range` header (`bytes=start-end` or `bytes=start-`). Chrome
 // and Safari issue range requests for <audio>/<video> elements — Safari in
@@ -119,7 +129,37 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // App shell (HTML/JS/CSS/audio/data precached in Task 3): network-first
+  // Cinematic-tour narration: cache-first, same shape as the texture
+  // branch, plus Range handling — the <audio> element issues Range
+  // requests (Safari requires a genuine 206 in response), and the Cache
+  // API's match() ignores a query request's Range header, matching only on
+  // URL. So a cache hit always returns the *full* stored response, which
+  // rangeResponse() then slices down to the requested byte range.
+  if (url.pathname.includes('/audio/')) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(AUDIO_CACHE)
+        const cached = await cache.match(event.request, { ignoreVary: true })
+        const rangeHeader = event.request.headers.get('range')
+        if (cached) {
+          if (rangeHeader) return await rangeResponse(cached, rangeHeader)
+          return cached
+        }
+        // Cache miss: always fetch the full file rather than forwarding the
+        // incoming request (which may itself carry a Range header) — caching
+        // a partial response under this URL would then be served back as if
+        // it were the whole file, forever, since match() ignores Range.
+        const response = await fetch(event.request.url)
+        if (!isCacheableAudio(response)) return response
+        await cache.put(event.request.url, response.clone())
+        if (rangeHeader) return await rangeResponse(response.clone(), rangeHeader)
+        return response
+      })(),
+    )
+    return
+  }
+
+  // App shell (HTML/JS/CSS/data precached at install time): network-first
   // so online users always get the latest build, falling back to the
   // precache when the network is unavailable. Navigation requests (e.g. a
   // reload at "/") fall back to the precached start_url document.
@@ -155,22 +195,33 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('message', (event) => {
   if (!event.data || event.data.type !== 'PREPARE_OFFLINE_TEXTURES') return
-  const urls = (event.data as { urls: string[] }).urls.filter((textureUrl) => {
-    const parsed = new URL(textureUrl, self.location.href)
-    return parsed.origin === self.location.origin && parsed.pathname.includes('/textures/')
+  // Same-origin only; /textures/ for the planet/moon maps, /audio/ for the
+  // cinematic-tour narration — both runtime-cached rather than precached,
+  // so "prepare for offline" is what actually guarantees either works
+  // offline.
+  const urls = (event.data as { urls: string[] }).urls.filter((assetUrl) => {
+    const parsed = new URL(assetUrl, self.location.href)
+    return (
+      parsed.origin === self.location.origin &&
+      (parsed.pathname.includes('/textures/') || parsed.pathname.includes('/audio/'))
+    )
   })
   const client = event.source as Client | null
 
   event.waitUntil(
     (async () => {
-      const cache = await caches.open(TEXTURE_CACHE)
+      const textureCache = await caches.open(TEXTURE_CACHE)
+      const audioCache = await caches.open(AUDIO_CACHE)
       let done = 0
-      for (const textureUrl of urls) {
+      for (const assetUrl of urls) {
+        const isAudio = new URL(assetUrl, self.location.href).pathname.includes('/audio/')
+        const cache = isAudio ? audioCache : textureCache
+        const isCacheable = isAudio ? isCacheableAudio : isCacheableTexture
         try {
-          const existing = await cache.match(textureUrl, { ignoreVary: true })
+          const existing = await cache.match(assetUrl, { ignoreVary: true })
           if (!existing) {
-            const response = await fetch(textureUrl)
-            if (isCacheableTexture(response)) await cache.put(textureUrl, response)
+            const response = await fetch(assetUrl)
+            if (isCacheable(response)) await cache.put(assetUrl, response)
           }
         } catch {
           // Network drop mid-batch: leave this one uncached. Already-cached

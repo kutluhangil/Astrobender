@@ -7,6 +7,7 @@
 - Fixed offline-mode interface issues: prepare-offline error copy is now bilingual, the offline banner shifts the identity and clock cards instead of covering them, the prepare-offline control hides behind the mobile layer sheet, the ready state can be re-run to pick up newly deployed textures, and the generated PWA icons are supersampled to remove jagged edges.
 - Fixed the cinematic tour start button being unclickable on desktop, where the layer panel overlapped it.
 - Hardened the prepare-offline download: its service worker message listener is torn down on unmount, and a stalled download now surfaces a retry message instead of hanging.
+- Fixed first-visit bandwidth contention between texture loading and the service worker precache: the two cinematic-tour narration MP3s (~11.7 MB) are no longer precached on install, instead runtime-caching like textures and downloading as part of "prepare for offline".
 
 ## 2026-07-26
 

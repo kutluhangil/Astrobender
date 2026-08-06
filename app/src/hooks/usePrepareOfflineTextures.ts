@@ -22,6 +22,14 @@ interface TextureManifest {
 
 const MANIFEST_URL = `${import.meta.env.BASE_URL}data/texture-manifest.json`
 
+// Language-neutral error codes for the two conditions this hook can name
+// itself — the hook has no `language` prop, so it can't pick copy. The
+// consuming component (PrepareOfflineControl) translates these via
+// pickLanguage; any other `state.error` value is a raw fetch/HTTP error
+// message, already language-neutral (technical, not user-facing prose).
+export const ERROR_SW_UNSUPPORTED = 'sw-unsupported'
+export const ERROR_SW_NOT_ACTIVE = 'sw-not-active'
+
 export function usePrepareOfflineTextures() {
   const [state, setState] = useState<PrepareOfflineState>({
     status: 'idle',
@@ -55,7 +63,7 @@ export function usePrepareOfflineTextures() {
 
   const start = useCallback(async () => {
     if (!('serviceWorker' in navigator)) {
-      setState((prev) => ({ ...prev, status: 'error', error: 'Service worker desteklenmiyor' }))
+      setState((prev) => ({ ...prev, status: 'error', error: ERROR_SW_UNSUPPORTED }))
       return
     }
 
@@ -84,7 +92,7 @@ export function usePrepareOfflineTextures() {
     const registration = await navigator.serviceWorker.ready
     const controller = registration.active
     if (!controller) {
-      setState((prev) => ({ ...prev, status: 'error', error: 'Service worker henüz aktif değil' }))
+      setState((prev) => ({ ...prev, status: 'error', error: ERROR_SW_NOT_ACTIVE }))
       return
     }
 

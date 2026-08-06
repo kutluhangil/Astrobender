@@ -1,4 +1,8 @@
-import { usePrepareOfflineTextures } from '@/hooks/usePrepareOfflineTextures'
+import {
+  usePrepareOfflineTextures,
+  ERROR_SW_UNSUPPORTED,
+  ERROR_SW_NOT_ACTIVE,
+} from '@/hooks/usePrepareOfflineTextures'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface PrepareOfflineControlProps {
@@ -7,6 +11,16 @@ interface PrepareOfflineControlProps {
 
 function formatMiB(bytes: number): string {
   return `${Math.round(bytes / 1024 / 1024)} MiB`
+}
+
+function errorMessage(error: string, language: UiLanguage): string {
+  if (error === ERROR_SW_UNSUPPORTED) {
+    return pickLanguage(language, 'Service worker desteklenmiyor', 'Service worker not supported')
+  }
+  if (error === ERROR_SW_NOT_ACTIVE) {
+    return pickLanguage(language, 'Service worker henüz aktif değil', 'Service worker not active yet')
+  }
+  return error
 }
 
 export default function PrepareOfflineControl({ language }: PrepareOfflineControlProps) {
@@ -30,8 +44,10 @@ export default function PrepareOfflineControl({ language }: PrepareOfflineContro
               : 'Prepare for offline',
           )}
         </button>
-        {state.status === 'error' && (
-          <p className="mt-1 rounded bg-red-950/80 px-2 py-1 text-[10px] text-red-200">{state.error}</p>
+        {state.status === 'error' && state.error && (
+          <p className="mt-1 rounded bg-red-950/80 px-2 py-1 text-[10px] text-red-200">
+            {errorMessage(state.error, language)}
+          </p>
         )}
       </div>
     )

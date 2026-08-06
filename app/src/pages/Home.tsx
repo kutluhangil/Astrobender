@@ -22,6 +22,7 @@ import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
+import OfflineBanner from '@/components/hud/OfflineBanner'
 import type { LandingSite } from '@/lib/landing-sites'
 import type {
   EarthEvent,
@@ -785,6 +786,8 @@ export default function Home() {
           </span>
         </div>
       )}
+
+      <OfflineBanner language={uiLanguage} />
 
       {/* ============ TOP BAR ============ */}
       {/* Top-left: Identity */}

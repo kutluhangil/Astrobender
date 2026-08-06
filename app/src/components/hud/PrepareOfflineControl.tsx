@@ -76,8 +76,19 @@ export default function PrepareOfflineControl({ language }: PrepareOfflineContro
   }
 
   return (
-    <div className="pointer-events-auto fixed bottom-3 right-3 z-30 rounded-xl border border-emerald-500/25 bg-[#0a0e17]/85 px-3 py-2 font-mono text-[10px] text-emerald-200 backdrop-blur-xl">
-      {pickLanguage(language, 'Çevrimdışı için hazır ✓', 'Ready for offline ✓')}
+    <div className="pointer-events-auto fixed bottom-3 right-3 z-30">
+      <button
+        type="button"
+        onClick={start}
+        title={pickLanguage(
+          language,
+          'Yeni bir sürümde eklenmiş olabilecek dokuları indirmek için tekrar çalıştır',
+          'Run again to pick up any textures added in a newer deploy',
+        )}
+        className="rounded-xl border border-emerald-500/25 bg-[#0a0e17]/85 px-3 py-2 font-mono text-[10px] text-emerald-200 backdrop-blur-xl"
+      >
+        {pickLanguage(language, 'Çevrimdışı için hazır ✓', 'Ready for offline ✓')}
+      </button>
     </div>
   )
 }

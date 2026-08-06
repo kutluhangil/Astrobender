@@ -16,13 +16,27 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /pwa-offline\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'chromium-pwa-build',
+      testMatch: /pwa-offline\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: 'http://127.0.0.1:4180' },
+    },
   ],
-  webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4174',
-    url: 'http://127.0.0.1:4174',
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev -- --host 127.0.0.1 --port 4174',
+      url: 'http://127.0.0.1:4174',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+    {
+      command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4180',
+      url: 'http://127.0.0.1:4180',
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+  ],
 })

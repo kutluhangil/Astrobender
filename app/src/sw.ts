@@ -4,6 +4,8 @@ export {}
 declare const self: ServiceWorkerGlobalScope
 
 const APP_SHELL_CACHE = 'astrobender-shell-v1'
+const TEXTURE_CACHE = 'astrobender-textures-v1'
+const CURRENT_CACHES = [APP_SHELL_CACHE, TEXTURE_CACHE]
 
 // vite-plugin-pwa's injectManifest strategy replaces this literal with the
 // real array of { url, revision } entries for the built app shell.
@@ -40,10 +42,13 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // Covers every astrobender-* cache, not just the shell — a future
+      // TEXTURE_CACHE version bump would otherwise strand hundreds of
+      // megabytes of the old one on every existing user's device.
       const keys = await caches.keys()
       await Promise.all(
         keys
-          .filter((key) => key.startsWith('astrobender-shell-') && key !== APP_SHELL_CACHE)
+          .filter((key) => key.startsWith('astrobender-') && !CURRENT_CACHES.includes(key))
           .map((key) => caches.delete(key)),
       )
       await self.clients.claim()
@@ -51,7 +56,14 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-const TEXTURE_CACHE = 'astrobender-textures-v1'
+// A missing texture does not 404: the SPA rewrite serves index.html with a
+// 200, which would otherwise be stored under the texture's URL and — since
+// both read paths are cache-first — served as that texture forever, with no
+// way to self-heal short of clearing site storage. Requiring an image
+// content-type keeps a deploy/manifest mismatch from poisoning the cache.
+function isCacheableTexture(response: Response): boolean {
+  return response.ok && (response.headers.get('content-type') ?? '').startsWith('image/')
+}
 
 // Builds a 206 Partial Content response from a cached full response, for a
 // single-range `Range` header (`bytes=start-end` or `bytes=start-`). Chrome
@@ -100,7 +112,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(event.request, { ignoreVary: true })
         if (cached) return cached
         const response = await fetch(event.request)
-        if (response.ok) await cache.put(event.request, response.clone())
+        if (isCacheableTexture(response)) await cache.put(event.request, response.clone())
         return response
       })(),
     )
@@ -158,7 +170,7 @@ self.addEventListener('message', (event) => {
           const existing = await cache.match(textureUrl, { ignoreVary: true })
           if (!existing) {
             const response = await fetch(textureUrl)
-            if (response.ok) await cache.put(textureUrl, response)
+            if (isCacheableTexture(response)) await cache.put(textureUrl, response)
           }
         } catch {
           // Network drop mid-batch: leave this one uncached. Already-cached

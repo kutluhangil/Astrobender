@@ -1,5 +1,6 @@
 interface ApiRequest {
   method?: string
+  url?: string
 }
 
 interface ApiResponse {
@@ -18,8 +19,19 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return
   }
 
+  // The upstream query is fixed, so any query string here is dead weight —
+  // and because the CDN caches per full URL, accepting arbitrary ones would
+  // let `?1`, `?2`, `?3`… each miss the cache and trigger a fresh function
+  // invocation plus an outbound request to JPL from this deployment's IP.
+  // Rejecting them keeps exactly one cacheable URL.
+  if ((request.url ?? '').includes('?')) {
+    response.status(400).json({ error: 'jpl-cad accepts no query parameters' })
+    return
+  }
+
   const upstream = await fetch(JPL_CAD_URL, {
     headers: { Accept: 'application/json', 'User-Agent': 'ASTROBENDER/1.0' },
+    signal: AbortSignal.timeout(10_000),
   })
   if (!upstream.ok) {
     const body = (await upstream.text()).replace(/\s+/g, ' ').slice(0, 180)

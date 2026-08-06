@@ -30,7 +30,10 @@ test('document language and font policy are self-contained', () => {
 })
 
 test('production responses include baseline security headers', () => {
-  const vercel = read('vercel.json')
+  // The repository-root vercel.json is the only deployed config; a nested
+  // app/vercel.json would be silently ignored and drift out of sync.
+  assert.equal(existsSync(`${appRoot}/vercel.json`), false)
+  const vercel = readRepository('vercel.json')
   for (const header of [
     'Content-Security-Policy',
     'X-Content-Type-Options',
@@ -185,10 +188,16 @@ test('ambient belts are deterministic and explicitly described as schematic', ()
   assert.match(layers, /Schematic Belts/)
 })
 
-test('JPL close approaches use a same-origin server proxy', () => {
+test('JPL close approaches use a same-origin server proxy with no client query string', () => {
   const smallBodies = read('src/lib/jpl-small-bodies.ts')
   const vite = read('vite.config.ts')
-  assert.match(smallBodies, /'\/api\/jpl-cad\?/)
+  const proxy = read('api/jpl-cad.ts')
+
+  // No query string on the client URL: the CDN caches per full URL, so
+  // arbitrary parameters would each miss the cache and bill a fresh
+  // invocation. The proxy rejects them and hardcodes the upstream query.
+  assert.match(smallBodies, /JPL_CAD_API_URL = '\/api\/jpl-cad'/)
+  assert.match(proxy, /accepts no query parameters/)
   assert.match(vite, /'\/api\/jpl-cad'/)
   assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
 })

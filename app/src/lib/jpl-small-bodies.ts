@@ -19,8 +19,9 @@ export interface NamedSmallBody {
   sourceUrl: string
 }
 
-export const JPL_CAD_API_URL =
-  '/api/jpl-cad?date-min=now&date-max=%2B60&dist-max=0.2&diameter=true&fullname=true&sort=date'
+// No query string: the proxy hardcodes the upstream query and rejects
+// parameters, so every client hits the same CDN-cacheable URL.
+export const JPL_CAD_API_URL = '/api/jpl-cad'
 export const JPL_CAD_SOURCE_URL = 'https://ssd-api.jpl.nasa.gov/cad.api'
 
 export const NAMED_SMALL_BODIES: NamedSmallBody[] = [

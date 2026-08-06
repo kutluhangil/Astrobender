@@ -60,7 +60,12 @@ export default defineConfig({
       '/api/jpl-cad': {
         target: 'https://ssd-api.jpl.nasa.gov',
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(/^\/api\/jpl-cad/, '/cad.api'),
+        // The client sends no query string (the serverless proxy rejects
+        // them), so dev has to supply the same fixed upstream query the
+        // proxy hardcodes — otherwise dev and production return different
+        // data. Keep this in sync with JPL_CAD_URL in app/api/jpl-cad.ts.
+        rewrite: () =>
+          '/cad.api?date-min=now&date-max=%2B60&dist-max=0.2&diameter=true&fullname=true&sort=date',
       },
     },
   },

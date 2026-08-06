@@ -70,44 +70,85 @@ const CYAN = [34, 211, 238]
 const SKY = [56, 189, 248]
 const NAVY_BG = [4, 6, 10]
 
+// Shapes are drawn at SUPERSAMPLE× the target resolution, then box-filtered
+// back down — plain nearest-neighbor rasterization left visibly jagged
+// circle/ring edges at 192px. 4x4 gives smooth edges without a real
+// anti-aliasing library.
+const SUPERSAMPLE = 4
+
+function shadeAt(x, y, size, maskable, shape) {
+  const { cx, cy, planetRadius, ringRadius, ringWidth, moonRadius, moonX, moonY } = shape
+  const dx = x - cx
+  const dy = y - cy
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  const moonDist = Math.sqrt((x - moonX) ** 2 + (y - moonY) ** 2)
+  const ringDist = Math.abs(dist - ringRadius)
+
+  if (moonDist <= moonRadius) return [...SKY, 255]
+  if (ringDist <= ringWidth / 2) return [...CYAN, 255]
+  if (dist <= planetRadius * 0.95) return [...GREEN, 255]
+  if (dist <= planetRadius) return [...TEAL, 255]
+  if (maskable) return [...NAVY_BG, 255]
+  return [0, 0, 0, 0]
+}
+
 function renderIcon(size, { maskable }) {
-  const rgba = Buffer.alloc(size * size * 4)
-  const cx = size / 2
-  const cy = size / 2
+  const hiRes = size * SUPERSAMPLE
+  const cx = hiRes / 2
+  const cy = hiRes / 2
   // Maskable icons need an opaque background and content kept inside the
   // safe zone (inner ~80% of the canvas, per the manifest icon spec).
-  const planetRadius = maskable ? size * 0.4 * 0.8 : size * 0.44
-  const ringRadius = planetRadius * 1.28
-  const ringWidth = Math.max(1, size * 0.018)
-  const moonRadius = size * 0.045
-  const moonX = cx + planetRadius * 0.95
-  const moonY = cy - planetRadius * 0.65
+  const shape = {
+    cx,
+    cy,
+    planetRadius: maskable ? hiRes * 0.4 * 0.8 : hiRes * 0.44,
+    get ringRadius() {
+      return this.planetRadius * 1.28
+    },
+    ringWidth: Math.max(1, hiRes * 0.018),
+    moonRadius: hiRes * 0.045,
+  }
+  shape.moonX = cx + shape.planetRadius * 0.95
+  shape.moonY = cy - shape.planetRadius * 0.65
 
+  const hiResRgba = new Float64Array(hiRes * hiRes * 4)
+  for (let y = 0; y < hiRes; y++) {
+    for (let x = 0; x < hiRes; x++) {
+      const i = (y * hiRes + x) * 4
+      const [r, g, b, a] = shadeAt(x + 0.5, y + 0.5, hiRes, maskable, shape)
+      hiResRgba[i] = r
+      hiResRgba[i + 1] = g
+      hiResRgba[i + 2] = b
+      hiResRgba[i + 3] = a
+    }
+  }
+
+  // Box-downsample each SUPERSAMPLE×SUPERSAMPLE block, alpha-weighting the
+  // RGB average so a partially-covered edge pixel doesn't pick up a black
+  // fringe from the fully-transparent samples it's blended with.
+  const rgba = Buffer.alloc(size * size * 4)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const i = (y * size + x) * 4
-      const dx = x - cx
-      const dy = y - cy
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      const moonDist = Math.sqrt((x - moonX) ** 2 + (y - moonY) ** 2)
-      const ringDist = Math.abs(dist - ringRadius)
-
-      let rgb
-      let a = 255
-      if (moonDist <= moonRadius) rgb = SKY
-      else if (ringDist <= ringWidth / 2) rgb = CYAN
-      else if (dist <= planetRadius * 0.95) rgb = GREEN
-      else if (dist <= planetRadius) rgb = TEAL
-      else if (maskable) rgb = NAVY_BG
-      else {
-        rgb = [0, 0, 0]
-        a = 0
+      let rSum = 0
+      let gSum = 0
+      let bSum = 0
+      let aSum = 0
+      for (let sy = 0; sy < SUPERSAMPLE; sy++) {
+        for (let sx = 0; sx < SUPERSAMPLE; sx++) {
+          const hi = ((y * SUPERSAMPLE + sy) * hiRes + (x * SUPERSAMPLE + sx)) * 4
+          const a = hiResRgba[hi + 3]
+          rSum += hiResRgba[hi] * a
+          gSum += hiResRgba[hi + 1] * a
+          bSum += hiResRgba[hi + 2] * a
+          aSum += a
+        }
       }
-
-      rgba[i] = rgb[0]
-      rgba[i + 1] = rgb[1]
-      rgba[i + 2] = rgb[2]
-      rgba[i + 3] = a
+      const samples = SUPERSAMPLE * SUPERSAMPLE
+      const i = (y * size + x) * 4
+      rgba[i] = aSum > 0 ? Math.round(rSum / aSum) : 0
+      rgba[i + 1] = aSum > 0 ? Math.round(gSum / aSum) : 0
+      rgba[i + 2] = aSum > 0 ? Math.round(bSum / aSum) : 0
+      rgba[i + 3] = Math.round(aSum / samples)
     }
   }
   return encodePng(size, size, rgba)

@@ -29,6 +29,14 @@ const MANIFEST_URL = `${import.meta.env.BASE_URL}data/texture-manifest.json`
 // message, already language-neutral (technical, not user-facing prose).
 export const ERROR_SW_UNSUPPORTED = 'sw-unsupported'
 export const ERROR_SW_NOT_ACTIVE = 'sw-not-active'
+export const ERROR_STALLED = 'stalled'
+
+// The service worker posts a progress message after every URL it processes
+// (successes and per-URL failures alike), so messages arrive steadily even
+// on a slow connection. Going this long without one means the worker was
+// terminated or the message channel broke — not that a single file is slow.
+// Re-running the download is cheap: already-cached entries are skipped.
+const PROGRESS_STALL_TIMEOUT_MS = 120_000
 
 export function usePrepareOfflineTextures() {
   const [state, setState] = useState<PrepareOfflineState>({
@@ -39,6 +47,19 @@ export function usePrepareOfflineTextures() {
     error: null,
   })
   const manifestRef = useRef<TextureManifest | null>(null)
+  // Tears down whatever an in-flight start() attached: the service worker
+  // message listener, its stall watchdog, and the promise start() awaits.
+  // Held in a ref so unmount can run it even mid-download.
+  const teardownRef = useRef<(() => void) | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      teardownRef.current?.()
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -100,16 +121,47 @@ export function usePrepareOfflineTextures() {
     setState({ status: 'downloading', done: 0, total: urls.length, totalBytes: manifest.totalBytes, error: null })
 
     await new Promise<void>((resolve) => {
+      let stallTimer: ReturnType<typeof setTimeout>
+
+      const teardown = () => {
+        clearTimeout(stallTimer)
+        navigator.serviceWorker.removeEventListener('message', onMessage)
+        teardownRef.current = null
+        resolve()
+      }
+
+      const armStallTimer = () => {
+        clearTimeout(stallTimer)
+        stallTimer = setTimeout(() => {
+          if (mountedRef.current) {
+            setState((prev) => ({ ...prev, status: 'error', error: ERROR_STALLED }))
+          }
+          teardown()
+        }, PROGRESS_STALL_TIMEOUT_MS)
+      }
+
       const onMessage = (event: MessageEvent) => {
         if (event.data?.type === 'PREPARE_OFFLINE_PROGRESS') {
-          setState((prev) => ({ ...prev, done: event.data.done, total: event.data.total }))
+          armStallTimer()
+          if (mountedRef.current) {
+            setState((prev) => ({ ...prev, done: event.data.done, total: event.data.total }))
+          }
         } else if (event.data?.type === 'PREPARE_OFFLINE_COMPLETE') {
-          setState((prev) => ({ ...prev, status: 'done', done: event.data.done, total: event.data.total }))
-          navigator.serviceWorker.removeEventListener('message', onMessage)
-          resolve()
+          if (mountedRef.current) {
+            setState((prev) => ({
+              ...prev,
+              status: 'done',
+              done: event.data.done,
+              total: event.data.total,
+            }))
+          }
+          teardown()
         }
       }
+
+      teardownRef.current = teardown
       navigator.serviceWorker.addEventListener('message', onMessage)
+      armStallTimer()
       controller.postMessage({ type: 'PREPARE_OFFLINE_TEXTURES', urls })
     })
   }, [])

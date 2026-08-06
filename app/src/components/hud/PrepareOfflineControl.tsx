@@ -2,6 +2,7 @@ import {
   usePrepareOfflineTextures,
   ERROR_SW_UNSUPPORTED,
   ERROR_SW_NOT_ACTIVE,
+  ERROR_STALLED,
 } from '@/hooks/usePrepareOfflineTextures'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
@@ -19,6 +20,13 @@ function errorMessage(error: string, language: UiLanguage): string {
   }
   if (error === ERROR_SW_NOT_ACTIVE) {
     return pickLanguage(language, 'Service worker henüz aktif değil', 'Service worker not active yet')
+  }
+  if (error === ERROR_STALLED) {
+    return pickLanguage(
+      language,
+      'İndirme yanıt vermiyor, tekrar deneyin (inen dosyalar korundu)',
+      'Download stopped responding, try again (already-downloaded files are kept)',
+    )
   }
   return error
 }

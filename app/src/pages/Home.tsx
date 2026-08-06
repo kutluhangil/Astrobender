@@ -7,6 +7,7 @@ import type { CelestialBodyId } from '@/lib/planets'
 import { useSimClock } from '@/hooks/useSimClock'
 import { useTleData } from '@/hooks/useTleData'
 import { usePropagator } from '@/hooks/usePropagator'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import IdentityBlock from '@/components/hud/IdentityBlock'
 import ClockCard from '@/components/hud/ClockCard'
 import TimeController, { type SystemStatusNotice } from '@/components/hud/TimeController'
@@ -82,6 +83,7 @@ export default function Home() {
   const engineRef = useRef<GlobeEngine | null>(null)
   const clock = useSimClock()
   const { status, dataset, error, warning: tleWarning, retry: retryTle } = useTleData()
+  const isOnline = useOnlineStatus()
 
   const [webglOk] = useState(detectWebGL)
   const [ctxLost, setCtxLost] = useState(false)
@@ -789,16 +791,25 @@ export default function Home() {
       )}
 
       <OfflineBanner language={uiLanguage} />
-      <PrepareOfflineControl language={uiLanguage} />
+      {!layersOpen && <PrepareOfflineControl language={uiLanguage} />}
 
       {/* ============ TOP BAR ============ */}
-      {/* Top-left: Identity */}
-      <div className="absolute left-3 top-3 z-20 md:left-7 md:top-6">
+      {/* Top-left: Identity — shifted down while the offline banner occupies
+          the top strip, so it never sits underneath it. */}
+      <div
+        className={`absolute left-3 z-20 md:left-7 transition-[top] duration-200 ${
+          isOnline ? 'top-3 md:top-6' : 'top-10 md:top-14'
+        }`}
+      >
         <IdentityBlock total={dataset?.total ?? 0} />
       </div>
 
-      {/* Top-center: Clock */}
-      <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2 md:top-6">
+      {/* Top-center: Clock — same offline offset as Identity above. */}
+      <div
+        className={`absolute left-1/2 z-20 -translate-x-1/2 transition-[top] duration-200 ${
+          isOnline ? 'top-3 md:top-6' : 'top-10 md:top-14'
+        }`}
+      >
         <ClockCard clock={clock} />
       </div>
 

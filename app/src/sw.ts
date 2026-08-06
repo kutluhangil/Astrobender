@@ -33,3 +33,24 @@ self.addEventListener('activate', (event) => {
     })(),
   )
 })
+
+const TEXTURE_CACHE = 'astrobender-textures-v1'
+
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url)
+  // Cross-origin requests (NASA/USGS/NOAA/JPL live-data APIs) pass straight
+  // through — they already have their own app-level stale-cache fallback.
+  if (url.origin !== self.location.origin) return
+  if (!url.pathname.includes('/textures/')) return
+
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(TEXTURE_CACHE)
+      const cached = await cache.match(event.request)
+      if (cached) return cached
+      const response = await fetch(event.request)
+      if (response.ok) await cache.put(event.request, response.clone())
+      return response
+    })(),
+  )
+})

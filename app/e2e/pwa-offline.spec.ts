@@ -95,6 +95,13 @@ test('core scene still works after going offline', async ({ page, context }) => 
     return registration?.active != null
   })
 
+  // As with the texture-caching test above, the very first navigation in a
+  // fresh browser context is never service-worker-controlled. Reload once
+  // while still online so the service worker actually takes control of the
+  // page before we go offline and reload again.
+  await page.reload()
+  await expect(page.locator('canvas')).toBeVisible()
+
   await context.setOffline(true)
   await page.reload()
 

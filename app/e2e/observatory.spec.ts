@@ -98,3 +98,16 @@ test('reduced-motion preference suppresses decorative CSS motion', async ({ page
   )
   expect(animationDuration).toMatch(/^(0\.01ms|1e-05s)$/)
 })
+
+test('desktop tour-start button is clickable over the layer panel', async ({ page }) => {
+  // Regression check: the Layer Panel sidebar (bottom-7, grows upward) used
+  // to sit above the tour controls in stacking order and silently intercept
+  // clicks on the tour-start button, even though the button was visible and
+  // enabled — only a real click (not just a visibility check) catches this.
+  const startTourButton = page.getByRole('button', {
+    name: /SİNEMATİK UZAY TURUNU BAŞLAT|START CINEMATIC SPACE TOUR/,
+  })
+  await expect(startTourButton).toBeEnabled({ timeout: 15_000 })
+  await startTourButton.click()
+  await expect(page.getByRole('button', { name: /DURDUR|STOP/ })).toBeVisible()
+})

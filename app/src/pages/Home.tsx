@@ -874,7 +874,10 @@ export default function Home() {
       </div>
 
       {/* ============ SECOND ROW: Tour + Theme (desktop) ============ */}
-      <div className="hidden md:flex absolute left-7 top-[76px] z-20 items-center gap-2">
+      {/* z-25: the Layer Panel below (z-20) grows upward from bottom-7 and
+          can reach this row's height, which would otherwise intercept
+          clicks on the tour-start button. */}
+      <div className="hidden md:flex absolute left-7 top-[76px] z-[25] items-center gap-2">
         <CosmicTourControls
           currentBodyId={focusBody}
           uiLanguage={uiLanguage}

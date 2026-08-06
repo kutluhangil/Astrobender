@@ -1,0 +1,137 @@
+{
+  "totalBytes": 89056096,
+  "files": [
+    {
+      "file": "callisto-4k.jpg",
+      "bytes": 247129
+    },
+    {
+      "file": "ceres-dawn-2k.webp",
+      "bytes": 438022
+    },
+    {
+      "file": "deimos-4k.jpg",
+      "bytes": 137100
+    },
+    {
+      "file": "earth-bump-8k.jpg",
+      "bytes": 4228015
+    },
+    {
+      "file": "earth-clouds-8k.jpg",
+      "bytes": 6404814
+    },
+    {
+      "file": "earth-day-8k.jpg",
+      "bytes": 1923703
+    },
+    {
+      "file": "earth-night-8k.jpg",
+      "bytes": 1211817
+    },
+    {
+      "file": "earth-specular-8k.jpg",
+      "bytes": 1997314
+    },
+    {
+      "file": "enceladus-4k.jpg",
+      "bytes": 615435
+    },
+    {
+      "file": "europa-4k.jpg",
+      "bytes": 650598
+    },
+    {
+      "file": "ganymede-4k.jpg",
+      "bytes": 242547
+    },
+    {
+      "file": "io-4k.jpg",
+      "bytes": 268066
+    },
+    {
+      "file": "jupiter-8k.jpg",
+      "bytes": 376394
+    },
+    {
+      "file": "mars-8k.jpg",
+      "bytes": 3227263
+    },
+    {
+      "file": "mercury-8k.jpg",
+      "bytes": 8259352
+    },
+    {
+      "file": "moon-4k.webp",
+      "bytes": 3497640
+    },
+    {
+      "file": "moon-8k.jpg",
+      "bytes": 9046331
+    },
+    {
+      "file": "moon-bump-4k.webp",
+      "bytes": 5098196
+    },
+    {
+      "file": "moon-bump-8k.jpg",
+      "bytes": 18949558
+    },
+    {
+      "file": "moon-specular-4k.webp",
+      "bytes": 3621280
+    },
+    {
+      "file": "moon-specular-8k.jpg",
+      "bytes": 10145802
+    },
+    {
+      "file": "neptune-2k.jpg",
+      "bytes": 241580
+    },
+    {
+      "file": "oberon-4k.jpg",
+      "bytes": 518171
+    },
+    {
+      "file": "phobos-4k.jpg",
+      "bytes": 296470
+    },
+    {
+      "file": "pluto-2k.jpg",
+      "bytes": 597162
+    },
+    {
+      "file": "saturn-8k.jpg",
+      "bytes": 142164
+    },
+    {
+      "file": "saturn-ring-alpha.png",
+      "bytes": 12119
+    },
+    {
+      "file": "sun-map.jpg",
+      "bytes": 647980
+    },
+    {
+      "file": "titan-4k.jpg",
+      "bytes": 220387
+    },
+    {
+      "file": "titania-4k.jpg",
+      "bytes": 681776
+    },
+    {
+      "file": "triton-4k.jpg",
+      "bytes": 558814
+    },
+    {
+      "file": "uranus-2k.jpg",
+      "bytes": 77751
+    },
+    {
+      "file": "venus-surface-8k.jpg",
+      "bytes": 4475346
+    }
+  ]
+}

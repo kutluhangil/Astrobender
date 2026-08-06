@@ -446,7 +446,10 @@ export class GlobeEngine {
   private probeGroup: THREE.Group | null = null
   private constellationGroup: THREE.Group | null = null
   private asteroidSwarm: AsteroidSwarm | null = null
-  private lastFocusPos: THREE.Vector3 | null = null
+  private lastAsteroidUpdateReal = 0
+  /** Preallocated — mutated via .copy() every frame, never reassigned. Validity tracked by hasLastFocusPos. */
+  private lastFocusPos = new THREE.Vector3()
+  private hasLastFocusPos = false
   private starsMat: THREE.PointsMaterial | null = null
   public currentTheme: 'dark' | 'light' = 'dark'
   public isCinematicTourActive: boolean = false
@@ -494,6 +497,16 @@ export class GlobeEngine {
   private disposed = false
   private tmpV = new THREE.Vector3()
   private tmpV2 = new THREE.Vector3()
+  /**
+   * Cached canvas bounding rect, refreshed in applySize() (resize/DPR changes).
+   * The canvas is `absolute inset-0` inside a `relative` root that itself fills
+   * html/body/#root (all `overflow: hidden`, no page scroll possible) — so the
+   * only thing that can move or resize this rect is a viewport/container size
+   * change, which ResizeObserver already routes through applySize(). No scroll
+   * listener is needed.
+   */
+  private canvasRect: DOMRect = new DOMRect()
+  private isPointerDown = false
   private downPos = { x: 0, y: 0 }
   private lastHoverCheck = 0
   private frameTimes: number[] = []
@@ -695,6 +708,10 @@ export class GlobeEngine {
         blending: THREE.AdditiveBlending,
       }),
     )
+    // Matches createPlanet()'s orbitLine and Home.tsx's planetaryOrbitsVisible
+    // default (both false) — setPlanetaryOrbitsVisible() already governs this
+    // line alongside every planet orbit line, so it should start in sync with them.
+    this.moonOrbitLine.visible = false
     this.scene.add(this.moonOrbitLine)
 
     // --- 8K 3D Sun Globe & Volumetric Corona Atmosphere ---
@@ -1263,6 +1280,7 @@ export class GlobeEngine {
 
   /** Apply container size + DPR; a no-op when neither actually changed. */
   private applySize = () => {
+    this.canvasRect = this.renderer.domElement.getBoundingClientRect()
     const w = Math.max(1, this.container.clientWidth)
     const h = Math.max(1, this.container.clientHeight)
     const dpr = this.computeDpr(w, h)
@@ -1509,28 +1527,45 @@ export class GlobeEngine {
   private pick(clientX: number, clientY: number, thresholdPx: number): number | null {
     if (this.replacement) return null
     if (this.focusTarget !== 'earth') return null // only pick Earth satellites when active target is Earth
-    const rect = this.renderer.domElement.getBoundingClientRect()
+    const rect = this.canvasRect
     const x = clientX - rect.left
     const y = clientY - rect.top
-    const v = this.tmpV
+
+    // Hoisted once per call instead of once per satellite (was: this.eciPosition()
+    // recomputing this on every one of ~9,400 satellites, calling getSimTime() each time).
+    const simS = this.cb.getSimTime() / 1000
+    const dur = Math.max(this.t1 - this.t0, 0.001)
+    const s = Math.min(Math.max((simS - this.t0) / dur, 0), 1)
+    const s2 = s * s
+    const s3 = s2 * s
+    const h00 = 2 * s3 - 3 * s2 + 1
+    const h10 = s3 - 2 * s2 + s
+    const h01 = -2 * s3 + 3 * s2
+    const h11 = s3 - s2
+
+    const v = this.tmpV // holds the unprojected ECI position of the candidate under test
+    const vp = this.tmpV2 // scratch for the projected (NDC) copy — v must stay unprojected for isOccluded()
     let best: number | null = null
     let bestD = thresholdPx
     for (const g of this.groups) {
       if (!g.points.visible) continue
       for (let i = 0; i < g.count; i++) {
         if (g.sizes[i] === 0) continue // dead/decayed
-        const idx = this.eciPosition(g.offset + i, v)
-        if (!idx) continue
+        const i3 = i * 3
+        v.set(
+          h00 * g.p0[i3] + h10 * dur * g.v0[i3] + h01 * g.p1[i3] + h11 * dur * g.v1[i3],
+          h00 * g.p0[i3 + 1] + h10 * dur * g.v0[i3 + 1] + h01 * g.p1[i3 + 1] + h11 * dur * g.v1[i3 + 1],
+          h00 * g.p0[i3 + 2] + h10 * dur * g.v0[i3 + 2] + h01 * g.p1[i3 + 2] + h11 * dur * g.v1[i3 + 2],
+        )
         if (v.lengthSq() < 1) continue // inside Earth
-        v.project(this.camera)
-        if (v.z > 1) continue
-        const sx = (v.x * 0.5 + 0.5) * rect.width
-        const sy = (-v.y * 0.5 + 0.5) * rect.height
+        vp.copy(v).project(this.camera)
+        if (vp.z > 1) continue
+        const sx = (vp.x * 0.5 + 0.5) * rect.width
+        const sy = (-vp.y * 0.5 + 0.5) * rect.height
         if (sx < -20 || sx > rect.width + 20 || sy < -20 || sy > rect.height + 20) continue
         const d = Math.hypot(sx - x, sy - y)
         if (d < bestD) {
-          // precise occlusion check only for the current best candidate
-          this.eciPosition(g.offset + i, v)
+          // v still holds the unprojected position computed above — no need to recompute it
           if (this.isOccluded(v)) continue
           bestD = d
           best = g.offset + i
@@ -1542,16 +1577,18 @@ export class GlobeEngine {
 
   private onPointerDown = (e: PointerEvent) => {
     this.downPos = { x: e.clientX, y: e.clientY }
+    this.isPointerDown = true
     this.controls.autoRotate = false
   }
 
   private onPointerUp = (e: PointerEvent) => {
+    this.isPointerDown = false
     const moved = Math.hypot(e.clientX - this.downPos.x, e.clientY - this.downPos.y)
     if (moved > 5) return // globe drag — never a selection
     const idx = this.pick(e.clientX, e.clientY, 12)
     this.cb.onSelect(idx)
     if (idx === null) {
-      const rect = this.renderer.domElement.getBoundingClientRect()
+      const rect = this.canvasRect
       const mouse = new THREE.Vector2(
         ((e.clientX - rect.left) / rect.width) * 2 - 1,
         -((e.clientY - rect.top) / rect.height) * 2 + 1,
@@ -1624,6 +1661,7 @@ export class GlobeEngine {
   }
 
   private onPointerMove = (e: PointerEvent) => {
+    if (this.isPointerDown) return // dragging (OrbitControls rotate) — skip picking
     const now = performance.now()
     if (now - this.lastHoverCheck < 120) return
     this.lastHoverCheck = now
@@ -1746,7 +1784,15 @@ export class GlobeEngine {
     }
 
     if (this.asteroidSwarm && (this.asteroidSwarm.mainBelt.visible || this.asteroidSwarm.kuiperBelt.visible)) {
-      this.asteroidSwarm.update(simS)
+      // Throttled to ~8Hz real time (not sim time, so it stays responsive at any time-warp
+      // multiplier): belt orbital motion is on the order of 1e-9 rad/rendered-frame at 1x,
+      // still sub-pixel per update even at 240x warp, so rebuilding all 3,600 instance
+      // matrices every rendered frame was pure waste.
+      const nowReal = performance.now()
+      if (nowReal - this.lastAsteroidUpdateReal >= 125) {
+        this.lastAsteroidUpdateReal = nowReal
+        this.asteroidSwarm.update(simS)
+      }
     }
 
     // Camera Fly-To & Up-Close Focus Lerping — supports all celestial bodies
@@ -1813,7 +1859,8 @@ export class GlobeEngine {
 
         if (progress >= 1) {
           this.flyToActive = false
-          this.lastFocusPos = currentTargetPos.clone()
+          this.lastFocusPos.copy(currentTargetPos)
+          this.hasLastFocusPos = true
         }
       }
     } else {
@@ -1822,17 +1869,18 @@ export class GlobeEngine {
       if (targetInfo) {
         const currentTargetPos = this.tmpVec2
         targetInfo.mesh.getWorldPosition(currentTargetPos)
-        if (this.lastFocusPos) {
-          const delta = currentTargetPos.clone().sub(this.lastFocusPos)
+        if (this.hasLastFocusPos) {
+          const delta = this.tmpVec3.copy(currentTargetPos).sub(this.lastFocusPos)
           this.camera.position.add(delta)
           this.controls.target.add(delta)
         } else {
           this.controls.target.copy(currentTargetPos)
         }
-        this.lastFocusPos = currentTargetPos.clone()
+        this.lastFocusPos.copy(currentTargetPos)
+        this.hasLastFocusPos = true
       } else if (this.selected === null && !this.follow) {
-        this.controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.08)
-        this.lastFocusPos = null
+        this.controls.target.lerp(this.tmpVec1.set(0, 0, 0), 0.08)
+        this.hasLastFocusPos = false
       }
     }
 
@@ -1851,8 +1899,8 @@ export class GlobeEngine {
 
         if (this.follow) {
           this.controls.target.lerp(p, 0.15)
-          const camOffset = p.clone().normalize().multiplyScalar(2.2)
-          this.camera.position.lerp(p.clone().add(camOffset), 0.08)
+          const camOffset = this.tmpVec2.copy(p).normalize().multiplyScalar(2.2)
+          this.camera.position.lerp(this.tmpVec4.copy(p).add(camOffset), 0.08)
         }
       }
       const nowReal = performance.now()
@@ -1987,7 +2035,7 @@ export class GlobeEngine {
     const info = this.getTargetBodyInfo(id)
     if (!info) return null
 
-    const rect = this.renderer.domElement.getBoundingClientRect()
+    const rect = this.canvasRect
     if (rect.width === 0 || rect.height === 0) return null
 
     const center = this.tmpVec1
@@ -2184,7 +2232,7 @@ export class GlobeEngine {
       this.flyToStartTime = performance.now()
       this.flyToStartCam.copy(this.camera.position)
       this.flyToStartTarget.copy(this.controls.target)
-      this.lastFocusPos = null
+      this.hasLastFocusPos = false
     }
   }
 

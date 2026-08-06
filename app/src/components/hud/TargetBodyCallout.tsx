@@ -71,6 +71,7 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme, language =
   const [decodedName, setDecodedName] = useState(() => decodeName(displayName.toUpperCase(), 0))
 
   useEffect(() => {
+    if (!visible) return
     let frameId = 0
     const update = () => {
       const next = engineRef.current?.getBodyScreenAnchor(bodyId) ?? null
@@ -87,7 +88,7 @@ export default function TargetBodyCallout({ bodyId, engineRef, theme, language =
     }
     update()
     return () => cancelAnimationFrame(frameId)
-  }, [bodyId, engineRef])
+  }, [bodyId, engineRef, visible])
 
   useEffect(() => {
     let tick = 0

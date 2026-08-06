@@ -40,11 +40,14 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
   // 1. Main Asteroid Belt (roughly 2.1 to 3.3 AU)
   // Realistic carbonaceous/silicate dark grey-brown rock material
   const mainCount = 2000
-  const mainMat = new THREE.MeshStandardMaterial({
+  // MeshBasicMaterial, not MeshStandardMaterial: the scene has no THREE.Light —
+  // bodies are lit entirely via uSunDir uniforms in custom shaders — so a PBR
+  // material here rendered unlit black while still paying for the most
+  // expensive built-in shader to compile.
+  // (flatShading is meaningless on MeshBasicMaterial — it doesn't light from
+  // normals at all — so it's dropped, not carried over from the old material.)
+  const mainMat = new THREE.MeshBasicMaterial({
     color: 0x475569,
-    roughness: 0.85,
-    metalness: 0.15,
-    flatShading: true,
   })
   const mainBelt = new THREE.InstancedMesh(rockGeo, mainMat, mainCount)
 
@@ -66,11 +69,8 @@ export function createAsteroidSwarm(sunPos: THREE.Vector3): AsteroidSwarm {
   // 2. Kuiper Belt (roughly 30 to 50 AU)
   // Realistic dark slate icy grey material (no glowing cyan blue!)
   const kuiperCount = 1600
-  const kuiperMat = new THREE.MeshStandardMaterial({
+  const kuiperMat = new THREE.MeshBasicMaterial({
     color: 0x334155,
-    roughness: 0.9,
-    metalness: 0.1,
-    flatShading: true,
   })
   const kuiperBelt = new THREE.InstancedMesh(rockGeo, kuiperMat, kuiperCount)
 

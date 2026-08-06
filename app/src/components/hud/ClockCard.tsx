@@ -10,7 +10,10 @@ export default function ClockCard({ clock }: ClockCardProps) {
   const [tick, setTick] = useState({ sim: 0, wall: 0 })
 
   useEffect(() => {
-    const id = setInterval(() => setTick({ sim: clock.getTime(), wall: Date.now() }), 200)
+    // The display only shows HH:MM:SS (1s resolution), so polling at 200ms just
+    // burns extra renders with an identical formatted string most of the time.
+    // 1s is still tight enough for the "live" freshness check below (2500ms slack).
+    const id = setInterval(() => setTick({ sim: clock.getTime(), wall: Date.now() }), 1000)
     return () => clearInterval(id)
   }, [clock])
 

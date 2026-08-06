@@ -534,16 +534,18 @@ export class GlobeEngine {
     // --- Earth ---
     const loader = new THREE.TextureLoader()
     const dayTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-day-8k.jpg`)
-    const nightTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-night-8k.jpg`)
-    const specTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-specular-8k.jpg`)
-    const bumpTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-bump-8k.jpg`)
+    const nightTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-night-4k.jpg`)
+    const specTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-specular-2k.jpg`)
+    const bumpTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-bump-2k.jpg`)
 
     dayTex.colorSpace = THREE.SRGBColorSpace
     nightTex.colorSpace = THREE.SRGBColorSpace
     dayTex.anisotropy = 16
     nightTex.anisotropy = 16
-    specTex.anisotropy = 16
-    bumpTex.anisotropy = 16
+    // scalar masks (land/ocean, height field) sampled for a finite-difference gradient —
+    // anisotropic filtering is wasted work here
+    specTex.anisotropy = 1
+    bumpTex.anisotropy = 1
     dayTex.minFilter = THREE.LinearMipmapLinearFilter
     dayTex.magFilter = THREE.LinearFilter
 
@@ -614,7 +616,7 @@ export class GlobeEngine {
     this.earth.add(this.auroraOverlay)
 
     // --- Cloud Layer — 96×96 sphere (vs old 256×256 = 86% fewer vertices, no visible diff) ---
-    const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-8k.jpg`)
+    const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-4k.jpg`)
     cloudsTex.colorSpace = THREE.SRGBColorSpace
     cloudsTex.anisotropy = 8  // 8 is imperceptible vs 16 on clouds; saves GPU bandwidth
     const cloudGeo = new THREE.SphereGeometry(1.015, 96, 96)
@@ -647,15 +649,16 @@ export class GlobeEngine {
     )
     this.scene.add(atmo)
 
-    // --- Moon (8K Ultra HD) ---
+    // --- Moon (colour upgrades to 8K on focus; bump/specular stay at 2K — see loadMoonHighResolution) ---
     const moonTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-4k.webp`)
-    const moonBumpTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-bump-4k.webp`)
-    const moonSpecTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-specular-4k.webp`)
+    const moonBumpTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-bump-2k.webp`)
+    const moonSpecTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-specular-2k.webp`)
 
     moonTex.colorSpace = THREE.SRGBColorSpace
     moonTex.anisotropy = 16
-    moonBumpTex.anisotropy = 16
-    moonSpecTex.anisotropy = 16
+    // scalar masks (height field, specular mask) — anisotropic filtering is wasted work here
+    moonBumpTex.anisotropy = 1
+    moonSpecTex.anisotropy = 1
     moonTex.minFilter = THREE.LinearMipmapLinearFilter
     moonTex.magFilter = THREE.LinearFilter
 
@@ -2120,44 +2123,34 @@ export class GlobeEngine {
     this.showBodyCoordinate('earth', lat, lon)
   }
 
+  // Upgrades only the colour texture to 8K on focus. Bump/specular are scalar
+  // masks (height field, specular mask) sampled at a coarse UV offset for a
+  // finite-difference gradient — the 2K versions loaded at startup are already
+  // plenty of resolution, so there is no 8K bump/specular upgrade.
   private loadMoonHighResolution() {
     if (this.moonHighResolutionRequested) return
     this.moonHighResolutionRequested = true
     const loader = new THREE.TextureLoader()
-    const paths = [
-      `${import.meta.env.BASE_URL}textures/moon-8k.jpg`,
-      `${import.meta.env.BASE_URL}textures/moon-bump-8k.jpg`,
-      `${import.meta.env.BASE_URL}textures/moon-specular-8k.jpg`,
-    ] as const
-    void Promise.all(paths.map((path) => loader.loadAsync(path))).then(
-      ([surface, bump, specular]) => {
+    const path = `${import.meta.env.BASE_URL}textures/moon-8k.jpg`
+    loader.loadAsync(path).then(
+      (surface) => {
         if (this.disposed) {
           surface.dispose()
-          bump.dispose()
-          specular.dispose()
           return
         }
         surface.colorSpace = THREE.SRGBColorSpace
-        for (const texture of [surface, bump, specular]) {
-          texture.anisotropy = 16
-          texture.needsUpdate = true
-        }
+        surface.anisotropy = 16
+        surface.needsUpdate = true
         surface.minFilter = THREE.LinearMipmapLinearFilter
         surface.magFilter = THREE.LinearFilter
-        const previous = [
-          this.moonMat.uniforms.uMoonTex.value as THREE.Texture,
-          this.moonMat.uniforms.uMoonBump.value as THREE.Texture,
-          this.moonMat.uniforms.uMoonSpec.value as THREE.Texture,
-        ]
+        const previous = this.moonMat.uniforms.uMoonTex.value as THREE.Texture
         this.moonMat.uniforms.uMoonTex.value = surface
-        this.moonMat.uniforms.uMoonBump.value = bump
-        this.moonMat.uniforms.uMoonSpec.value = specular
-        previous.forEach((texture) => texture.dispose())
+        previous.dispose()
       },
       (error: unknown) => {
         this.moonHighResolutionRequested = false
         console.error(
-          `Moon 8K texture upgrade failed for ${paths.join(', ')}: ${
+          `Moon 8K texture upgrade failed for ${path}: ${
             error instanceof Error ? error.message : String(error)
           }`,
         )

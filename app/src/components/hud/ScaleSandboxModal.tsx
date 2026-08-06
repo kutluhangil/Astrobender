@@ -175,7 +175,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '3.70 m/s² (0.38g)',
     climate: '-180°C (Gece) / +430°C (Gündüz)',
     atmosphere: 'Oksijen & Sodyum İzleri',
-    texture: 'mercury-8k.jpg',
+    texture: 'mercury-4k.jpg',
     funFact: 'Güneş\'e en yakın gezegendir; hiç atmosferi olmadığı için sıcaklık uçurumdur.',
   },
   {

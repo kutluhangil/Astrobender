@@ -139,7 +139,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '🪨',
     radius: 0.38,
     segments: 64,
-    texture: 'mercury-8k.jpg',
+    texture: 'mercury-4k.jpg',
     semiMajorAxisAu: 0.38709927,
     orbitPeriodDays: 87.97,
     rotationPeriodHours: 1407.6, // 58.6 days

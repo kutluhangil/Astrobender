@@ -1,5 +1,5 @@
 {
-  "totalBytes": 89056096,
+  "totalBytes": 40309147,
   "files": [
     {
       "file": "callisto-4k.jpg",
@@ -14,24 +14,24 @@
       "bytes": 137100
     },
     {
-      "file": "earth-bump-8k.jpg",
-      "bytes": 4228015
+      "file": "earth-bump-2k.jpg",
+      "bytes": 443970
     },
     {
-      "file": "earth-clouds-8k.jpg",
-      "bytes": 6404814
+      "file": "earth-clouds-4k.jpg",
+      "bytes": 4017442
     },
     {
       "file": "earth-day-8k.jpg",
       "bytes": 1923703
     },
     {
-      "file": "earth-night-8k.jpg",
-      "bytes": 1211817
+      "file": "earth-night-4k.jpg",
+      "bytes": 772520
     },
     {
-      "file": "earth-specular-8k.jpg",
-      "bytes": 1997314
+      "file": "earth-specular-2k.jpg",
+      "bytes": 386318
     },
     {
       "file": "enceladus-4k.jpg",
@@ -58,8 +58,8 @@
       "bytes": 3227263
     },
     {
-      "file": "mercury-8k.jpg",
-      "bytes": 8259352
+      "file": "mercury-4k.jpg",
+      "bytes": 4061945
     },
     {
       "file": "moon-4k.webp",
@@ -70,20 +70,12 @@
       "bytes": 9046331
     },
     {
-      "file": "moon-bump-4k.webp",
-      "bytes": 5098196
+      "file": "moon-bump-2k.webp",
+      "bytes": 816568
     },
     {
-      "file": "moon-bump-8k.jpg",
-      "bytes": 18949558
-    },
-    {
-      "file": "moon-specular-4k.webp",
-      "bytes": 3621280
-    },
-    {
-      "file": "moon-specular-8k.jpg",
-      "bytes": 10145802
+      "file": "moon-specular-2k.webp",
+      "bytes": 670436
     },
     {
       "file": "neptune-2k.jpg",

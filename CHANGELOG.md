@@ -8,6 +8,9 @@
 - Fixed the cinematic tour start button being unclickable on desktop, where the layer panel overlapped it.
 - Hardened the prepare-offline download: its service worker message listener is torn down on unmount, and a stalled download now surfaces a retry message instead of hanging.
 - Fixed first-visit bandwidth contention between texture loading and the service worker precache: the two cinematic-tour narration MP3s (~11.7 MB) are no longer precached on install, instead runtime-caching like textures and downloading as part of "prepare for offline".
+- Cut first-paint GPU memory from about 1.03 GB to 0.36 GB (and Moon focus from 1.43 GB to 0.49 GB) by right-sizing the single-channel Earth and Moon bump/specular/cloud/night textures, re-encoding an oversized Mercury map, and dropping anisotropic filtering on height and mask textures where it did nothing.
+- Reduced continuous CPU use roughly thirteenfold at normal playback speed by propagating SGP4 every twenty wall-clock seconds instead of every two, which cubic Hermite interpolation covers to within millimetres.
+- Removed wasted per-frame work from the render loop: the target callout no longer animates after it hides, the canvas rectangle is cached instead of forcing a layout every frame, satellite picking hoists its per-call constants and pauses during drags, and the asteroid belts throttle their instance updates and use an unlit material that no longer renders black.
 
 ## 2026-07-26
 

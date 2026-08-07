@@ -945,6 +945,7 @@ export class GlobeEngine {
     const el = this.renderer.domElement
     el.addEventListener('pointerdown', this.onPointerDown)
     el.addEventListener('pointerup', this.onPointerUp)
+    el.addEventListener('pointercancel', this.onPointerCancel)
     el.addEventListener('pointermove', this.onPointerMove)
     el.addEventListener('webglcontextlost', this.onContextLost, false)
     el.addEventListener('webglcontextrestored', this.onContextRestored, false)
@@ -1579,6 +1580,14 @@ export class GlobeEngine {
     this.downPos = { x: e.clientX, y: e.clientY }
     this.isPointerDown = true
     this.controls.autoRotate = false
+  }
+
+  // A cancelled pointer session (interrupted touch gesture, OS-level gesture
+  // takeover, multi-touch) fires pointercancel instead of pointerup. Without
+  // this the drag flag would stay set and onPointerMove's guard would skip
+  // hover picking for the rest of the session, with no way to recover.
+  private onPointerCancel = () => {
+    this.isPointerDown = false
   }
 
   private onPointerUp = (e: PointerEvent) => {
@@ -2338,6 +2347,7 @@ export class GlobeEngine {
     const el = this.renderer.domElement
     el.removeEventListener('pointerdown', this.onPointerDown)
     el.removeEventListener('pointerup', this.onPointerUp)
+    el.removeEventListener('pointercancel', this.onPointerCancel)
     el.removeEventListener('pointermove', this.onPointerMove)
     el.removeEventListener('webglcontextlost', this.onContextLost)
     el.removeEventListener('webglcontextrestored', this.onContextRestored)

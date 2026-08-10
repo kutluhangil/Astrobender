@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Added a pinned Node 24.15 runtime, a GitHub Actions quality gate, deterministic single-worker Chromium/PWA verification commands, and strict Playwright ports so preview-server port drift cannot silently invalidate PWA tests.
 - Added a bilingual Skywatch Calendar with locally calculated eclipses, meteor showers, planetary events, explicit observer selection, source links, and one-click simulation focus.
 
 ## 2026-08-06

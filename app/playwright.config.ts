@@ -27,13 +27,13 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npm run dev -- --host 127.0.0.1 --port 4174',
+      command: 'npm run dev -- --host 127.0.0.1 --port 4174 --strictPort',
       url: 'http://127.0.0.1:4174',
       reuseExistingServer: true,
       timeout: 30_000,
     },
     {
-      command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4180',
+      command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4180 --strictPort',
       url: 'http://127.0.0.1:4180',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -17,6 +17,21 @@ test('root Vercel configuration builds the nested app and exposes the JPL CAD fu
   assert.match(readRepository('api/jpl-cad.ts'), /app\/api\/jpl-cad/)
 })
 
+test('runtime and CI use the pinned Node release and split browser quality gates', () => {
+  const packageJson = JSON.parse(read('package.json'))
+  const workflow = readRepository('.github/workflows/quality.yml')
+  const playwright = read('playwright.config.ts')
+
+  assert.match(readRepository('.nvmrc'), /^24\.15\.0\s*$/)
+  assert.equal(packageJson.engines.node, '>=24.15.0 <25')
+  assert.equal(packageJson.engines.npm, '>=11')
+  assert.match(packageJson.scripts['verify:ci'], /test:e2e:chromium/)
+  assert.match(packageJson.scripts['verify:ci'], /test:e2e:pwa/)
+  assert.match(workflow, /npm run verify:ci/)
+  assert.match(workflow, /npx playwright install --with-deps chromium/)
+  assert.match(playwright, /--strictPort/)
+})
+
 test('ASTROBENDER is the only product name in the application source', () => {
   const fallback = read('src/components/FallbackTable.tsx')
   assert.doesNotMatch(fallback, new RegExp(['ORBIT', 'VEIL'].join(' '), 'i'))

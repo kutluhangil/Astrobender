@@ -32,6 +32,18 @@ test('runtime and CI use the pinned Node release and split browser quality gates
   assert.match(playwright, /--strictPort/)
 })
 
+test('catalog source governance is date-bound and reviewed by a scheduled check', () => {
+  const governance = read('src/lib/source-governance.ts')
+  const sourceCheck = read('scripts/check-source-freshness.mjs')
+  const workflow = readRepository('.github/workflows/source-review.yml')
+
+  assert.match(governance, /CATALOG_VERIFIED_AT = '20\d{2}-\d{2}-\d{2}'/)
+  assert.match(governance, /SOURCE_REVIEW_MAX_AGE_DAYS = 120/)
+  assert.match(sourceCheck, /source review is overdue/i)
+  assert.match(workflow, /schedule:/)
+  assert.match(workflow, /npm run check:sources/)
+})
+
 test('ASTROBENDER is the only product name in the application source', () => {
   const fallback = read('src/components/FallbackTable.tsx')
   assert.doesNotMatch(fallback, new RegExp(['ORBIT', 'VEIL'].join(' '), 'i'))

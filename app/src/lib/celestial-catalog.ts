@@ -5,6 +5,7 @@ import {
   type CelestialBodyId,
   type PlanetDef,
 } from './planets.ts'
+import { CATALOG_VERIFIED_AT } from './source-governance.ts'
 
 export interface CelestialCatalogEntry {
   id: CelestialBodyId
@@ -70,7 +71,7 @@ export const CELESTIAL_CATALOG = Object.fromEntries(
       fact,
       definition: findPlanetDef(id),
       sourceUrl: SOURCE_BY_SYSTEM[id] ?? NASA_SOLAR_SYSTEM_URL,
-      verifiedAt: '2026-07-26',
+      verifiedAt: CATALOG_VERIFIED_AT,
     }
     return [id, entry]
   }),

@@ -14,6 +14,7 @@ import {
 } from '@/lib/celestial-physical-profiles'
 import type { CelestialBodyId } from '@/lib/planets'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import { formatSourceReviewStatus, getSourceFreshness } from '@/lib/source-governance'
 
 interface PlanetInfoCardProps {
   bodyId: CelestialBodyId
@@ -84,6 +85,7 @@ export default function PlanetInfoCard({
   const physicalSourceUrl = bodyType.includes('Planet') || bodyType.includes('Gezegen') || bodyId === 'sun'
     ? JPL_PHYSICAL_PARAMETERS_URL
     : JPL_SATELLITE_PARAMETERS_URL
+  const sourceFreshness = getSourceFreshness(entry.verifiedAt)
 
   return (
     <>
@@ -153,6 +155,9 @@ export default function PlanetInfoCard({
               >
                 {t('NASA kaynağı', 'NASA source')} · {entry.verifiedAt}
               </a>
+              <span className={sourceFreshness.state === 'current' ? 'font-mono text-[8px] uppercase tracking-[0.12em] text-emerald-300/70' : 'font-mono text-[8px] uppercase tracking-[0.12em] text-amber-300/80'}>
+                {formatSourceReviewStatus(sourceFreshness, language)}
+              </span>
               <a
                 href={physicalSourceUrl}
                 target="_blank"
@@ -226,6 +231,9 @@ export default function PlanetInfoCard({
             >
               {t('NASA kaynağı', 'NASA source')} · {entry.verifiedAt}
             </a>
+            <span className={sourceFreshness.state === 'current' ? 'font-mono text-[8px] uppercase tracking-[0.12em] text-emerald-300/70' : 'font-mono text-[8px] uppercase tracking-[0.12em] text-amber-300/80'}>
+              {formatSourceReviewStatus(sourceFreshness, language)}
+            </span>
             <a
               href={physicalSourceUrl}
               target="_blank"

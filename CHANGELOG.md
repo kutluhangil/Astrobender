@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Added an explicit catalog-source review date, in-product source freshness status, a deterministic freshness check, and a weekly GitHub Actions reminder that fails once the primary-source review window expires.
 - Routed live CelesTrak feeds through an allow-listed, cacheable Vercel API; the LIVE information port now reports TLE epoch age, source fetch time, stale-orbit warnings, and counted propagation-record failures.
 - Added a pinned Node 24.15 runtime, a GitHub Actions quality gate, deterministic single-worker Chromium/PWA verification commands, and strict Playwright ports so preview-server port drift cannot silently invalidate PWA tests.
 - Added a bilingual Skywatch Calendar with locally calculated eclipses, meteor showers, planetary events, explicit observer selection, source links, and one-click simulation focus.

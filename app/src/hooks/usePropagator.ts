@@ -12,6 +12,11 @@ const INIT_TIMEOUT_MS = 12000
 export interface PropagatorState {
   /** non-null when the worker is unavailable (degraded mode banner) */
   degraded: string | null
+  diagnostics: {
+    invalidRecords: number
+    failedRecords: number
+    totalRecords: number
+  }
 }
 
 interface PendingFrame {
@@ -42,6 +47,11 @@ export function usePropagator(
   clock: SimClock,
 ) {
   const [degraded, setDegraded] = useState<string | null>(null)
+  const [diagnostics, setDiagnostics] = useState({
+    invalidRecords: 0,
+    failedRecords: 0,
+    totalRecords: 0,
+  })
   const workerRef = useRef<Worker | null>(null)
   const genRef = useRef(0)
   const readyRef = useRef(false)
@@ -128,6 +138,7 @@ export function usePropagator(
     pendingRef.current = null
     firstFrameRef.current = false
     deadMarkedRef.current = false
+    setDiagnostics({ invalidRecords: 0, failedRecords: 0, totalRecords: dataset.total })
 
     const worker = new Worker(
       new URL('../workers/propagator.worker.ts', import.meta.url),
@@ -155,6 +166,11 @@ export function usePropagator(
         if (initTimerRef.current) clearTimeout(initTimerRef.current)
         readyRef.current = true
         setDegraded(null)
+        setDiagnostics({
+          invalidRecords: msg.invalidCount,
+          failedRecords: 0,
+          totalRecords: msg.count,
+        })
         // request the first frame immediately, in the direction of travel
         const now = clock.getTime()
         const dur = intervalFor(Math.abs(speedRef.current)) * 1000
@@ -164,6 +180,11 @@ export function usePropagator(
       }
       if (msg.type === 'frame') {
         inFlightRef.current = false
+        setDiagnostics((current) =>
+          current.failedRecords === msg.failedCount
+            ? current
+            : { ...current, failedRecords: msg.failedCount },
+        )
         const frame: PendingFrame = {
           t0: msg.t0,
           t1: msg.t1,
@@ -252,5 +273,5 @@ export function usePropagator(
   // Note: a still-valid interval is deliberately NOT restarted when playback
   // speed changes — only the duration of future intervals adapts.
 
-  return { degraded } satisfies PropagatorState
+  return { degraded, diagnostics } satisfies PropagatorState
 }

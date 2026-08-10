@@ -12,13 +12,26 @@ export interface SystemStatusNotice {
   onRetry?: () => void
 }
 
+export interface SystemStatusMetric {
+  id: string
+  label: string
+  value: string
+  tone?: 'normal' | 'warning' | 'critical'
+}
+
 interface TimeControllerProps {
   clock: SimClock
   notices?: SystemStatusNotice[]
+  metrics?: SystemStatusMetric[]
   language?: 'tr' | 'en'
 }
 
-export default function TimeController({ clock, notices = [], language = 'tr' }: TimeControllerProps) {
+export default function TimeController({
+  clock,
+  notices = [],
+  metrics = [],
+  language = 'tr',
+}: TimeControllerProps) {
   const [infoOpen, setInfoOpen] = useState(false)
   const live = clock.playing && clock.speed === 1
   const hasNotices = notices.length > 0
@@ -94,7 +107,7 @@ export default function TimeController({ clock, notices = [], language = 'tr' }:
           className={`relative flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[11px] font-bold transition-colors md:h-8 md:w-8 ${
             hasNotices
               ? 'border-amber-300/60 bg-amber-300/10 text-amber-200 hover:bg-amber-300/20'
-              : 'border-white/15 text-slate-400 hover:border-cyan-300/50 hover:bg-cyan-300/10 hover:text-cyan-100'
+              : 'border-white/15 text-slate-300 hover:border-cyan-300/50 hover:bg-cyan-300/10 hover:text-cyan-100'
           }`}
         >
           i
@@ -153,9 +166,30 @@ export default function TimeController({ clock, notices = [], language = 'tr' }:
                 ))}
               </div>
             ) : (
-              <p className="mt-2 font-mono text-[9px] leading-relaxed text-slate-400">
+              <p className="mt-2 font-mono text-[9px] leading-relaxed text-slate-300">
                 {t('Canlı saat, kataloglar ve görünür katmanlar izleniyor.', 'Live time, catalogs, and visible layers are being monitored.')}
               </p>
+            )}
+
+            {metrics.length > 0 && (
+              <dl className="mt-2 space-y-1 border-t border-white/10 pt-2">
+                {metrics.map((metric) => (
+                  <div key={metric.id} className="flex items-start justify-between gap-3 font-mono text-[9px]">
+                    <dt className="text-slate-500">{metric.label}</dt>
+                    <dd
+                      className={
+                        metric.tone === 'critical'
+                          ? 'text-amber-200'
+                          : metric.tone === 'warning'
+                            ? 'text-amber-100'
+                            : 'text-cyan-100'
+                      }
+                    >
+                      {metric.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             )}
           </section>
         )}

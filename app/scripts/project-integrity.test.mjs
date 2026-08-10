@@ -133,7 +133,7 @@ test('recoverable operational warnings stay in the time-controller information p
   const timeController = read('src/components/hud/TimeController.tsx')
 
   assert.match(home, /const systemNotices: SystemStatusNotice\[\]/)
-  assert.match(home, /<TimeController clock=\{clock\} notices=\{systemNotices\}/)
+  assert.match(home, /<TimeController[\s\S]*?clock=\{clock\}[\s\S]*?notices=\{systemNotices\}/)
   assert.doesNotMatch(home, /tleWarningDismissed/)
   assert.match(timeController, /aria-controls="system-status-panel"/)
   assert.match(timeController, /notices\.map/)
@@ -215,4 +215,21 @@ test('JPL close approaches use a same-origin server proxy with no client query s
   assert.match(proxy, /accepts no query parameters/)
   assert.match(vite, /'\/api\/jpl-cad'/)
   assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
+})
+
+test('TLE refresh uses an allow-listed same-origin proxy and exposes propagation diagnostics', () => {
+  const tleHook = read('src/hooks/useTleData.ts')
+  const worker = read('src/workers/propagator.worker.ts')
+  const home = read('src/pages/Home.tsx')
+  const vite = read('vite.config.ts')
+
+  assert.equal(existsSync(`${repositoryRoot}/api/tle.ts`), true)
+  assert.doesNotMatch(tleHook, /https:\/\/celestrak\.org/)
+  assert.match(tleHook, /TLE_API = '\/api\/tle'/)
+  assert.match(tleHook, /\$\{TLE_API\}\?feed=/)
+  assert.match(vite, /'\/api\/tle'/)
+  assert.match(worker, /invalidCount/)
+  assert.match(worker, /failedCount/)
+  assert.match(home, /describeTleFreshness/)
+  assert.match(home, /TLE epoch/i)
 })

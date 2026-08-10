@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts tests/sky-events.test.ts tests/skywatch-location.test.ts scripts/project-integrity.test.mjs tests/texture-manifest.test.ts tests/icon-assets.test.ts",
+    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts tests/sky-events.test.ts tests/skywatch-location.test.ts tests/tle-freshness.test.ts tests/tle-api.test.ts scripts/project-integrity.test.mjs tests/texture-manifest.test.ts tests/icon-assets.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium --workers=1",
     "test:e2e:pwa": "playwright test --project=chromium-pwa-build --workers=1",

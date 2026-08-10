@@ -52,6 +52,7 @@ test('LIVE controller exposes operational status from its information port', asy
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()
   await expect(page.getByText('Sistem Durumu')).toBeVisible()
+  await expect(page.getByText('TLE epoch yaşı')).toBeVisible()
 })
 
 test('keyboard search supports arrow navigation and NORAD selection', async ({ page }) => {

@@ -3,6 +3,14 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { VitePWA } from "vite-plugin-pwa"
 
+const TLE_GROUPS = {
+  active: 'active',
+  visual: 'visual',
+  cosmos2251: 'cosmos-2251-debris',
+  iridium33: 'iridium-33-debris',
+  fengyun1c: 'fengyun-1c-debris',
+} as const
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
@@ -69,6 +77,17 @@ export default defineConfig({
         // data. Keep this in sync with JPL_CAD_URL in app/api/jpl-cad.ts.
         rewrite: () =>
           '/cad.api?date-min=now&date-max=%2B60&dist-max=0.2&diameter=true&fullname=true&sort=date',
+      },
+      '/api/tle': {
+        target: 'https://celestrak.org',
+        changeOrigin: true,
+        rewrite: (path) => {
+          const feed = new URL(path, 'http://localhost').searchParams.get('feed')
+          const group = feed && Object.hasOwn(TLE_GROUPS, feed)
+            ? TLE_GROUPS[feed as keyof typeof TLE_GROUPS]
+            : 'invalid'
+          return `/NORAD/elements/gp.php?GROUP=${group}&FORMAT=tle`
+        },
       },
     },
   },

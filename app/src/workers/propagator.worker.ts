@@ -15,7 +15,7 @@ export type PropagatorRequest =
   | { type: 'propagate'; gen: number; t0: number; t1: number }
 
 export type PropagatorResponse =
-  | { type: 'ready'; gen: number; count: number }
+  | { type: 'ready'; gen: number; count: number; invalidCount: number }
   | {
       type: 'frame'
       gen: number
@@ -25,6 +25,7 @@ export type PropagatorResponse =
       v0: ArrayBuffer
       p1: ArrayBuffer
       v1: ArrayBuffer
+      failedCount: number
     }
   | { type: 'failure'; gen: number; stage: 'init' | 'propagate'; message: string }
 
@@ -40,10 +41,11 @@ function post(msg: PropagatorResponse, transfer?: Transferable[]) {
   ;(self as unknown as Worker).postMessage(msg, transfer ?? [])
 }
 
-function propagateAll(t0: number, t1: number) {
+function propagateAll(t0: number, t1: number): number {
   const d0 = new Date(t0)
   const d1 = new Date(t1)
   const n = recs.length
+  let failedCount = 0
   for (let i = 0; i < n; i++) {
     const rec = recs[i]
     if (!rec) continue
@@ -52,33 +54,38 @@ function propagateAll(t0: number, t1: number) {
       const pv = satellite.propagate(rec, d0)
       const p = pv?.position
       const v = pv?.velocity
-      if (p && v && isFinite(p.x) && isFinite(p.y) && isFinite(p.z)) {
+      if (p && v && satellite.SatRecError.None === rec.error && isFinite(p.x) && isFinite(p.y) && isFinite(p.z)) {
         lastP0[j] = p.x * INV_RE
         lastP0[j + 1] = p.y * INV_RE
         lastP0[j + 2] = p.z * INV_RE
         lastV0[j] = v.x * INV_RE
         lastV0[j + 1] = v.y * INV_RE
         lastV0[j + 2] = v.z * INV_RE
+      } else {
+        failedCount += 1
       }
     } catch {
-      /* keep last */
+      failedCount += 1
     }
     try {
       const pv = satellite.propagate(rec, d1)
       const p = pv?.position
       const v = pv?.velocity
-      if (p && v && isFinite(p.x) && isFinite(p.y) && isFinite(p.z)) {
+      if (p && v && satellite.SatRecError.None === rec.error && isFinite(p.x) && isFinite(p.y) && isFinite(p.z)) {
         lastP1[j] = p.x * INV_RE
         lastP1[j + 1] = p.y * INV_RE
         lastP1[j + 2] = p.z * INV_RE
         lastV1[j] = v.x * INV_RE
         lastV1[j + 1] = v.y * INV_RE
         lastV1[j + 2] = v.z * INV_RE
+      } else {
+        failedCount += 1
       }
     } catch {
-      /* keep last */
+      failedCount += 1
     }
   }
+  return failedCount
 }
 
 self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
@@ -88,24 +95,32 @@ self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
       gen = msg.gen
       const n = msg.l1.length
       recs = new Array(n)
+      let invalidCount = 0
       lastP0 = new Float32Array(n * 3)
       lastV0 = new Float32Array(n * 3)
       lastP1 = new Float32Array(n * 3)
       lastV1 = new Float32Array(n * 3)
       for (let i = 0; i < n; i++) {
         try {
-          recs[i] = satellite.twoline2satrec(msg.l1[i], msg.l2[i])
+          const record = satellite.twoline2satrec(msg.l1[i], msg.l2[i])
+          if (record.error !== satellite.SatRecError.None) {
+            invalidCount += 1
+            recs[i] = null
+          } else {
+            recs[i] = record
+          }
         } catch {
+          invalidCount += 1
           recs[i] = null
         }
       }
-      post({ type: 'ready', gen, count: n })
+      post({ type: 'ready', gen, count: n, invalidCount })
       return
     }
 
     if (msg.type === 'propagate') {
       if (msg.gen !== gen || recs.length === 0) return
-      propagateAll(msg.t0, msg.t1)
+      const failedCount = propagateAll(msg.t0, msg.t1)
       const p0 = lastP0.slice()
       const v0 = lastV0.slice()
       const p1 = lastP1.slice()
@@ -120,6 +135,7 @@ self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
           v0: v0.buffer,
           p1: p1.buffer,
           v1: v1.buffer,
+          failedCount,
         },
         [p0.buffer, v0.buffer, p1.buffer, v1.buffer],
       )

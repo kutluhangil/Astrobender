@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
-import { UI_GROUPS } from '@/lib/satellites'
+import { formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
 import type { SatInfo } from '@/lib/satellites'
 import type { CelestialBodyId } from '@/lib/planets'
 import { useSimClock } from '@/hooks/useSimClock'
 import { useTleData } from '@/hooks/useTleData'
 import { usePropagator } from '@/hooks/usePropagator'
+import { describeTleFreshness } from '@/lib/tle-freshness'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import IdentityBlock from '@/components/hud/IdentityBlock'
 import ClockCard from '@/components/hud/ClockCard'
-import TimeController, { type SystemStatusNotice } from '@/components/hud/TimeController'
+import TimeController, {
+  type SystemStatusMetric,
+  type SystemStatusNotice,
+} from '@/components/hud/TimeController'
 import LayerPanel from '@/components/hud/LayerPanel'
 import SearchBox from '@/components/hud/SearchBox'
 import DetailPanel from '@/components/hud/DetailPanel'
@@ -660,7 +664,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataset])
 
-  const { degraded } = usePropagator(dataset, engineRef, clock)
+  const { degraded, diagnostics: propagatorDiagnostics } = usePropagator(dataset, engineRef, clock)
 
   // ---- telemetry for the selected satellite (direct SGP4 at exact sim time) ----
   useEffect(() => {
@@ -744,7 +748,43 @@ export default function Home() {
       }
     : null
   const hoverSat = hover ? satsRef.current[hover.index] : null
+  const tleFreshness = dataset ? describeTleFreshness(dataset, Date.now()) : null
+  const systemMetrics: SystemStatusMetric[] = dataset && tleFreshness
+    ? [
+        {
+          id: 'tle-epoch',
+          label: t('TLE epoch yaşı', 'TLE epoch age'),
+          value: `${tleAge(dataset.epochMs, Date.now())} · ${dataset.source}`,
+          tone:
+            tleFreshness.severity === 'stale'
+              ? 'critical'
+              : tleFreshness.severity === 'aging'
+                ? 'warning'
+                : 'normal',
+        },
+        {
+          id: 'tle-fetched',
+          label: t('Son alım', 'Last fetched'),
+          value: formatUtc(dataset.fetchedAt),
+        },
+      ]
+    : []
   const systemNotices: SystemStatusNotice[] = [
+    ...(tleFreshness?.severity === 'stale'
+      ? [{
+          id: 'tle-freshness',
+          title: t('Uydu yörünge verisi yaşlandı', 'Satellite orbital data is stale'),
+          summary: t(
+            `Orta TLE epoch’u ${tleAge(dataset?.epochMs ?? 0, Date.now())} yaşında; yeni kaynak verisi gelene kadar konum hassasiyeti azalabilir.`,
+            `The median TLE epoch is ${tleAge(dataset?.epochMs ?? 0, Date.now())} old; position accuracy may degrade until newer source data arrives.`,
+          ),
+          technicalDetails: dataset
+            ? `source=${dataset.source}; epoch=${formatUtc(dataset.epochMs)}; fetchedAt=${formatUtc(dataset.fetchedAt)}`
+            : undefined,
+          retryLabel: t('Tekrar dene', 'Retry'),
+          onRetry: () => void retryTle(),
+        }]
+      : []),
     ...(tleWarning
       ? [{
           id: 'tle',
@@ -756,6 +796,17 @@ export default function Home() {
           technicalDetails: tleWarning,
           retryLabel: t('Tekrar dene', 'Retry'),
           onRetry: () => void retryTle(),
+        }]
+      : []),
+    ...(propagatorDiagnostics.invalidRecords > 0 || propagatorDiagnostics.failedRecords > 0
+      ? [{
+          id: 'propagator-records',
+          title: t('Bazı uydu kayıtları hesaplanamadı', 'Some satellite records could not be propagated'),
+          summary: t(
+            `${propagatorDiagnostics.invalidRecords + propagatorDiagnostics.failedRecords} kayıt son güvenilir konumuyla tutuluyor veya gizleniyor.`,
+            `${propagatorDiagnostics.invalidRecords + propagatorDiagnostics.failedRecords} records are retained at their last reliable position or hidden.`,
+          ),
+          technicalDetails: `invalid=${propagatorDiagnostics.invalidRecords}; latestPropagationFailures=${propagatorDiagnostics.failedRecords}; total=${propagatorDiagnostics.totalRecords}`,
         }]
       : []),
     ...(degraded
@@ -1129,7 +1180,12 @@ export default function Home() {
         className="absolute bottom-4 left-1/2 z-20 max-w-[calc(100vw-24px)] -translate-x-1/2"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <TimeController clock={clock} notices={systemNotices} language={uiLanguage} />
+        <TimeController
+          clock={clock}
+          notices={systemNotices}
+          metrics={systemMetrics}
+          language={uiLanguage}
+        />
       </div>
 
       {/* ============ FOOTER CREDITS (desktop only) ============ */}

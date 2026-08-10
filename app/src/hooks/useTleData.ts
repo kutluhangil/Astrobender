@@ -8,8 +8,8 @@ import {
 import type { Dataset, FeedTexts } from '@/lib/satellites'
 import { cacheGet, cacheSet } from '@/lib/tle-cache'
 
-const CELESTRAK = 'https://celestrak.org/NORAD/elements/gp.php'
 const SNAP = `${import.meta.env.BASE_URL}data`
+const TLE_API = '/api/tle'
 
 interface FeedDef {
   key: keyof FeedTexts
@@ -20,27 +20,27 @@ interface FeedDef {
 const FEEDS: FeedDef[] = [
   {
     key: 'active',
-    liveUrl: `${CELESTRAK}?GROUP=active&FORMAT=tle`,
+    liveUrl: `${TLE_API}?feed=active`,
     snapUrl: `${SNAP}/tle-snapshot.txt`,
   },
   {
     key: 'visual',
-    liveUrl: `${CELESTRAK}?GROUP=visual&FORMAT=tle`,
+    liveUrl: `${TLE_API}?feed=visual`,
     snapUrl: `${SNAP}/tle-visual.txt`,
   },
   {
     key: 'cosmos2251',
-    liveUrl: `${CELESTRAK}?GROUP=cosmos-2251-debris&FORMAT=tle`,
+    liveUrl: `${TLE_API}?feed=cosmos2251`,
     snapUrl: `${SNAP}/tle-cosmos-2251-debris.txt`,
   },
   {
     key: 'iridium33',
-    liveUrl: `${CELESTRAK}?GROUP=iridium-33-debris&FORMAT=tle`,
+    liveUrl: `${TLE_API}?feed=iridium33`,
     snapUrl: `${SNAP}/tle-iridium-33-debris.txt`,
   },
   {
     key: 'fengyun1c',
-    liveUrl: `${CELESTRAK}?GROUP=fengyun-1c-debris&FORMAT=tle`,
+    liveUrl: `${TLE_API}?feed=fengyun1c`,
     snapUrl: `${SNAP}/tle-fengyun-1c-debris.txt`,
   },
 ]
@@ -92,7 +92,7 @@ function validate(feeds: FeedTexts) {
  * Data pipeline:
  *  1. bundled snapshots (5 feeds in parallel) -> immediate first render
  *  2. IndexedDB cache (fresh < 2h) -> upgrade to CACHED
- *  3. CelesTrak live fetch in background -> upgrade to LIVE + re-cache
+ *  3. same-origin CelesTrak proxy refresh in background -> upgrade to LIVE + re-cache
  * Generation ids ignore stale responses; the old dataset stays active until
  * a complete validated replacement is ready.
  */

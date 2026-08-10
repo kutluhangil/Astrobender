@@ -30,6 +30,7 @@ import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
 import SkywatchPanel from '@/components/hud/SkywatchPanel'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
+import AboutAstrobenderModal from '@/components/hud/AboutAstrobenderModal'
 import type { LandingSite } from '@/lib/landing-sites'
 import type {
   EarthEvent,
@@ -113,6 +114,7 @@ export default function Home() {
   const [layersOpen, setLayersOpen] = useState(false)
   const [mobilePlanetInfoOpen, setMobilePlanetInfoOpen] = useState(false)
   const [showScaleModal, setShowScaleModal] = useState(false)
+  const [showAboutModal, setShowAboutModal] = useState(false)
   const [isCinematicTourActive, setIsCinematicTourActive] = useState(false)
   const [cinematicTourLanguage, setCinematicTourLanguage] = useState<CinematicTourLanguage>('tr')
   const [cinematicAudioStatus, setCinematicAudioStatus] = useState(INITIAL_CINEMATIC_AUDIO_STATUS)
@@ -976,6 +978,14 @@ export default function Home() {
         >
           {uiLanguage === 'tr' ? 'EN' : 'TR'}
         </button>
+        <button
+          type="button"
+          onClick={() => setShowAboutModal(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#0a0e14]/70 font-mono text-xs font-bold text-cyan-200 backdrop-blur-xl"
+          aria-label={t('Yöntem, veri ve gizlilik bilgisi', 'Method, data and privacy information')}
+        >
+          i
+        </button>
       </div>
 
       {/* Mobile search bar: below top bar */}
@@ -1024,6 +1034,13 @@ export default function Home() {
           aria-label={uiLanguage === 'tr' ? 'Arayüzü İngilizce yap' : 'Switch interface to Turkish'}
         >
           {uiLanguage === 'tr' ? 'TR → EN' : 'EN → TR'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowAboutModal(true)}
+          className="pointer-events-auto rounded-xl border border-cyan-500/25 bg-[#0a0e17]/85 px-3 py-2 font-mono text-[10px] font-semibold text-cyan-200 backdrop-blur-xl"
+        >
+          {t('VERİ / YÖNTEM', 'DATA / METHOD')}
         </button>
       </div>
 
@@ -1254,6 +1271,13 @@ export default function Home() {
         <ScaleSandboxModal
           language={uiLanguage}
           onClose={() => setShowScaleModal(false)}
+        />
+      )}
+
+      {showAboutModal && (
+        <AboutAstrobenderModal
+          language={uiLanguage}
+          onClose={() => setShowAboutModal(false)}
         />
       )}
 

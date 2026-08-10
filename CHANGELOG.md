@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Added a bilingual in-product method, source, and privacy disclosure with primary-source links, explicit compressed-scale limitations, data-fetch behavior, and local-storage boundaries.
 - Added browser storage visibility and a user-controlled clear action for offline textures and narration; failed offline downloads now remain visible and retryable instead of being reported as complete.
 - Added an explicit catalog-source review date, in-product source freshness status, a deterministic freshness check, and a weekly GitHub Actions reminder that fails once the primary-source review window expires.
 - Routed live CelesTrak feeds through an allow-listed, cacheable Vercel API; the LIVE information port now reports TLE epoch age, source fetch time, stale-orbit warnings, and counted propagation-record failures.

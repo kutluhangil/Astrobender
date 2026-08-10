@@ -110,6 +110,17 @@ test('dialogs expose modal semantics', () => {
   }
 })
 
+test('method, source, and privacy disclosures are available from the HUD', () => {
+  const modal = read('src/components/hud/AboutAstrobenderModal.tsx')
+  const home = read('src/pages/Home.tsx')
+
+  assert.match(modal, /role="dialog"/)
+  assert.match(modal, /aria-modal="true"/)
+  assert.match(modal, /CelesTrak/)
+  assert.match(modal, /no accounts, ad networks, or behavioral analytics/)
+  assert.match(home, /showAboutModal/)
+})
+
 test('surface textures no longer rely on partial-mosaic workarounds', () => {
   const planets = read('src/lib/planets.ts')
   assert.doesNotMatch(planets, /missingTextureTone/)

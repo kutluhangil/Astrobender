@@ -4,6 +4,7 @@ import { IAU_CONSTELLATIONS } from '../src/lib/constellations.ts'
 import { LANDING_SITES } from '../src/lib/landing-sites.ts'
 import { searchObservatory } from '../src/lib/unified-search.ts'
 import type { SatInfo } from '../src/lib/satellites.ts'
+import type { SkyEvent } from '../src/lib/sky-events.ts'
 
 const SATELLITES: SatInfo[] = [{
   name: 'ISS (ZARYA)',
@@ -43,4 +44,26 @@ test('unified search resolves NORAD, bilingual bodies, surface sites, missions a
   assert.equal(orion.kind, 'constellation')
   if (orion.kind !== 'constellation') throw new Error('Expected Orion constellation')
   assert.equal(orion.constellation.abbreviation, 'Ori')
+})
+
+test('unified search exposes current Skywatch events', () => {
+  const skyEvent: SkyEvent = {
+    id: 'meteor-perseids-2026',
+    kind: 'meteor-shower',
+    title: 'Perseid Meteor Yağmuru',
+    summary: '',
+    guidance: '',
+    startsAt: '2026-08-12T00:00:00.000Z',
+    endsAt: null,
+    sourceUrl: 'https://science.nasa.gov/',
+    targetBody: 'earth',
+    visibility: 'global',
+  }
+  const result = searchObservatory('Perseid', {
+    satellites: SATELLITES,
+    earthEvents: [],
+    closeApproaches: [],
+    skyEvents: [skyEvent],
+  }, 'tr')[0]
+  assert.equal(result?.kind, 'sky-event')
 })

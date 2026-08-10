@@ -29,6 +29,8 @@ interface LayerPanelProps {
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
   smallBodiesVisible?: boolean
+  onToggleSkywatch?: () => void
+  skywatchVisible?: boolean
   language?: UiLanguage
 }
 
@@ -66,6 +68,8 @@ export default function LayerPanel({
   earthObservatoryVisible = false,
   onToggleSmallBodies,
   smallBodiesVisible = false,
+  onToggleSkywatch,
+  skywatchVisible = false,
   language = 'tr',
 }: LayerPanelProps) {
   const [showAllPlanets, setShowAllPlanets] = useState(true)
@@ -241,6 +245,14 @@ export default function LayerPanel({
             }`}
           >
             ☄️ {t('JPL Cisimleri', 'JPL Objects')}
+          </button>
+          <button
+            onClick={onToggleSkywatch}
+            className={`py-1 rounded border transition-all ${
+              skywatchVisible ? 'border-cyan-300/50 bg-cyan-300/15 text-cyan-100 font-semibold shadow-[0_0_8px_rgba(103,232,249,0.22)]' : 'border-white/5 bg-white/5 text-slate-500'
+            }`}
+          >
+            🌠 {t('Gökyüzü Takvimi', 'Skywatch')}
           </button>
         </div>
         {constellationsVisible && (

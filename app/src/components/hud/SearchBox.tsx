@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState } from 'react'
 import type { SatInfo } from '@/lib/satellites'
 import type { EarthEvent } from '@/lib/earth-observatory'
 import type { CloseApproach } from '@/lib/jpl-small-bodies'
+import type { SkyEvent } from '@/lib/sky-events'
 import {
   searchObservatory,
   type UnifiedSearchResult,
@@ -12,6 +13,7 @@ interface SearchBoxProps {
   sats: SatInfo[]
   earthEvents: EarthEvent[]
   closeApproaches: CloseApproach[]
+  skyEvents: SkyEvent[]
   language: UiLanguage
   onSelectResult: (result: UnifiedSearchResult) => void
 }
@@ -25,12 +27,14 @@ const RESULT_ICONS: Record<UnifiedSearchResult['kind'], string> = {
   'close-approach': '↝',
   mission: '🚀',
   constellation: '✦',
+  'sky-event': '🌠',
 }
 
 export default function SearchBox({
   sats,
   earthEvents,
   closeApproaches,
+  skyEvents,
   language,
   onSelectResult,
 }: SearchBoxProps) {
@@ -45,8 +49,9 @@ export default function SearchBox({
       satellites: sats,
       earthEvents,
       closeApproaches,
+      skyEvents,
     }, language),
-    [closeApproaches, earthEvents, language, query, sats],
+    [closeApproaches, earthEvents, language, query, sats, skyEvents],
   )
   const visibleActiveIndex = Math.min(activeIndex, Math.max(0, results.length - 1))
 

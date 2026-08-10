@@ -111,3 +111,30 @@ test('desktop tour-start button is clickable over the layer panel', async ({ pag
   await startTourButton.click()
   await expect(page.getByRole('button', { name: /DURDUR|STOP/ })).toBeVisible()
 })
+
+test('Skywatch calculates events, accepts a manual observer, and moves the simulation', async ({ page }) => {
+  await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
+  const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
+  await expect(panel).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Simülasyonda göster' }).first()).toBeVisible()
+
+  await panel.getByText('Koordinatları elle gir').click()
+  await panel.getByLabel('Enlem').fill('41.0082')
+  await panel.getByLabel('Boylam').fill('28.9784')
+  await panel.getByLabel('Konum etiketi').fill('İstanbul')
+  await panel.getByRole('button', { name: 'Konumu kaydet' }).click()
+  await expect(panel.getByText('İstanbul')).toBeVisible()
+
+  const venusCard = panel.locator('li', { hasText: 'Venüs en büyük uzanımda' })
+  await venusCard.getByRole('button', { name: 'Simülasyonda göster' }).click()
+  await expect(panel).toBeHidden()
+  await expect(page.getByRole('heading', { name: 'Venüs (Venus)' })).toBeVisible()
+})
+
+test('Skywatch stays operable on mobile with reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.getByRole('button', { name: 'Katman panelini aç' }).click()
+  await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
+  await expect(page.getByRole('region', { name: 'Gökyüzü Takvimi' })).toBeVisible()
+})

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
 import { UI_GROUPS } from '@/lib/satellites'
@@ -23,6 +23,7 @@ import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
+import SkywatchPanel from '@/components/hud/SkywatchPanel'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
 import type { LandingSite } from '@/lib/landing-sites'
@@ -33,7 +34,9 @@ import type {
 } from '@/lib/earth-observatory'
 import { useEarthObservatory } from '@/hooks/useEarthObservatory'
 import { useSmallBodies } from '@/hooks/useSmallBodies'
+import { useSkywatchLocation } from '@/hooks/useSkywatchLocation'
 import type { UnifiedSearchResult } from '@/lib/unified-search'
+import { getSkyEvents, type SkyEvent } from '@/lib/sky-events'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
@@ -123,16 +126,42 @@ export default function Home() {
     aurora: true,
   })
   const [smallBodiesOpen, setSmallBodiesOpen] = useState(false)
+  const [skywatchOpen, setSkywatchOpen] = useState(false)
+  const [skywatchCalculatedAt, setSkywatchCalculatedAt] = useState(() => Date.now())
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('tr')
   const [searchNotice, setSearchNotice] = useState<string | null>(null)
   const earthObservatory = useEarthObservatory(earthObservatoryOpen)
   const smallBodies = useSmallBodies(smallBodiesOpen)
+  const skywatchLocation = useSkywatchLocation()
   const t = (tr: string, en: string) => pickLanguage(uiLanguage, tr, en)
+  const skywatchEvents = useMemo(
+    () => getSkyEvents({
+      start: new Date(skywatchCalculatedAt),
+      end: new Date(skywatchCalculatedAt + 90 * 24 * 60 * 60 * 1000),
+      observer: skywatchLocation.observer ?? undefined,
+      language: uiLanguage,
+    }),
+    [skywatchCalculatedAt, skywatchLocation.observer, uiLanguage],
+  )
 
   useEffect(() => {
     document.documentElement.lang = uiLanguage
   }, [uiLanguage])
+
+  useEffect(() => {
+    if (!skywatchOpen) return
+    const refresh = () => setSkywatchCalculatedAt(Date.now())
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    const interval = window.setInterval(refresh, 60 * 60 * 1000)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [skywatchOpen])
 
   const audioSynthRef = useRef(new SpaceAudioSynth())
   const cinematicAudioRefs = useRef<Record<CinematicTourLanguage, HTMLAudioElement | null>>({
@@ -243,6 +272,19 @@ export default function Home() {
       const next = !current
       if (next) {
         setEarthObservatoryOpen(false)
+        setLayersOpen(false)
+      }
+      return next
+    })
+  }, [])
+
+  const handleToggleSkywatch = useCallback(() => {
+    setSkywatchOpen((current) => {
+      const next = !current
+      if (next) {
+        setSkywatchCalculatedAt(Date.now())
+        setEarthObservatoryOpen(false)
+        setSmallBodiesOpen(false)
         setLayersOpen(false)
       }
       return next
@@ -421,6 +463,23 @@ export default function Home() {
     setLayersOpen(false)
   }, [])
 
+  const handleSelectSkywatchEvent = useCallback((event: SkyEvent) => {
+    const eventTime = Date.parse(event.startsAt)
+    if (!Number.isFinite(eventTime)) {
+      throw new Error(`Skywatch event has an invalid startsAt value: ${event.startsAt}`)
+    }
+    selectSat(null)
+    clock.setTime(eventTime)
+    handleSelectBody(event.targetBody)
+    setSkywatchOpen(false)
+    setLayersOpen(false)
+    setSearchNotice(
+      uiLanguage === 'tr'
+        ? `${event.title} simülasyonda açıldı.`
+        : `${event.title} opened in the simulation.`,
+    )
+  }, [clock, handleSelectBody, selectSat, uiLanguage])
+
   const handleSearchResult = useCallback((result: UnifiedSearchResult) => {
     setSearchNotice(null)
     switch (result.kind) {
@@ -449,6 +508,9 @@ export default function Home() {
         selectSat(null)
         handleSelectEarthEvent(result.event)
         return
+      case 'sky-event':
+        handleSelectSkywatchEvent(result.event)
+        return
       case 'small-body':
       case 'close-approach':
       case 'mission':
@@ -470,7 +532,7 @@ export default function Home() {
             : `${result.title} · ${uiLanguage === 'tr' ? 'IAU kataloğunda; resmî çizgi şekli yok' : 'IAU catalog; no official stick figure'}`,
         )
     }
-  }, [handleSelectBody, handleSelectEarthEvent, selectSat, uiLanguage])
+  }, [handleSelectBody, handleSelectEarthEvent, handleSelectSkywatchEvent, selectSat, uiLanguage])
 
   // ---- engine lifecycle (created once) ----
   useEffect(() => {
@@ -754,6 +816,8 @@ export default function Home() {
     earthObservatoryVisible: earthObservatoryOpen,
     onToggleSmallBodies: handleToggleSmallBodies,
     smallBodiesVisible: smallBodiesOpen,
+    onToggleSkywatch: handleToggleSkywatch,
+    skywatchVisible: skywatchOpen,
   }
 
   if (!webglOk) {
@@ -819,6 +883,7 @@ export default function Home() {
           sats={sats}
           earthEvents={earthObservatory.events}
           closeApproaches={smallBodies.approaches}
+          skyEvents={skywatchEvents}
           language={uiLanguage}
           onSelectResult={handleSearchResult}
         />
@@ -868,6 +933,7 @@ export default function Home() {
           sats={sats}
           earthEvents={earthObservatory.events}
           closeApproaches={smallBodies.approaches}
+          skyEvents={skywatchEvents}
           language={uiLanguage}
           onSelectResult={handleSearchResult}
         />
@@ -1001,6 +1067,23 @@ export default function Home() {
         </div>
       )}
 
+      {skywatchOpen && (
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
+          <SkywatchPanel
+            events={skywatchEvents}
+            observer={skywatchLocation.observer}
+            locationError={skywatchLocation.error}
+            calculatedAt={skywatchCalculatedAt}
+            language={uiLanguage}
+            onRequestBrowserLocation={skywatchLocation.requestBrowserLocation}
+            onSaveManualLocation={skywatchLocation.saveManualLocation}
+            onClearLocation={skywatchLocation.clearLocation}
+            onSelectEvent={handleSelectSkywatchEvent}
+            onClose={() => setSkywatchOpen(false)}
+          />
+        </div>
+      )}
+
       {/* ============ MOBILE: FAB + Bottom Sheet ============ */}
       {/* Floating Action Button — bottom-right */}
       <button
@@ -1074,7 +1157,7 @@ export default function Home() {
       )}
 
       {/* ============ PLANET INFO CARD ============ */}
-      {!selSat && (
+      {!selSat && !skywatchOpen && (
         <>
           {/* Desktop only: top-right panel */}
           <div className="hidden md:block absolute top-4 right-4 z-20">

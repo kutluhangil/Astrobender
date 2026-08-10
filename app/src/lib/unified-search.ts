@@ -11,6 +11,7 @@ import { DEEP_SPACE_PROBES, type DeepSpaceProbe } from './probes.ts'
 import type { SatInfo } from './satellites.ts'
 import type { UiLanguage } from './ui-language.ts'
 import type { CelestialBodyId } from './planets.ts'
+import type { SkyEvent } from './sky-events.ts'
 
 export type UnifiedSearchResult =
   | { kind: 'satellite'; id: string; title: string; subtitle: string; satelliteIndex: number }
@@ -21,11 +22,13 @@ export type UnifiedSearchResult =
   | { kind: 'close-approach'; id: string; title: string; subtitle: string; approach: CloseApproach }
   | { kind: 'mission'; id: string; title: string; subtitle: string; probe: DeepSpaceProbe }
   | { kind: 'constellation'; id: string; title: string; subtitle: string; constellation: ConstellationCatalogEntry }
+  | { kind: 'sky-event'; id: string; title: string; subtitle: string; event: SkyEvent }
 
 export interface UnifiedSearchSources {
   satellites: SatInfo[]
   earthEvents?: EarthEvent[]
   closeApproaches?: CloseApproach[]
+  skyEvents?: SkyEvent[]
 }
 
 interface RankedResult {
@@ -43,6 +46,7 @@ const KIND_LABELS: Record<UnifiedSearchResult['kind'], [string, string]> = {
   'close-approach': ['Yakın geçiş', 'Close approach'],
   mission: ['Görev', 'Mission'],
   constellation: ['Takımyıldız', 'Constellation'],
+  'sky-event': ['Gökyüzü olayı', 'Skywatch event'],
 }
 
 function normalize(value: string): string {
@@ -139,6 +143,16 @@ export function searchObservatory(
       subtitle: withKindLabel(language, 'earth-event', event.subtitle),
       event,
     }, [event.title, event.subtitle, event.kind])
+  }
+
+  for (const event of sources.skyEvents ?? []) {
+    add({
+      kind: 'sky-event',
+      id: `sky-${event.id}`,
+      title: event.title,
+      subtitle: withKindLabel(language, 'sky-event', event.startsAt.slice(0, 10)),
+      event,
+    }, [event.title, event.kind, event.targetBody, event.startsAt])
   }
 
   for (const body of NAMED_SMALL_BODIES) {

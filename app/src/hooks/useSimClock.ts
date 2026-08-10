@@ -6,6 +6,8 @@ export interface SimClock {
   speed: number
   playing: boolean
   setSpeed: (s: number) => void
+  /** Seek to an exact UTC instant, restore 1× speed, and resume. */
+  setTime: (timeMs: number) => void
   pause: () => void
   resume: () => void
   /** Restore current UTC, 1x speed, playing state. */
@@ -64,6 +66,19 @@ export function useSimClock(): SimClock {
     [reanchor],
   )
 
+  const setTime = useCallback((timeMs: number) => {
+    if (!Number.isFinite(timeMs)) {
+      throw new Error(`Simulation time must be finite; received ${timeMs}`)
+    }
+    simAnchor.current = timeMs
+    wallAnchor.current = performance.now()
+    inited.current = true
+    speedRef.current = 1
+    playingRef.current = true
+    setSpeedState(1)
+    setPlaying(true)
+  }, [])
+
   const pause = useCallback(() => {
     if (!playingRef.current) return
     simAnchor.current = getTime() // freeze exact current sim time
@@ -92,7 +107,7 @@ export function useSimClock(): SimClock {
 
   // stable identity so consumers don't re-subscribe every render
   return useMemo(
-    () => ({ getTime, speed, playing, setSpeed, pause, resume, goNow }),
-    [getTime, speed, playing, setSpeed, pause, resume, goNow],
+    () => ({ getTime, speed, playing, setSpeed, setTime, pause, resume, goNow }),
+    [getTime, speed, playing, setSpeed, setTime, pause, resume, goNow],
   )
 }

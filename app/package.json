@@ -16,10 +16,11 @@
     "build": "tsc -b && vite build",
     "generate:texture-manifest": "node scripts/generate-texture-manifest.mjs",
     "check:sources": "node scripts/check-source-freshness.mjs",
+    "check:attributions": "node scripts/check-asset-attributions.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
     "lint": "eslint .",
     "verify": "npm test && npm run lint && npm run build && npm run test:e2e",
-    "verify:ci": "npm test && npm run lint && npm run build && npm run test:e2e:chromium && npm run test:e2e:pwa",
+    "verify:ci": "npm test && npm run lint && npm run check:sources && npm run check:attributions && npm run build && npm run test:e2e:chromium && npm run test:e2e:pwa",
     "preview": "vite preview",
     "verify:textures": "node scripts/verify-moon-textures.mjs"
   },

@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Added mobile/desktop viewport guards, share metadata and PWA categories, plus a checked asset-attribution registry covering textures, narration, and icons.
 - Added a bilingual in-product method, source, and privacy disclosure with primary-source links, explicit compressed-scale limitations, data-fetch behavior, and local-storage boundaries.
 - Added browser storage visibility and a user-controlled clear action for offline textures and narration; failed offline downloads now remain visible and retryable instead of being reported as complete.
 - Added an explicit catalog-source review date, in-product source freshness status, a deterministic freshness check, and a weekly GitHub Actions reminder that fails once the primary-source review window expires.

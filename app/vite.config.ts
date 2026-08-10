@@ -42,6 +42,9 @@ export default defineConfig({
       manifest: {
         name: 'ASTROBENDER',
         short_name: 'ASTROBENDER',
+        lang: 'tr',
+        dir: 'ltr',
+        categories: ['education', 'science', 'utilities'],
         description:
           'Gerçek zamanlı uydu takibi ve sıkıştırılmış astronomik ölçekte etkileşimli 3D Güneş Sistemi.',
         start_url: './',

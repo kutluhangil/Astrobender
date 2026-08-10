@@ -65,6 +65,14 @@ test('document language and font policy are self-contained', () => {
   const html = read('index.html')
   assert.match(html, /<html lang="tr">/)
   assert.doesNotMatch(html, /fonts\.googleapis\.com|fonts\.gstatic\.com/)
+  assert.match(html, /rel="canonical" href="https:\/\/astrobender\.vercel\.app\//)
+  assert.match(html, /property="og:title"/)
+})
+
+test('asset attribution registry covers runtime media groups', () => {
+  const registry = JSON.parse(read('public/data/asset-attributions.json'))
+  const scopes = new Set(registry.attributions.map((entry) => entry.scope))
+  assert.deepEqual(scopes, new Set(['textures/*', 'audio/*', 'icons/*']))
 })
 
 test('production responses include baseline security headers', () => {

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts tests/sky-events.test.ts tests/skywatch-location.test.ts tests/tle-freshness.test.ts tests/tle-api.test.ts tests/source-governance.test.ts tests/offline-storage.test.ts scripts/project-integrity.test.mjs tests/texture-manifest.test.ts tests/icon-assets.test.ts",
+    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts tests/sky-events.test.ts tests/skywatch-location.test.ts tests/tle-freshness.test.ts tests/tle-api.test.ts tests/health-api.test.ts tests/source-governance.test.ts tests/offline-storage.test.ts scripts/project-integrity.test.mjs tests/texture-manifest.test.ts tests/icon-assets.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium --workers=1",
     "test:e2e:pwa": "playwright test --project=chromium-pwa-build --workers=1",
@@ -17,10 +17,12 @@
     "generate:texture-manifest": "node scripts/generate-texture-manifest.mjs",
     "check:sources": "node scripts/check-source-freshness.mjs",
     "check:attributions": "node scripts/check-asset-attributions.mjs",
+    "audit:production": "npm audit --omit=dev --audit-level=high",
+    "smoke:production": "node scripts/production-smoke.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
     "lint": "eslint .",
     "verify": "npm test && npm run lint && npm run build && npm run test:e2e",
-    "verify:ci": "npm test && npm run lint && npm run check:sources && npm run check:attributions && npm run build && npm run test:e2e:chromium && npm run test:e2e:pwa",
+    "verify:ci": "npm test && npm run lint && npm run check:sources && npm run check:attributions && npm run audit:production && npm run build && npm run test:e2e:chromium && npm run test:e2e:pwa",
     "preview": "vite preview",
     "verify:textures": "node scripts/verify-moon-textures.mjs"
   },
@@ -41,15 +43,15 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.26",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
+    "vite": "^7.3.6",
     "vite-plugin-pwa": "^1.3.0"
   }
 }

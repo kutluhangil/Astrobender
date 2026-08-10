@@ -2,6 +2,8 @@
 
 ## 2026-08-11
 
+- Updated the Vite/PostCSS build chain and its lockfile to resolve all current npm audit findings; CI now fails on a high-severity production dependency finding.
+- Added a safe no-store readiness endpoint and a manually runnable production-smoke workflow that verifies the public shell, readiness route, and live TLE proxy without exposing credentials.
 - Added mobile/desktop viewport guards, share metadata and PWA categories, plus a checked asset-attribution registry covering textures, narration, and icons.
 - Added a bilingual in-product method, source, and privacy disclosure with primary-source links, explicit compressed-scale limitations, data-fetch behavior, and local-storage boundaries.
 - Added browser storage visibility and a user-controlled clear action for offline textures and narration; failed offline downloads now remain visible and retryable instead of being reported as complete.

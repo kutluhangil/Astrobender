@@ -14,7 +14,17 @@ test('root Vercel configuration builds the nested app and exposes the JPL CAD fu
   assert.equal(vercel.buildCommand, 'npm --prefix app run build')
   assert.equal(vercel.outputDirectory, 'app/dist')
   assert.equal(existsSync(`${repositoryRoot}/api/jpl-cad.ts`), true)
+  assert.equal(existsSync(`${repositoryRoot}/api/health.ts`), true)
   assert.match(readRepository('api/jpl-cad.ts'), /app\/api\/jpl-cad/)
+})
+
+test('production smoke target checks the public shell and safe readiness endpoint', () => {
+  const smoke = read('scripts/production-smoke.mjs')
+  const workflow = readRepository('.github/workflows/production-smoke.yml')
+  assert.match(smoke, /\/api\/health/)
+  assert.match(smoke, /\/api\/tle\?feed=active/)
+  assert.match(workflow, /workflow_dispatch/)
+  assert.match(workflow, /npm run smoke:production/)
 })
 
 test('runtime and CI use the pinned Node release and split browser quality gates', () => {
@@ -27,6 +37,8 @@ test('runtime and CI use the pinned Node release and split browser quality gates
   assert.equal(packageJson.engines.npm, '>=11')
   assert.match(packageJson.scripts['verify:ci'], /test:e2e:chromium/)
   assert.match(packageJson.scripts['verify:ci'], /test:e2e:pwa/)
+  assert.equal(packageJson.scripts['audit:production'], 'npm audit --omit=dev --audit-level=high')
+  assert.match(packageJson.scripts['verify:ci'], /audit:production/)
   assert.match(workflow, /npm run verify:ci/)
   assert.match(workflow, /npx playwright install --with-deps chromium/)
   assert.match(playwright, /--strictPort/)

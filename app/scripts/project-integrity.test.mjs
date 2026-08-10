@@ -32,6 +32,17 @@ test('runtime and CI use the pinned Node release and split browser quality gates
   assert.match(playwright, /--strictPort/)
 })
 
+test('offline download feedback exposes storage use and a user-owned cache clear action', () => {
+  const control = read('src/components/hud/PrepareOfflineControl.tsx')
+  const storageHook = read('src/hooks/useOfflineStorage.ts')
+  const worker = read('src/sw.ts')
+
+  assert.match(control, /Varlıkları sil/)
+  assert.match(control, /offline-download-failed/)
+  assert.match(storageHook, /caches\.delete/)
+  assert.match(worker, /failureCount/)
+})
+
 test('catalog source governance is date-bound and reviewed by a scheduled check', () => {
   const governance = read('src/lib/source-governance.ts')
   const sourceCheck = read('scripts/check-source-freshness.mjs')

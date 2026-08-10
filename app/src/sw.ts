@@ -213,6 +213,7 @@ self.addEventListener('message', (event) => {
       const textureCache = await caches.open(TEXTURE_CACHE)
       const audioCache = await caches.open(AUDIO_CACHE)
       let done = 0
+      let failureCount = 0
       for (const assetUrl of urls) {
         const isAudio = new URL(assetUrl, self.location.href).pathname.includes('/audio/')
         const cache = isAudio ? audioCache : textureCache
@@ -222,16 +223,16 @@ self.addEventListener('message', (event) => {
           if (!existing) {
             const response = await fetch(assetUrl)
             if (isCacheable(response)) await cache.put(assetUrl, response)
+            else failureCount += 1
           }
-        } catch {
-          // Network drop mid-batch: leave this one uncached. Already-cached
-          // entries are preserved, and re-running the action later only
-          // fetches what's still missing.
+        } catch (error) {
+          failureCount += 1
+          console.error(`Offline asset download failed: ${assetUrl}`, error)
         }
         done += 1
         client?.postMessage({ type: 'PREPARE_OFFLINE_PROGRESS', done, total: urls.length })
       }
-      client?.postMessage({ type: 'PREPARE_OFFLINE_COMPLETE', done, total: urls.length })
+      client?.postMessage({ type: 'PREPARE_OFFLINE_COMPLETE', done, total: urls.length, failureCount })
     })(),
   )
 })

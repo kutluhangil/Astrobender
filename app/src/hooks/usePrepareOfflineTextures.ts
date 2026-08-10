@@ -8,6 +8,7 @@ export interface PrepareOfflineState {
   done: number
   total: number
   totalBytes: number | null
+  failureCount: number
   error: string | null
 }
 
@@ -58,6 +59,7 @@ export function usePrepareOfflineTextures() {
     done: 0,
     total: 0,
     totalBytes: null,
+    failureCount: 0,
     error: null,
   })
   const manifestRef = useRef<TextureManifest | null>(null)
@@ -134,7 +136,7 @@ export function usePrepareOfflineTextures() {
     const textureUrls = manifest.files.map((f) => `${import.meta.env.BASE_URL}textures/${f.file}`)
     const urls = [...textureUrls, ...NARRATION_AUDIO_URLS]
     const totalBytes = manifest.totalBytes + NARRATION_AUDIO_BYTES
-    setState({ status: 'downloading', done: 0, total: urls.length, totalBytes, error: null })
+    setState({ status: 'downloading', done: 0, total: urls.length, totalBytes, failureCount: 0, error: null })
 
     await new Promise<void>((resolve) => {
       let stallTimer: ReturnType<typeof setTimeout>
@@ -166,9 +168,11 @@ export function usePrepareOfflineTextures() {
           if (mountedRef.current) {
             setState((prev) => ({
               ...prev,
-              status: 'done',
+              status: event.data.failureCount > 0 ? 'error' : 'done',
               done: event.data.done,
               total: event.data.total,
+              failureCount: event.data.failureCount ?? 0,
+              error: event.data.failureCount > 0 ? `offline-download-failed:${event.data.failureCount}` : null,
             }))
           }
           teardown()

@@ -7,6 +7,7 @@ import {
 } from '@/lib/satellites'
 import type { Dataset, FeedTexts } from '@/lib/satellites'
 import { cacheGet, cacheSet } from '@/lib/tle-cache'
+import { TLE_SNAPSHOT_DOWNLOADED_AT } from '@/lib/tle-snapshot-metadata'
 
 const SNAP = `${import.meta.env.BASE_URL}data`
 const TLE_API = '/api/tle'
@@ -201,7 +202,7 @@ export function useTleData() {
     try {
       const feeds = await loadSnapshots()
       if (isStale()) return
-      apply(feeds, 'snapshot', Date.now())
+      apply(feeds, 'snapshot', TLE_SNAPSHOT_DOWNLOADED_AT)
     } catch (err) {
       if (isStale()) return
       setState({

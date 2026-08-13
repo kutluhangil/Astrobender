@@ -3,6 +3,7 @@ import {
   fetchJplCloseApproaches,
   type CloseApproach,
 } from '@/lib/jpl-small-bodies'
+import { reduceSmallBodyRefreshFailure } from '@/lib/tle-snapshot-metadata'
 
 interface SmallBodyState {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -44,12 +45,7 @@ export function useSmallBodies(enabled: boolean) {
       const message = error instanceof DOMException && error.name === 'AbortError'
         ? 'JPL CAD request timed out after 12000 ms'
         : error instanceof Error ? error.message : String(error)
-      setState((current) => ({
-        ...current,
-        status: 'error',
-        error: message,
-        updatedAt: Date.now(),
-      }))
+      setState((current) => reduceSmallBodyRefreshFailure(current, message))
     } finally {
       window.clearTimeout(timeoutId)
       if (controllerRef.current === controller) controllerRef.current = null

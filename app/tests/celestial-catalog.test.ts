@@ -69,7 +69,7 @@ test('major satellite models have orbital elements and complete systems retain m
   assert.deepEqual(moonTotals, {
     jupiter: 101,
     saturn: 274,
-    uranus: 28,
+    uranus: 29,
     neptune: 16,
     pluto: 5,
     ceres: 0,

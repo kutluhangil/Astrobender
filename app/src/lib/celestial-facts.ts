@@ -290,7 +290,9 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     distFromSunAu: '19.22 AU (2.87 milyar km)',
     rotationPeriod: '17 saat 14 dk (Yan Yatar!)',
     orbitPeriod: '84.01 yıl',
-    moonsCount: '28 Bilinen Uydu',
+    // NASA Webb observed S/2025 U1; NASA Science, 2025-08-19:
+    // https://science.nasa.gov/blogs/webb/2025/08/19/new-moon-discovered-orbiting-uranus-using-nasas-webb-telescope/
+    moonsCount: '29 Bilinen Uydu',
     atmosphere: 'Hidrojen (%83), Helyum (%15), Metan (%2)',
     funFactTr: '97.8° eksen eğikliği nedeniyle yörüngesinde adeta yan yatarak yuvarlanır.',
   },

@@ -69,8 +69,8 @@ export default function AboutAstrobenderModal({ language, onClose }: AboutAstrob
           <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">{t('Gizlilik ve cihaz verisi', 'Privacy & device data')}</h3>
           <p className="mt-1.5 text-[12px] leading-relaxed text-slate-300">
             {t(
-              'ASTROBENDER hesap, reklam ağı veya davranış analitiği kullanmaz. Tema, dil, Skywatch gözlemci konumu ve çevrimdışı dosyalar yalnızca tarayıcınızda tutulur. Konum girişi elle yapılır; cihaz konumu istenmez. “Çevrimdışı varlıkları sil” yalnızca indirilen doku ve ses önbelleklerini temizler.',
-              'ASTROBENDER uses no accounts, ad networks, or behavioral analytics. Theme, language, Skywatch observer location, and offline files stay in your browser. Location is entered manually; device location is not requested. “Clear assets” only removes downloaded texture and audio caches.',
+              'ASTROBENDER hesap, reklam ağı veya davranış analitiği kullanmaz. Tema, dil, Skywatch gözlemci konumu ve çevrimdışı dosyalar yalnızca tarayıcınızda tutulur. Cihaz konumu yalnızca konum düğmesine basıldıktan sonra istenir ve ASTROBENDER dışına gönderilmeden yerel kalır. “Çevrimdışı varlıkları sil” yalnızca indirilen doku ve ses önbelleklerini temizler.',
+              'ASTROBENDER uses no accounts, ad networks, or behavioral analytics. Theme, language, Skywatch observer location, and offline files stay in your browser. Device location is requested only after the location button is pressed and remains local; ASTROBENDER does not transmit it. “Clear assets” only removes downloaded texture and audio caches.',
             )}
           </p>
         </section>

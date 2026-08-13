@@ -8,21 +8,28 @@ const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 const read = (path) => readFileSync(new URL(path, `${new URL('..', import.meta.url)}/`), 'utf8')
 const readRepository = (path) => readFileSync(new URL(path, `${new URL('../../', import.meta.url)}/`), 'utf8')
 
-test('root Vercel configuration builds the nested app and exposes the JPL CAD function', () => {
+test('root Vercel configuration builds the nested app and exposes a standalone JPL CAD function', () => {
   const vercel = JSON.parse(readRepository('vercel.json'))
   assert.equal(vercel.installCommand, 'npm --prefix app ci')
   assert.equal(vercel.buildCommand, 'npm --prefix app run build')
   assert.equal(vercel.outputDirectory, 'app/dist')
   assert.equal(existsSync(`${repositoryRoot}/api/jpl-cad.ts`), true)
   assert.equal(existsSync(`${repositoryRoot}/api/health.ts`), true)
-  assert.match(readRepository('api/jpl-cad.ts'), /app\/api\/jpl-cad/)
+  assert.match(readRepository('api/jpl-cad.ts'), /createJplCadHandler/)
+  assert.doesNotMatch(readRepository('api/jpl-cad.ts'), /export \{ default \} from/)
 })
 
-test('production smoke target checks the public shell and safe readiness endpoint', () => {
+test('production smoke target checks live adapters, readiness, security, PWA artifacts, and revision shape', () => {
   const smoke = read('scripts/production-smoke.mjs')
   const workflow = readRepository('.github/workflows/production-smoke.yml')
   assert.match(smoke, /\/api\/health/)
+  assert.match(smoke, /mode=ready/)
   assert.match(smoke, /\/api\/tle\?feed=active/)
+  assert.match(smoke, /\/api\/jpl-cad/)
+  assert.match(smoke, /manifest\.webmanifest/)
+  assert.match(smoke, /\/sw\.js/)
+  assert.match(smoke, /permissions-policy/)
+  assert.match(smoke, /revision/)
   assert.match(workflow, /workflow_dispatch/)
   assert.match(workflow, /npm run smoke:production/)
 })
@@ -101,6 +108,7 @@ test('production responses include baseline security headers', () => {
   ]) {
     assert.match(vercel, new RegExp(header))
   }
+  assert.match(vercel, /geolocation=\(self\)/)
 })
 
 test('unused vulnerable template dependencies are absent', () => {
@@ -115,6 +123,9 @@ test('current moon counts and Neptune wind units are correct', () => {
 
   assert.match(facts, /101 Bilinen Uydu/)
   assert.match(facts, /274 Bilinen Uydu/)
+  assert.match(facts, /29 Bilinen Uydu/)
+  assert.match(facts, /new-moon-discovered-orbiting-uranus/)
+  assert.match(read('src/lib/planets.ts'), /knownMoonCount: 29/)
   assert.doesNotMatch(scaleModal, /2,100 km\/s/)
   assert.match(scaleModal, /2,000 km\/h/)
 })
@@ -260,15 +271,30 @@ test('ambient belts are deterministic and explicitly described as schematic', ()
 test('JPL close approaches use a same-origin server proxy with no client query string', () => {
   const smallBodies = read('src/lib/jpl-small-bodies.ts')
   const vite = read('vite.config.ts')
-  const proxy = read('api/jpl-cad.ts')
+  const proxy = readRepository('api/jpl-cad.ts')
 
   // No query string on the client URL: the CDN caches per full URL, so
   // arbitrary parameters would each miss the cache and bill a fresh
   // invocation. The proxy rejects them and hardcodes the upstream query.
   assert.match(smallBodies, /JPL_CAD_API_URL = '\/api\/jpl-cad'/)
   assert.match(proxy, /accepts no query parameters/)
+  assert.match(proxy, /JPL_NETWORK_ERROR/)
+  assert.match(proxy, /JPL_UPSTREAM_ERROR/)
+  assert.match(proxy, /JPL_INVALID_PAYLOAD/)
   assert.match(vite, /'\/api\/jpl-cad'/)
   assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
+})
+
+test('live-data hooks retain real source timestamps after failed refreshes', () => {
+  const earth = read('src/hooks/useEarthObservatory.ts')
+  const smallBodies = read('src/hooks/useSmallBodies.ts')
+  const tle = read('src/hooks/useTleData.ts')
+  const metadata = read('src/lib/tle-snapshot-metadata.ts')
+
+  assert.match(earth, /reduceEarthRefreshUpdatedAt/)
+  assert.match(smallBodies, /reduceSmallBodyRefreshFailure/)
+  assert.match(tle, /TLE_SNAPSHOT_DOWNLOADED_AT/)
+  assert.match(metadata, /2026-07-16T11:24:19Z/)
 })
 
 test('TLE refresh uses an allow-listed same-origin proxy and exposes propagation diagnostics', () => {

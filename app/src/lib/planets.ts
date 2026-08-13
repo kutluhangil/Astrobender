@@ -498,7 +498,9 @@ export const PLANETS: PlanetDef[] = [
     atmosphereColor: [0.55, 0.85, 0.90],
     atmosphereIntensity: 1.3,
     retrograde: true,
-    knownMoonCount: 28,
+    // NASA Webb's S/2025 U1 discovery brought Uranus to 29 known moons.
+    // https://science.nasa.gov/blogs/webb/2025/08/19/new-moon-discovered-orbiting-uranus-using-nasas-webb-telescope/
+    knownMoonCount: 29,
     ring: {
       innerRadius: 1.55,
       outerRadius: 2.02,

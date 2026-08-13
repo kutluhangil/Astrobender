@@ -18,13 +18,9 @@ export interface DeepSpaceProbe {
 }
 
 const REFERENCE_EPOCH_MS = Date.UTC(2026, 0, 1)
-const AU_KM = 149_597_870.7
-
 export function probeDistanceAuAt(probe: DeepSpaceProbe, timeMs: number): number {
   if (!Number.isFinite(timeMs)) throw new Error(`Invalid probe time: ${timeMs}`)
-  if (!probe.rendered || probe.id === 'jwst') return probe.distanceAu
-  const elapsedSeconds = (timeMs - probe.referenceEpochMs) / 1000
-  return Math.max(0, probe.distanceAu + (probe.speedKmS * elapsedSeconds) / AU_KM)
+  throw new Error(`Probe ${probe.id} has no source-backed ephemeris record for ${new Date(timeMs).toISOString()}`)
 }
 
 export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
@@ -43,8 +39,8 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: 'İnsanlık tarihinin Dünya\'dan en uzağa ulaşmış yapay nesnesidir. Üzerinde Altın Plak (Golden Record) taşır.',
     sourceUrl: 'https://science.nasa.gov/mission/voyager/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: true,
-    ephemerisNoteTr: '2026 referans uzaklığından ölçülen hızla doğrusal uzaklık kestirimi.',
+    rendered: false,
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
   {
     id: 'voyager2',
@@ -61,8 +57,8 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: 'Jüpiter, Satürn, Uranüs ve Neptün\'ün dördünü de ziyaret etmiş tek uzay aracıdır.',
     sourceUrl: 'https://science.nasa.gov/mission/voyager/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: true,
-    ephemerisNoteTr: '2026 referans uzaklığından ölçülen hızla doğrusal uzaklık kestirimi.',
+    rendered: false,
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
   {
     id: 'jwst',
@@ -79,8 +75,8 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: 'İnsanlığın inşa ettiği en güçlü kızılötesi uzay teleskobudur. İlk galaksileri gözlemler.',
     sourceUrl: 'https://science.nasa.gov/mission/webb/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: true,
-    ephemerisNoteTr: 'Dünya–Güneş L2 çevresindeki halo yörüngesinin şematik işareti.',
+    rendered: false,
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
   {
     id: 'newhorizons',
@@ -97,8 +93,8 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: '2015 yılında Plüton\'a ilk yakın geçişi yapmış ve Plüton\'un kalp şeklindeki buzullarını fotoğraflamıştır.',
     sourceUrl: 'https://science.nasa.gov/mission/new-horizons/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: true,
-    ephemerisNoteTr: '2026 referans uzaklığından ölçülen hızla doğrusal uzaklık kestirimi.',
+    rendered: false,
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
   {
     id: 'europa-clipper',
@@ -116,7 +112,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/europa-clipper/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: false,
-    ephemerisNoteTr: 'Canlı Horizons efemerisi olmadan 3D konum gösterilmiyor.',
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
   {
     id: 'juno',
@@ -134,7 +130,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/juno/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: false,
-    ephemerisNoteTr: 'Canlı Horizons efemerisi olmadan 3D konum gösterilmiyor.',
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
   {
     id: 'parker-solar-probe',
@@ -152,6 +148,6 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/parker-solar-probe/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: false,
-    ephemerisNoteTr: 'Canlı Horizons efemerisi olmadan 3D konum gösterilmiyor.',
+    ephemerisNoteTr: 'Kaynaklı efemeris kaydı olmadan 3D konum gösterilmiyor. Kaynak gözden geçirme: 2026-08-13.',
   },
 ]

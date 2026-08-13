@@ -1,4 +1,4 @@
-export interface LandingSite {
+export interface SurfaceSite {
   id: string
   bodyId: 'earth' | 'moon' | 'mars' | 'venus' | 'titan'
   kind?: 'landing' | 'launch' | 'observatory' | 'ground-station'
@@ -12,10 +12,12 @@ export interface LandingSite {
   emoji: string
   detailsTr: string
   detailsEn?: string
-  sourceUrl?: string
+  sourceUrl: string
 }
 
-export const LANDING_SITES: LandingSite[] = [
+export type LandingSite = SurfaceSite
+
+export const LANDING_SITES: SurfaceSite[] = [
   // 🌍 EARTH OBSERVATORIES, LAUNCH SITES AND DEEP SPACE NETWORK
   {
     id: 'kennedy-space-center',
@@ -175,6 +177,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 23.47,
     emoji: '🇺🇸',
     detailsTr: 'Neil Armstrong ve Buzz Aldrin\'in insanlık tarihinde Ay yüzeyine ilk ayak bastığı tarihi alan ("İnsan için küçük, insanlık için büyük bir adım").',
+    sourceUrl: 'https://www.nasa.gov/missions/apollo/apollo-11/apollo-11-mission-overview/',
   },
   {
     id: 'apollo12',
@@ -188,6 +191,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: -23.42,
     emoji: '🇺🇸',
     detailsTr: 'Pete Conrad ve Alan Bean tarafından Surveyor 3 uzay aracının yakınına hassas iniş yapıldığı görev.',
+    sourceUrl: 'https://www.nasa.gov/the-apollo-program/',
   },
   {
     id: 'apollo15',
@@ -201,6 +205,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 3.63,
     emoji: '🇺🇸',
     detailsTr: 'İlk kez Ay Taşıtı (Lunar Roving Vehicle) sürülen ve Genesis taşının bulunduğu görev.',
+    sourceUrl: 'https://www.nasa.gov/missions/apollo/apollo-15-mission-details/',
   },
   {
     id: 'apollo17',
@@ -214,19 +219,21 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 30.77,
     emoji: '🇺🇸',
     detailsTr: 'Eugene Cernan ve jeolog Harrison Schmitt\'in Ay yüzeyinde yürüdüğü son insanlı Apollo görevi.',
+    sourceUrl: 'https://www.nasa.gov/the-apollo-program/',
   },
   {
     id: 'change4',
     bodyId: 'moon',
     name: 'Chang\'e 4 (Von Kármán Crater)',
-    nameTr: 'Chang\'e 4 (Ay\'ın Karanlık Yüzü)',
+    nameTr: 'Chang\'e 4 (Ay\'ın Uzak Yüzü)',
     year: 2019,
     agency: 'CNSA (China)',
     agencyTr: 'CNSA (Çin)',
     lat: -45.45,
     lon: 177.6,
     emoji: '🇨🇳',
-    detailsTr: 'İnsanlık tarihinde Ay\'ın uzak/karanlık yüzüne (Far Side) yumuşak iniş yapan ilk uzay aracı ve Yutu-2 gezgini.',
+    detailsTr: 'İnsanlık tarihinde Ay\'ın uzak yüzüne yumuşak iniş yapan ilk uzay aracı ve Yutu-2 gezgini.',
+    sourceUrl: 'https://www.cnsa.gov.cn/english/n6465652/n6465653/c6805049/content.html',
   },
 
   // 🔴 MARS
@@ -242,6 +249,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 77.58,
     emoji: '🤖',
     detailsTr: 'Eski göl yatağı Jezero Krateri\'nde antik yaşam izleri arayan nükleer enerjili gezgin ve Mars helikopteri Ingenuity.',
+    sourceUrl: 'https://science.nasa.gov/mission/mars-2020-perseverance/',
   },
   {
     id: 'curiosity',
@@ -255,6 +263,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 137.44,
     emoji: '🚙',
     detailsTr: 'Gale Krateri ve Sharp Dağı eteklerinde Mars\'ın geçmişte mikrobiyel yaşama elverişli olduğunu kanıtlayan gezgin.',
+    sourceUrl: 'https://science.nasa.gov/mission/msl-curiosity/',
   },
   {
     id: 'viking1',
@@ -268,6 +277,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: -47.97,
     emoji: '📡',
     detailsTr: 'Mars yüzeyine başarıyla inen ve ilk yüksek çözünürlüklü renkli fotoğrafları Dünya\'ya gönderen tarihi iniş aracı.',
+    sourceUrl: 'https://science.nasa.gov/mission/viking-1/',
   },
   {
     id: 'zhurong',
@@ -281,6 +291,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 109.92,
     emoji: '🇨🇳',
     detailsTr: 'Çin\'in Tianwen-1 görevi kapsamında Utopia Planitia düzlüğüne indirdiği ilk Mars gezgini.',
+    sourceUrl: 'https://www.cnsa.gov.cn/english/n6465652/n6465653/c6812005/content.html',
   },
 
   // 🪐 TITAN
@@ -296,6 +307,7 @@ export const LANDING_SITES: LandingSite[] = [
     lon: 192.4,
     emoji: '🛰️',
     detailsTr: 'Cassini uzay aracından ayrılarak Satürn\'ün dev uydusu Titan\'ın organik atmosferinden süzülüp inen, dış Güneş Sistemi\'ndeki ilk yüzey aracı.',
+    sourceUrl: 'https://www.esa.int/Science_Exploration/Space_Science/Cassini-Huygens/The_mission',
   },
 
   // 🟡 VENUS
@@ -310,7 +322,8 @@ export const LANDING_SITES: LandingSite[] = [
     lat: -7.5,
     lon: 303.0,
     emoji: '🔴',
-    detailsTr: '457°C sıcaklık ve 89 atmosfer basınç altındaki Venüs yüzeyinde 127 dakika hayatta kalıp ilk renkli yüzey fotoğraflarını çeken efsanevi Sovyet sondası.',
+    detailsTr: 'Venüs yüzeyinde ölçtüğü 465°C sıcaklık ve 89,5 atmosfer basınç altında 127 dakika veri iletti; Venüs yüzeyinin ilk renkli fotoğraflarını Dünya\'ya gönderdi.',
+    sourceUrl: 'https://www.nasa.gov/wp-content/uploads/2023/04/sp-4524.pdf#page=141',
   },
 ]
 

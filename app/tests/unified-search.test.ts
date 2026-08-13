@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { IAU_CONSTELLATIONS } from '../src/lib/constellations.ts'
+import {
+  CONSTELLATIONS,
+  IAU_CONSTELLATIONS,
+  IAU_CONSTELLATIONS_SOURCE_URL,
+} from '../src/lib/constellations.ts'
 import { LANDING_SITES } from '../src/lib/landing-sites.ts'
 import { searchObservatory } from '../src/lib/unified-search.ts'
 import type { SatInfo } from '../src/lib/satellites.ts'
@@ -16,20 +20,25 @@ const SATELLITES: SatInfo[] = [{
 }]
 
 test('IAU catalog contains every official constellation exactly once', () => {
+  assert.equal(
+    IAU_CONSTELLATIONS_SOURCE_URL,
+    'https://iauarchive.eso.org/public/themes/constellations/',
+  )
   assert.equal(IAU_CONSTELLATIONS.length, 88)
   assert.equal(new Set(IAU_CONSTELLATIONS.map((entry) => entry.name)).size, 88)
   assert.equal(new Set(IAU_CONSTELLATIONS.map((entry) => entry.abbreviation)).size, 88)
-  assert.equal(IAU_CONSTELLATIONS.filter((entry) => entry.renderedFigure).length, 5)
+  assert.equal(CONSTELLATIONS.length, 0)
+  assert.equal(IAU_CONSTELLATIONS.filter((entry) => entry.renderedFigure).length, 0)
 })
 
-test('Earth surface catalog includes launch, observatory, and deep-space-network sites', () => {
+test('surface catalog requires sources and includes Earth launch, observatory, and deep-space-network sites', () => {
   const earthSites = LANDING_SITES.filter((site) => site.bodyId === 'earth')
   assert.ok(earthSites.some((site) => site.kind === 'launch'))
   assert.ok(earthSites.some((site) => site.kind === 'observatory'))
   assert.ok(earthSites.some((site) => site.kind === 'ground-station'))
   assert.ok(earthSites.some((site) => site.id === 'kandilli-observatory'))
-  for (const site of earthSites) {
-    assert.match(site.sourceUrl ?? '', /^https:\/\//)
+  for (const site of LANDING_SITES) {
+    assert.match(site.sourceUrl, /^https:\/\//)
   }
 })
 

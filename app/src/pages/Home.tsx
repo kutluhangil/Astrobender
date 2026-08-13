@@ -493,20 +493,20 @@ export default function Home() {
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 
   const handleStartPerseidSimulation = useCallback((watch: PerseidWatch) => {
-    const peakTime = Date.parse(watch.peakAt)
-    if (!Number.isFinite(peakTime)) {
-      throw new Error(`Perseid peak time is invalid: ${watch.peakAt}`)
+    const maximumWindowStart = Date.parse(watch.maximumStart)
+    if (!Number.isFinite(maximumWindowStart)) {
+      throw new Error(`Perseid maximum window start is invalid: ${watch.maximumStart}`)
     }
     selectSat(null)
-    clock.setTime(peakTime)
+    clock.setTime(maximumWindowStart)
     handleSelectBody('earth')
     setMeteorFlowVisible(true)
     setSkywatchOpen(false)
     setLayersOpen(false)
     setSearchNotice(
       uiLanguage === 'tr'
-        ? 'Perseid görsel akışı simülasyonda açıldı; akış gerçek zamanlı meteor sayısı değildir.'
-        : 'Perseid visual stream opened in the simulation; it is not a real-time meteor count.',
+        ? 'Perseid şematik akışı maksimum aralığının başlangıcında açıldı; gerçek zamanlı meteor sayısı değildir.'
+        : 'Perseid schematic stream opened at the start of the maximum window; it is not a real-time meteor count.',
     )
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 

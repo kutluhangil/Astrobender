@@ -99,7 +99,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   },
   titan: {
     mass: '1.3452 × 10²³ kg', density: '1.881 g/cm³', gravity: '1.352 m/s²', temperature: '~−179 °C',
-    chemistry: { tr: 'N₂ ~%98, CH₄ ~%1.4; su buzu kabuk ve metan/etan gölleri.', en: 'N₂ ~98%, CH₄ ~1.4%; water-ice crust and methane/ethane lakes.' },
+    chemistry: { tr: 'N₂ ~%95, CH₄ ~%5; su buzu kabuk ve metan/etan gölleri.', en: 'N₂ ~95%, CH₄ ~5%; water-ice crust and methane/ethane lakes.' },
   },
   enceladus: {
     mass: '1.080 × 10²⁰ kg', density: '1.610 g/cm³', gravity: '0.113 m/s²', temperature: '~−201 °C',
@@ -139,7 +139,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   },
   ariel: {
     mass: '1.353 × 10²¹ kg', density: '1.66 g/cm³', gravity: '0.269 m/s²', temperature: '~−213 °C',
-    chemistry: { tr: 'Su buzu, CO₂ buzu ve kaya; atmosfer saptanmadı.', en: 'Water ice, CO₂ ice, and rock; no detected atmosphere.' },
+    chemistry: { tr: 'Su buzu, yüzeyde saptanan CO₂ ve kaya; atmosfer saptanmadı.', en: 'Water ice, CO₂ detected on the surface, and rock; no atmosphere detected.' },
   },
   umbriel: {
     mass: '1.172 × 10²¹ kg', density: '1.46 g/cm³', gravity: '0.234 m/s²', temperature: '~−213 °C',
@@ -147,7 +147,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   },
   titania: {
     mass: '3.527 × 10²¹ kg', density: '1.71 g/cm³', gravity: '0.379 m/s²', temperature: '~−203 °C',
-    chemistry: { tr: 'Su buzu ve kaya; CO₂ buzlarının işaretleri; atmosfer saptanmadı.', en: 'Water ice and rock with signs of CO₂ ice; no detected atmosphere.' },
+    chemistry: { tr: 'Su buzu ve kaya; CO₂ buzlarının işaretleri; atmosfer saptanmadı.', en: 'Water ice and rock with signs of CO₂ ice; no atmosphere detected.' },
   },
   oberon: {
     mass: '3.014 × 10²¹ kg', density: '1.63 g/cm³', gravity: '0.347 m/s²', temperature: '~−198 °C',
@@ -207,7 +207,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   },
   makemake: {
     mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−239 °C',
-    chemistry: { tr: 'Metan ve etan buzları, karmaşık organik tholinler; küresel atmosfer saptanmadı.', en: 'Methane and ethane ices with complex organic tholins; no global atmosphere detected.' },
+    chemistry: { tr: 'Metan ve etan buzları ile organik tholinler; günberi yakınında çok ince bir azot atmosferi oluşabilir.', en: 'Methane and ethane ices with organic tholins; a very thin nitrogen atmosphere may develop near perihelion.' },
   },
   eris: {
     mass: '1.647 × 10²² kg', density: '2.52 g/cm³', gravity: '0.82 m/s²', temperature: '~−231 °C',

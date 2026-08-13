@@ -69,7 +69,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     rotationPeriod: '58.6 gün',
     orbitPeriod: '88 gün',
     moonsCount: '0',
-    atmosphere: 'Yok (Oksijen, Sodyum izleri)',
+    atmosphere: 'İnce ekzosfer: Oksijen, Sodyum, Hidrojen, Helyum ve Potasyum',
     funFactTr: 'Güneş\'e en yakın gezegendir; gündüz 430°C iken gece -180°C\'ye düşer.',
   },
   venus: {
@@ -168,7 +168,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     orbitPeriod: '3.55 gün',
     moonsCount: '0',
     atmosphere: 'İnce Oksijen atmosferi',
-    funFactTr: 'Buz tabakasının altında Dünya\'daki tüm okyanusların 2 katı büyüklüğünde sıvı su okyanusu vardır.',
+    funFactTr: 'Buz kabuğunun altında küresel tuzlu bir okyanus olduğu düşünülür; varlığı gelecekteki görevlerle doğrulanmayı bekliyor.',
   },
   ganymede: {
     id: 'ganymede',
@@ -309,7 +309,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     typeTr: 'Uranüs Uydusu', radiusKm: '579 km',
     distFromSunAu: '19.22 AU (Uranüs etrafında 190,900 km)',
     rotationPeriod: '2.52 gün', orbitPeriod: '2.52 gün',
-    moonsCount: '0', atmosphere: 'Çok ince Karbondioksit',
+    moonsCount: '0', atmosphere: 'Doğrulanmış atmosfer yok; yüzeyde Karbondioksit saptandı',
     funFactTr: 'Uranüs’ün büyük uyduları arasında en parlak ve en genç yüzeylerden birine sahiptir.',
   },
   umbriel: {
@@ -331,7 +331,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     rotationPeriod: '8.71 gün',
     orbitPeriod: '8.71 gün',
     moonsCount: '0',
-    atmosphere: 'İnce Karbondioksit',
+    atmosphere: 'Doğrulanmış atmosfer yok',
     funFactTr: 'Uranüs\'ün en büyük uydusudur ve devasa kanyon sistemleri barındırır.',
   },
   oberon: {
@@ -504,7 +504,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     id: 'makemake', name: 'Makemake', nameTr: 'Makemake', emoji: '⚪',
     typeTr: 'Cüce Gezegen (Kuiper Kuşağı)', radiusKm: 'Yaklaşık 715 km',
     distFromSunAu: '45.79 AU', rotationPeriod: '22 saat 50 dk', orbitPeriod: '306 yıl',
-    moonsCount: '1 (MK2)', atmosphere: 'Güneş’e uzak konumda küresel atmosfer saptanmadı',
+    moonsCount: '1 (MK2)', atmosphere: 'Günberi yakınında çok ince Azot atmosferi oluşabilir',
     funFactTr: 'Yüzeyindeki donmuş metan ve etan, Makemake’ye kırmızımsı bir renk verir.',
   },
   eris: {
@@ -528,7 +528,7 @@ export const CELESTIAL_FUN_FACTS_EN: Record<CelestialBodyId, string> = {
   deimos: 'Deimos is a small, irregular, asteroid-like moon of Mars.',
   jupiter: 'Jupiter’s Great Red Spot is a giant, long-lived atmospheric storm.',
   io: 'Io is the Solar System’s most volcanically active known world.',
-  europa: 'Europa likely hides a global salty ocean beneath its icy crust.',
+  europa: 'Europa is thought to hide a global salty ocean beneath its icy crust; confirmation awaits a future mission.',
   ganymede: 'Ganymede is the largest moon and the only moon with an intrinsic magnetic field.',
   callisto: 'Callisto preserves one of the oldest and most heavily cratered surfaces known.',
   amalthea: 'Amalthea is Jupiter’s largest inner moon and supplies material to its faint ring.',
@@ -575,6 +575,9 @@ const ENGLISH_VALUE_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
   ['Çok ince', 'Very thin'],
   ['Doğrulanmış kalıcı atmosfer yok', 'No confirmed permanent atmosphere'],
   ['Kalıcı atmosfer doğrulanmadı', 'No permanent atmosphere confirmed'],
+  ['Doğrulanmış atmosfer yok; yüzeyde Karbondioksit saptandı', 'No confirmed atmosphere; carbon dioxide is detected on the surface'],
+  ['Doğrulanmış atmosfer yok', 'No confirmed atmosphere'],
+  ['Günberi yakınında çok ince Azot atmosferi oluşabilir', 'A very thin nitrogen atmosphere may develop near perihelion'],
   ['Güneş’e uzak konumda küresel atmosfer saptanmadı', 'No global atmosphere detected at current solar distance'],
   ['Global Okyanus & Kabuk', 'global ocean and ice shell'],
   ['Anortozit Kraterler', 'anorthosite craters'],

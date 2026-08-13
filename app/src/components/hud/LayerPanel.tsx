@@ -1,8 +1,4 @@
 import { UI_GROUPS } from '@/lib/satellites'
-import {
-  IAU_CONSTELLATIONS,
-  IAU_CONSTELLATIONS_SOURCE_URL,
-} from '@/lib/constellations'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface LayerPanelProps {
@@ -38,10 +34,6 @@ export default function LayerPanel({
   audioPlaying = false,
   onTogglePlanetaryOrbits,
   planetaryOrbitsVisible = false,
-  onToggleProbes,
-  probesVisible = false,
-  onToggleConstellations,
-  constellationsVisible = false,
   onToggleAsteroids,
   asteroidsVisible = false,
   onToggleEarthObservatory,
@@ -91,30 +83,6 @@ export default function LayerPanel({
             🪐 {t('Yörüngeler', 'Orbits')}
           </button>
           <button
-            onClick={onToggleProbes}
-            className={`py-1 rounded border transition-all ${
-              probesVisible ? 'border-cyan-500/50 bg-cyan-500/20 text-cyan-200 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.3)]' : 'border-white/5 bg-white/5 text-white/60'
-            }`}
-          >
-            🛰️ {t('Sondalar', 'Probes')}
-          </button>
-          <button
-            onClick={onToggleConstellations}
-            className={`py-1 rounded border transition-all ${
-              constellationsVisible ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-200 font-semibold shadow-[0_0_8px_rgba(99,102,241,0.3)]' : 'border-white/5 bg-white/5 text-white/60'
-            }`}
-          >
-            ✨ {t(`Takımyıldızlar ${IAU_CONSTELLATIONS.length}`, `Constellations ${IAU_CONSTELLATIONS.length}`)}
-          </button>
-          <button
-            onClick={onToggleAsteroids}
-            className={`py-1 rounded border transition-all ${
-              asteroidsVisible ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 font-semibold shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'border-white/5 bg-white/5 text-white/60'
-            }`}
-          >
-            ☄️ {t('Şematik Kuşaklar', 'Schematic Belts')}
-          </button>
-          <button
             onClick={onToggleEarthObservatory}
             className={`py-1 rounded border transition-all ${
               earthObservatoryVisible ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-semibold shadow-[0_0_8px_rgba(52,211,153,0.25)]' : 'border-white/5 bg-white/5 text-white/60'
@@ -139,19 +107,24 @@ export default function LayerPanel({
             🌠 {t('Gökyüzü Takvimi', 'Skywatch')}
           </button>
         </div>
-        {constellationsVisible && (
-          <a
-            href={IAU_CONSTELLATIONS_SOURCE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1.5 block rounded-md border border-indigo-400/20 bg-indigo-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-indigo-200/80 hover:bg-indigo-400/10"
-          >
-            {t(
-              'IAU kataloğu: 88/88 · 5 temsili çizgi görünümü. IAU resmî çizgi şekli tanımlamaz.',
-              'IAU catalog: 88/88 · 5 representative line figures. The IAU defines no official stick figures.',
-            )} ↗
-          </a>
-        )}
+      </div>
+
+      <div className="border-t border-white/5 pt-2">
+        <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-500">
+          {t('Görsel Yardımcılar', 'Visual Aids')}
+        </div>
+        <button
+          onClick={onToggleAsteroids}
+          aria-pressed={asteroidsVisible}
+          className={`mt-1.5 w-full rounded border py-1 font-mono text-[9px] transition-all ${
+            asteroidsVisible ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 font-semibold shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'border-white/5 bg-white/5 text-white/60'
+          }`}
+        >
+          ☄️ {t('Şematik Asteroit ve Kuiper Kuşakları', 'Schematic Belts')}
+        </button>
+        <p className="mt-1 font-mono text-[7px] leading-relaxed text-slate-600">
+          {t('Varsayılan kapalı · katalog ölçümü değildir.', 'Off by default · not a catalog measurement.')}
+        </p>
       </div>
 
       {/* Satellite Layers */}

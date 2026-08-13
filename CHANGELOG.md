@@ -2,10 +2,11 @@
 
 ## 2026-08-13
 
+- Removed unsupported astronomy claims by using the reviewed IMO 2026 meteor record, consistent eclipse and catalog semantics, sourced surface sites, unplotted ephemeris-less probes, and opt-in schematic visual aids.
 - Repaired production-data truth: JPL and readiness now validate payload schemas with actionable diagnostics, failed refreshes retain their source time, static TLE data uses its real acquisition time, production smoke checks the real custom service worker, geolocation is opt-in and local, and Uranus reports NASA Webb's 29 known moons.
 - Stabilized CI browser checks by probing the actual reduced-motion stylesheet and allowing measured 60-second budgets for the complete Skywatch and sourced surface-detail flows.
 - Refined the celestial tray to remove passive space and added a day-selectable, source-backed Skywatch event calendar for meteor showers, eclipses, and planetary events.
-- Added a source-backed Perseid Watch with the IMO 2026 active/peak window, local radiant and Moon-based astronomical score, honest weather-data boundary, reporting links, and a clearly labeled visual simulation flow.
+- Added a source-backed Perseid Watch with the IMO 2026 active and main-maximum windows, a same-instant local product heuristic, reporting links, and an explicitly schematic simulation flow anchored to the window start.
 
 ## 2026-08-13
 

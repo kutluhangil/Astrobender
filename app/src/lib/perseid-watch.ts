@@ -7,33 +7,19 @@ import {
 } from 'astronomy-engine'
 import type { SkyObserver } from './sky-events.ts'
 import type { UiLanguage } from './ui-language.ts'
+import { PERSEID_2026 } from './meteor-calendar.ts'
 
-export const PERSEID_2026 = {
-  activeStart: '2026-07-17T00:00:00.000Z',
-  activeEnd: '2026-08-24T23:59:59.999Z',
-  peakStart: '2026-08-13T02:00:00.000Z',
-  peakEnd: '2026-08-13T04:00:00.000Z',
-  peakAt: '2026-08-13T03:00:00.000Z',
-  parentBody: '109P/Swift-Tuttle',
-  zhr: 100,
-  sourceUrl: 'https://www.imo.net/files/meteor-shower/cal2026.pdf',
-  reportUrl: 'https://www.imo.net/observations/methods/visual-observation/major/report/',
-  fireballUrl: 'https://www.imo.net/observations/fireballs/fireball-report-program/',
-  radiant: {
-    rightAscensionHours: 3.2,
-    declinationDegrees: 58,
-  },
-} as const
+export { PERSEID_2026 } from './meteor-calendar.ts'
 
-export type PerseidStatus = 'upcoming' | 'active' | 'peak' | 'completed'
+export type PerseidStatus = 'upcoming' | 'active' | 'maximum-window' | 'completed'
 
 export interface PerseidWatch {
   status: PerseidStatus
   activeStart: string
   activeEnd: string
-  peakStart: string
-  peakEnd: string
-  peakAt: string
+  maximumStart: string
+  maximumEnd: string
+  observedAt: string
   parentBody: string
   zhr: number
   moonIlluminationPercent: number
@@ -45,7 +31,7 @@ export interface PerseidWatch {
     radiantAltitudeDegrees: number
     radiantAzimuthDegrees: number
     sunAltitudeDegrees: number
-    astronomicalScore: number
+    productHeuristic: number
   } | null
 }
 
@@ -53,7 +39,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function observerScore(radiantAltitudeDegrees: number, sunAltitudeDegrees: number, moonIlluminationPercent: number): number {
+function productHeuristic(radiantAltitudeDegrees: number, sunAltitudeDegrees: number, moonIlluminationPercent: number): number {
   const radiant = clamp(radiantAltitudeDegrees / 50, 0, 1) * 65
   const darkness = sunAltitudeDegrees <= -18 ? 10 : sunAltitudeDegrees <= -12 ? 8 : sunAltitudeDegrees <= -6 ? 2 : 0
   const moon = (1 - clamp(moonIlluminationPercent, 0, 100) / 100) * 25
@@ -73,23 +59,28 @@ export function getPerseidWatch(now: Date, observer?: SkyObserver): PerseidWatch
 
   const activeStartMs = Date.parse(PERSEID_2026.activeStart)
   const activeEndMs = Date.parse(PERSEID_2026.activeEnd)
-  const peakStartMs = Date.parse(PERSEID_2026.peakStart)
-  const peakEndMs = Date.parse(PERSEID_2026.peakEnd)
+  const maximumStartMs = Date.parse(PERSEID_2026.maximumStart)
+  const maximumEndMs = Date.parse(PERSEID_2026.maximumEnd)
   const nowMs = now.getTime()
   const status: PerseidStatus = nowMs < activeStartMs
     ? 'upcoming'
     : nowMs > activeEndMs
       ? 'completed'
-      : nowMs >= peakStartMs && nowMs <= peakEndMs
-        ? 'peak'
+      : nowMs >= maximumStartMs && nowMs <= maximumEndMs
+        ? 'maximum-window'
         : 'active'
-  const peakAt = new Date(PERSEID_2026.peakAt)
-  const moonIlluminationPercent = Math.round(Illumination(Body.Moon, peakAt).phase_fraction * 100)
+  const moonIlluminationPercent = Math.round(Illumination(Body.Moon, now).phase_fraction * 100)
+  const shared = {
+    ...PERSEID_2026,
+    observedAt: now.toISOString(),
+    reportUrl: 'https://www.imo.net/observations/methods/visual-observation/major/report/',
+    fireballUrl: 'https://www.imo.net/observations/fireballs/fireball-report-program/',
+  }
 
   if (!observer) {
     return {
       status,
-      ...PERSEID_2026,
+      ...shared,
       moonIlluminationPercent,
       observer: null,
     }
@@ -108,14 +99,14 @@ export function getPerseidWatch(now: Date, observer?: SkyObserver): PerseidWatch
 
   return {
     status,
-    ...PERSEID_2026,
+    ...shared,
     moonIlluminationPercent,
     observer: {
       label: observer.label,
       radiantAltitudeDegrees: radiant.altitude,
       radiantAzimuthDegrees: radiant.azimuth,
       sunAltitudeDegrees: sun.altitude,
-      astronomicalScore: observerScore(radiant.altitude, sun.altitude, moonIlluminationPercent),
+      productHeuristic: productHeuristic(radiant.altitude, sun.altitude, moonIlluminationPercent),
     },
   }
 }

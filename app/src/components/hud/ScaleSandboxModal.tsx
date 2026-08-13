@@ -174,9 +174,9 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     ratioToEarth: 0.38,
     gravity: '3.70 m/s² (0.38g)',
     climate: '-180°C (Gece) / +430°C (Gündüz)',
-    atmosphere: 'Oksijen & Sodyum İzleri',
+    atmosphere: 'İnce ekzosfer: Oksijen, Sodyum, Hidrojen, Helyum ve Potasyum',
     texture: 'mercury-4k.jpg',
-    funFact: 'Güneş\'e en yakın gezegendir; hiç atmosferi olmadığı için sıcaklık uçurumdur.',
+    funFact: 'Güneş\'e en yakın gezegendir; ince ekzosferi ısıyı tutamadığı için gece ve gündüz sıcaklıkları çok farklıdır.',
   },
   {
     id: 'callisto',
@@ -232,7 +232,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     climate: '-160°C, Global Okyanus & Kabuk',
     atmosphere: 'Seyrek Oksijen',
     texture: 'europa-4k.jpg',
-    funFact: 'Pürüzsüz buz kabuğunun altında, Dünya\'daki tüm sudan 2 kat fazla sıvı okyanus barındırır.',
+    funFact: 'Buz kabuğunun altında küresel tuzlu bir okyanus olduğu düşünülür; varlığı gelecekteki görevlerle doğrulanmayı bekliyor.',
   },
   {
     id: 'triton',
@@ -272,7 +272,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     ratioToEarth: 0.12,
     gravity: '0.37 m/s² (0.04g)',
     climate: '-203°C, Devasa Kanyonlar',
-    atmosphere: 'Karbondioksit İzleri',
+    atmosphere: 'Doğrulanmış atmosfer yok',
     texture: 'titania-4k.jpg',
     funFact: 'Uranüs\'ün en büyük uydusudur; devasa kanyon sistemleri barındırır.',
   },
@@ -387,8 +387,8 @@ export default function ScaleSandboxModal({
             </h2>
             <p className="font-mono text-xs text-slate-400 mt-1">
               {t(
-                'Gök cisimleri gerçek yarıçaplarına göre büyükten küçüğe sıralanmıştır. Gözlemsel 3D kaplamalar, yerçekimi ve iklim verileri.',
-                'Bodies are ordered by their real radii, with observational textures, gravity and climate data.',
+                'Gök cisimleri kaynaklı yarıçaplarına göre sıralanır. Küre önizlemeleri görsel yardımcıdır; fiziksel ölçek ölçümü değildir.',
+                'Bodies are ordered by sourced radii. Sphere previews are visual aids, not physical-scale measurements.',
               )}
             </p>
           </div>

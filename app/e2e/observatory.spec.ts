@@ -17,7 +17,7 @@ test('unified search prioritizes exact astronomy catalog matches', async ({ page
   await expect(results.getByRole('option').first()).toContainText('Orion')
   await search.press('Enter')
   await expect(page.getByRole('status').filter({ hasText: 'Orion' })).toContainText(
-    'temsili yıldız çizgisi görünür',
+    'resmî çizgi şekli yok',
   )
 })
 
@@ -140,11 +140,11 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   const eventCalendar = panel.getByRole('group', { name: 'Olay takvimi' })
   await expect(eventCalendar).toBeVisible()
   await expect(eventCalendar.getByRole('button', { name: /15 Ağustos.*Venüs/ })).toBeVisible()
-  await panel.getByRole('button', { name: 'Sonraki ay' }).click()
-  await expect(eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ })).toBeVisible()
-  await eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ }).click()
-  await expect(panel.getByText('Orionids Meteor Yağmuru')).toBeVisible()
-  await panel.getByRole('button', { name: 'Önceki ay' }).click()
+  await expect(panel.getByRole('region', { name: 'Perseid Watch' })).toContainText(/ZHR\s*100/)
+  await expect(panel.getByRole('link', { name: 'IMO takvimi ↗' })).toHaveAttribute(
+    'href',
+    'https://www.imo.net/files/meteor-shower/cal2026.pdf',
+  )
 
   await panel.getByText('Koordinatları elle gir').click()
   await panel.getByLabel('Enlem').fill('41.0082')
@@ -154,9 +154,10 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   await expect(panel.getByRole('region', { name: 'Gözlem konumu' }).getByText('İstanbul')).toBeVisible()
   const perseidWatch = panel.getByRole('region', { name: 'Perseid Watch' })
   await expect(perseidWatch).toContainText('PERSEİD AKIŞI')
-  await expect(panel.getByText(/Astronomik skor; bulutluluk/)).toBeVisible()
-  await perseidWatch.getByRole('button', { name: 'Görsel akışı simülasyonda göster' }).click()
+  await expect(panel.getByText(/ÜRÜN SEZGİSİ.*Bilimsel ölçüm değildir/)).toBeVisible()
+  await perseidWatch.getByRole('button', { name: 'Aralık başlangıcında şematik akışı göster' }).click()
   await expect(panel).toBeHidden()
+  await expect(page.getByText(/maksimum aralığının başlangıcında açıldı/)).toBeVisible()
   await expect(page.getByText('Perseid · görsel simülasyon')).toBeVisible()
 
   await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()

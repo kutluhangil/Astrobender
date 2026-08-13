@@ -29,6 +29,7 @@ import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
 import SkywatchPanel from '@/components/hud/SkywatchPanel'
+import MeteorFlowOverlay from '@/components/hud/MeteorFlowOverlay'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
 import AboutAstrobenderModal from '@/components/hud/AboutAstrobenderModal'
@@ -43,6 +44,7 @@ import { useSmallBodies } from '@/hooks/useSmallBodies'
 import { useSkywatchLocation } from '@/hooks/useSkywatchLocation'
 import type { UnifiedSearchResult } from '@/lib/unified-search'
 import { getSkyEvents, type SkyEvent } from '@/lib/sky-events'
+import type { PerseidWatch } from '@/lib/perseid-watch'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
@@ -134,6 +136,7 @@ export default function Home() {
   })
   const [smallBodiesOpen, setSmallBodiesOpen] = useState(false)
   const [skywatchOpen, setSkywatchOpen] = useState(false)
+  const [meteorFlowVisible, setMeteorFlowVisible] = useState(false)
   const [skywatchCalculatedAt, setSkywatchCalculatedAt] = useState(() => Date.now())
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('tr')
@@ -254,6 +257,7 @@ export default function Home() {
 
   const handleSelectBody = useCallback((body: CelestialBodyId) => {
     setSelectedPin(null)
+    setMeteorFlowVisible(false)
     setFocusBody(body)
     setBodySelectionRevision((current) => current + 1)
     engineRef.current?.setFocusTarget(body)
@@ -478,12 +482,31 @@ export default function Home() {
     selectSat(null)
     clock.setTime(eventTime)
     handleSelectBody(event.targetBody)
+    setMeteorFlowVisible(event.id === 'meteor-perseids-2026')
     setSkywatchOpen(false)
     setLayersOpen(false)
     setSearchNotice(
       uiLanguage === 'tr'
         ? `${event.title} simülasyonda açıldı.`
         : `${event.title} opened in the simulation.`,
+    )
+  }, [clock, handleSelectBody, selectSat, uiLanguage])
+
+  const handleStartPerseidSimulation = useCallback((watch: PerseidWatch) => {
+    const peakTime = Date.parse(watch.peakAt)
+    if (!Number.isFinite(peakTime)) {
+      throw new Error(`Perseid peak time is invalid: ${watch.peakAt}`)
+    }
+    selectSat(null)
+    clock.setTime(peakTime)
+    handleSelectBody('earth')
+    setMeteorFlowVisible(true)
+    setSkywatchOpen(false)
+    setLayersOpen(false)
+    setSearchNotice(
+      uiLanguage === 'tr'
+        ? 'Perseid görsel akışı simülasyonda açıldı; akış gerçek zamanlı meteor sayısı değildir.'
+        : 'Perseid visual stream opened in the simulation; it is not a real-time meteor count.',
     )
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 
@@ -1155,9 +1178,17 @@ export default function Home() {
             onSaveManualLocation={skywatchLocation.saveManualLocation}
             onClearLocation={skywatchLocation.clearLocation}
             onSelectEvent={handleSelectSkywatchEvent}
+            onStartPerseidSimulation={handleStartPerseidSimulation}
             onClose={() => setSkywatchOpen(false)}
           />
         </div>
+      )}
+
+      {meteorFlowVisible && (
+        <MeteorFlowOverlay
+          language={uiLanguage}
+          onClose={() => setMeteorFlowVisible(false)}
+        />
       )}
 
       {/* ============ MOBILE: FAB + Bottom Sheet ============ */}

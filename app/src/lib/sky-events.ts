@@ -13,6 +13,7 @@ import {
   SearchRelativeLongitude,
 } from 'astronomy-engine'
 import type { CelestialBodyId } from './planets.ts'
+import { PERSEID_2026 } from './perseid-watch.ts'
 import type { UiLanguage } from './ui-language.ts'
 
 export type SkyEventKind =
@@ -59,6 +60,7 @@ interface MeteorStream {
   id: string
   month: number
   day: number
+  hour?: number
   body: string
   northernHemisphere: boolean
   sourceUrl: string
@@ -73,7 +75,7 @@ const METEOR_STREAMS: readonly MeteorStream[] = [
   { id: 'lyrids', month: 4, day: 22, body: 'C/1861 G1 Thatcher', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
   { id: 'eta-aquariids', month: 5, day: 5, body: '1P/Halley', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
   { id: 'southern-delta-aquariids', month: 7, day: 30, body: '96P/Machholz', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
-  { id: 'perseids', month: 8, day: 12, body: '109P/Swift-Tuttle', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
+  { id: 'perseids', month: 8, day: 12, body: PERSEID_2026.parentBody, northernHemisphere: true, sourceUrl: PERSEID_2026.sourceUrl },
   { id: 'orionids', month: 10, day: 21, body: '1P/Halley', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
   { id: 'leonids', month: 11, day: 17, body: '55P/Tempel-Tuttle', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
   { id: 'geminids', month: 12, day: 14, body: '(3200) Phaethon', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
@@ -192,7 +194,9 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
 function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
   for (let year = input.start.getUTCFullYear() - 1; year <= input.end.getUTCFullYear() + 1; year += 1) {
     for (const stream of METEOR_STREAMS) {
-      const peak = new Date(Date.UTC(year, stream.month - 1, stream.day, 2, 0, 0))
+      const peak = stream.id === 'perseids' && year === 2026
+        ? new Date(PERSEID_2026.peakAt)
+        : new Date(Date.UTC(year, stream.month - 1, stream.day, stream.hour ?? 2, 0, 0))
       if (!containsDate(input.start, input.end, peak)) continue
       const name = stream.id.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ')
       events.push({
@@ -201,11 +205,17 @@ function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
         startsAt: toIso(peak),
         endsAt: null,
         title: t(input.language, `${name} Meteor Yağmuru`, `${name} Meteor Shower`),
-        summary: t(
-          input.language,
-          `${stream.body} kaynaklı toz akışı Dünya atmosferinde yanar.`,
-          `Dust from ${stream.body} burns in Earth’s atmosphere.`,
-        ),
+        summary: stream.id === 'perseids' && year === 2026
+          ? t(
+            input.language,
+            `${stream.body} kaynaklı akış 17 Temmuz–24 Ağustos arasında etkindir; IMO ana maksimumu 13 Ağustos 02:00–04:00 UTC olarak verir.`,
+            `The ${stream.body} stream is active July 17–August 24; IMO gives the main maximum as Aug. 13, 02:00–04:00 UTC.`,
+          )
+          : t(
+            input.language,
+            `${stream.body} kaynaklı toz akışı Dünya atmosferinde yanar.`,
+            `Dust from ${stream.body} burns in Earth’s atmosphere.`,
+          ),
         guidance: t(
           input.language,
           stream.northernHemisphere

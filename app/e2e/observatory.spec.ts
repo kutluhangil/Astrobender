@@ -126,11 +126,21 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   await panel.getByLabel('Boylam').fill('28.9784')
   await panel.getByLabel('Konum etiketi').fill('İstanbul')
   await panel.getByRole('button', { name: 'Konumu kaydet' }).click()
-  await expect(panel.getByText('İstanbul')).toBeVisible()
-
-  const venusCard = panel.locator('li', { hasText: 'Venüs en büyük uzanımda' })
-  await venusCard.getByRole('button', { name: 'Simülasyonda göster' }).click()
+  await expect(panel.getByRole('region', { name: 'Gözlem konumu' }).getByText('İstanbul')).toBeVisible()
+  const perseidWatch = panel.getByRole('region', { name: 'Perseid Watch' })
+  await expect(perseidWatch).toContainText('PERSEİD AKIŞI')
+  await expect(panel.getByText(/Astronomik skor; bulutluluk/)).toBeVisible()
+  await perseidWatch.getByRole('button', { name: 'Görsel akışı simülasyonda göster' }).click()
   await expect(panel).toBeHidden()
+  await expect(page.getByText('Perseid · görsel simülasyon')).toBeVisible()
+
+  await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
+  const reopenedPanel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
+
+  const venusCard = reopenedPanel.locator('li', { hasText: 'Venüs en büyük uzanımda' })
+  await venusCard.getByRole('button', { name: 'Simülasyonda göster' }).click()
+  await expect(reopenedPanel).toBeHidden()
+  await expect(page.getByText('Perseid · görsel simülasyon')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Venüs (Venus)' })).toBeVisible()
 })
 

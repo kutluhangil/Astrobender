@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { SkyEvent, SkyEventKind, SkyEventVisibility, SkyObserver } from '@/lib/sky-events'
+import { directionLabel, getPerseidWatch, type PerseidWatch } from '@/lib/perseid-watch'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface SkywatchPanelProps {
@@ -12,6 +13,7 @@ interface SkywatchPanelProps {
   onSaveManualLocation: (latitude: number, longitude: number, label: string) => boolean
   onClearLocation: () => void
   onSelectEvent: (event: SkyEvent) => void
+  onStartPerseidSimulation: (watch: PerseidWatch) => void
   onClose: () => void
 }
 
@@ -65,6 +67,106 @@ function visibilityLabel(visibility: SkyEventVisibility, language: UiLanguage): 
     'location-required': ['Yerel görünürlük için konum seçin', 'Choose a location for local visibility'],
   }
   return labels[visibility][language === 'tr' ? 0 : 1]
+}
+
+function formatUtcRange(start: string, end: string, language: UiLanguage): string {
+  const formatter = new Intl.DateTimeFormat(language === 'tr' ? 'tr-TR' : 'en-US', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  })
+  return `${formatter.format(new Date(start))} – ${formatter.format(new Date(end))}`
+}
+
+function perseidStatusLabel(status: PerseidWatch['status'], language: UiLanguage): string {
+  const labels: Record<PerseidWatch['status'], [string, string]> = {
+    upcoming: ['Yaklaşıyor', 'Upcoming'],
+    active: ['Aktif', 'Active'],
+    peak: ['Zirve şimdi', 'Peak now'],
+    completed: ['Sezon tamamlandı', 'Season complete'],
+  }
+  return labels[status][language === 'tr' ? 0 : 1]
+}
+
+function scoreLabel(score: number, language: UiLanguage): string {
+  if (score >= 80) return pickLanguage(language, 'Çok uygun', 'Very favorable')
+  if (score >= 55) return pickLanguage(language, 'Uygun', 'Favorable')
+  if (score >= 25) return pickLanguage(language, 'Sınırlı', 'Limited')
+  return pickLanguage(language, 'Şu an uygun değil', 'Not favorable now')
+}
+
+function PerseidWatchCard({ watch, language, onStartSimulation }: {
+  watch: PerseidWatch
+  language: UiLanguage
+  onStartSimulation: (watch: PerseidWatch) => void
+}) {
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const observer = watch.observer
+
+  return (
+    <section className="relative overflow-hidden rounded-xl border border-amber-200/30 bg-amber-200/[0.055] p-2.5 shadow-[0_0_22px_rgba(251,191,36,0.08)]" aria-label="Perseid Watch">
+      <div aria-hidden="true" className="perseid-card-streams">
+        <span className="perseid-card-stream perseid-card-stream--one" />
+        <span className="perseid-card-stream perseid-card-stream--two" />
+      </div>
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-100/75">Perseid Watch · 2026</div>
+            <h3 className="mt-0.5 font-mono text-xs font-bold tracking-[0.1em] text-amber-50">{t('PERSEİD AKIŞI', 'PERSEID STREAM')}</h3>
+          </div>
+          <span className="rounded-full border border-amber-100/25 bg-black/20 px-1.5 py-0.5 font-mono text-[8px] font-semibold text-amber-100">{perseidStatusLabel(watch.status, language)}</span>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-1.5 font-mono text-[8px]">
+          <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
+            <div className="text-amber-100/55">{t('AKTİF', 'ACTIVE')}</div>
+            <div className="mt-0.5">17 Tem – 24 Ağu</div>
+          </div>
+          <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
+            <div className="text-amber-100/55">{t('ZİRVE', 'PEAK')}</div>
+            <div className="mt-0.5">{formatUtcRange(watch.peakStart, watch.peakEnd, language)}</div>
+          </div>
+          <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
+            <div className="text-amber-100/55">{t('AY IŞIĞI', 'MOONLIGHT')}</div>
+            <div className="mt-0.5">{language === 'tr' ? `%${watch.moonIlluminationPercent}` : `${watch.moonIlluminationPercent}%`}</div>
+          </div>
+          <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
+            <div className="text-amber-100/55">ZHR</div>
+            <div className="mt-0.5">{watch.zhr}</div>
+          </div>
+        </div>
+
+        {observer ? (
+          <div className="mt-2 rounded-lg border border-amber-100/15 bg-black/20 px-2 py-1.5">
+            <div className="flex items-center justify-between gap-2 font-mono text-[8px]">
+              <span className="text-amber-100/65">{observer.label} · {t('şimdi', 'now')}</span>
+              <span className="font-semibold text-amber-50">{scoreLabel(observer.astronomicalScore, language)} · {observer.astronomicalScore}/100</span>
+            </div>
+            <p className="mt-1 text-[9px] leading-relaxed text-slate-200">
+              {t('Işınım', 'Radiant')}: {directionLabel(observer.radiantAzimuthDegrees, language)} · {Math.round(observer.radiantAltitudeDegrees)}° · {t('Güneş', 'Sun')}: {Math.round(observer.sunAltitudeDegrees)}°
+            </p>
+            <p className="mt-1 font-mono text-[7px] leading-relaxed text-amber-100/60">{t('Astronomik skor; bulutluluk ve yerel engeller dahil değildir.', 'Astronomical score; cloud cover and local obstructions are excluded.')}</p>
+          </div>
+        ) : (
+          <p className="mt-2 rounded-lg border border-amber-100/15 bg-black/20 px-2 py-1.5 text-[9px] leading-relaxed text-slate-300">{t('Işınımın yönü, yüksekliği ve astronomik gözlem skoru için konum seçin.', 'Choose a location for radiant direction, altitude, and an astronomical viewing score.')}</p>
+        )}
+
+        <p className="mt-2 text-[8px] leading-relaxed text-slate-300">{watch.parentBody} · {t('Hedef: geniş gökyüzü, karanlık ufuk ve ışınımdan uzağa bakış.', 'Aim for a wide sky, a dark horizon, and a view away from the radiant.')}</p>
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[8px]">
+          <a href={watch.sourceUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">IMO {t('takvimi', 'calendar')} ↗</a>
+          <a href={watch.reportUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">{t('Gözlem bildir', 'Report observation')} ↗</a>
+          <a href={watch.fireballUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">{t('Ateştopu bildir', 'Report fireball')} ↗</a>
+        </div>
+        <button type="button" onClick={() => onStartSimulation(watch)} className="mt-2 w-full rounded-md border border-amber-100/35 bg-amber-200/[0.08] px-2 py-1.5 font-mono text-[9px] font-semibold text-amber-50 transition-colors hover:bg-amber-200/[0.16]">
+          {t('Görsel akışı simülasyonda göster', 'Show visual stream in simulation')}
+        </button>
+      </div>
+    </section>
+  )
 }
 
 function SkywatchLocationControl({
@@ -162,10 +264,12 @@ export default function SkywatchPanel({
   onSaveManualLocation,
   onClearLocation,
   onSelectEvent,
+  onStartPerseidSimulation,
   onClose,
 }: SkywatchPanelProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
   const [now, setNow] = useState(() => Date.now())
+  const perseidWatch = getPerseidWatch(new Date(now), observer ?? undefined)
   const months = useMemo(() => [...new Set(events.map((event) => monthKey(event.startsAt)))], [events])
   const [requestedMonth, setRequestedMonth] = useState(() => months[0] ?? '')
   const selectedMonth = months.includes(requestedMonth) ? requestedMonth : (months[0] ?? '')
@@ -218,6 +322,14 @@ export default function SkywatchPanel({
           onSaveManualLocation={onSaveManualLocation}
           onClearLocation={onClearLocation}
         />
+
+        {perseidWatch && (
+          <PerseidWatchCard
+            watch={perseidWatch}
+            language={language}
+            onStartSimulation={onStartPerseidSimulation}
+          />
+        )}
 
         {displayedEvents.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-white/[0.025] p-3 font-mono text-[9px] leading-relaxed text-slate-400">

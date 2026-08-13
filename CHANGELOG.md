@@ -2,6 +2,10 @@
 
 ## 2026-08-13
 
+- Added a source-backed Perseid Watch with the IMO 2026 active/peak window, local radiant and Moon-based astronomical score, honest weather-data boundary, reporting links, and a clearly labeled visual simulation flow.
+
+## 2026-08-13
+
 - Moved celestial-body navigation into a compact textured orbit tray with contextual moon popovers, and kept the layer panel focused on cosmic and Earth-satellite controls.
 
 ## 2026-08-11

@@ -133,6 +133,48 @@ canvas {
   .skywatch-event--next::after { animation: none; }
 }
 
+.perseid-card-streams {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.perseid-card-stream,
+.perseid-flow {
+  position: absolute;
+  width: 76px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(254, 243, 199, 0.05), rgba(254, 243, 199, 0.9), transparent);
+  box-shadow: 0 0 7px rgba(251, 191, 36, 0.75);
+  transform: rotate(-28deg);
+}
+
+.perseid-card-stream--one { top: 18%; left: 58%; opacity: 0.38; }
+.perseid-card-stream--two { top: 74%; left: 8%; width: 56px; opacity: 0.22; }
+
+.perseid-flow {
+  width: clamp(88px, 16vw, 228px);
+  opacity: 0;
+  animation: perseid-flow 5.8s linear infinite;
+}
+
+.perseid-flow--one { top: 18%; left: 10%; animation-delay: 0.4s; }
+.perseid-flow--two { top: 33%; right: 5%; animation-delay: 2.1s; }
+.perseid-flow--three { top: 57%; left: 34%; animation-delay: 3.4s; }
+.perseid-flow--four { top: 72%; right: 20%; animation-delay: 4.7s; }
+
+@keyframes perseid-flow {
+  0%, 14% { opacity: 0; translate: -42px -20px; }
+  18% { opacity: 0.95; }
+  34% { opacity: 0; translate: 168px 78px; }
+  100% { opacity: 0; translate: 168px 78px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perseid-flow { animation: none; opacity: 0.32; }
+}
+
 @keyframes opening-cursor-blink {
   50% { opacity: 0; }
 }

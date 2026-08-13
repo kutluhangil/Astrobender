@@ -24,13 +24,27 @@ test('catalog covers every selectable rendered body with a dated primary source'
   }
 })
 
-test('every selectable body has a sourced physical chemistry profile', () => {
+test('every selectable body exposes only field-scoped sourced measurements and unavailable chemistry fields', () => {
   for (const bodyId of getAllBodyIds()) {
     const profile = CELESTIAL_PHYSICAL_PROFILES[bodyId]
-    assert.ok(profile.temperature.length > 0, `${bodyId} temperature`)
-    assert.ok(profile.chemistry.tr.length > 20, `${bodyId} Turkish chemistry`)
-    assert.ok(profile.chemistry.en.length > 20, `${bodyId} English chemistry`)
+    assert.equal(profile.temperature, null, `${bodyId} temperature`)
+    assert.equal(profile.chemistry, null, `${bodyId} chemistry`)
+    for (const field of ['mass', 'density', 'gravity'] as const) {
+      assert.equal(
+        profile[field] === null,
+        profile.evidence[field] === null,
+        `${bodyId} ${field} availability and evidence must agree`,
+      )
+    }
   }
+  assert.deepEqual(
+    [
+      CELESTIAL_PHYSICAL_PROFILES.sun.mass,
+      CELESTIAL_PHYSICAL_PROFILES.sun.density,
+      CELESTIAL_PHYSICAL_PROFILES.sun.gravity,
+    ],
+    [null, null, null],
+  )
   assert.match(JPL_PHYSICAL_PARAMETERS_URL, /^https:\/\/ssd\.jpl\.nasa\.gov\//)
   assert.match(JPL_SATELLITE_PARAMETERS_URL, /^https:\/\/ssd\.jpl\.nasa\.gov\//)
 })

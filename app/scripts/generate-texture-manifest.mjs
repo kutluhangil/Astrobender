@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -7,10 +7,12 @@ const texturesDir = join(__dirname, '..', 'public', 'textures')
 const outDir = join(__dirname, '..', 'public', 'data')
 const outPath = join(outDir, 'texture-manifest.json')
 
-const files = readdirSync(texturesDir)
-  .filter((name) => !name.startsWith('.'))
-  .sort()
-  .map((name) => ({ file: name, bytes: statSync(join(texturesDir, name)).size }))
+const files = existsSync(texturesDir)
+  ? readdirSync(texturesDir)
+      .filter((name) => !name.startsWith('.'))
+      .sort()
+      .map((name) => ({ file: name, bytes: statSync(join(texturesDir, name)).size }))
+  : []
 
 const totalBytes = files.reduce((sum, entry) => sum + entry.bytes, 0)
 

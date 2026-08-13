@@ -19,7 +19,7 @@ interface CelestialScaleSpec {
   gravity: string
   climate: string
   atmosphere: string
-  texture: string
+  palette: readonly [string, string, string]
   funFact: string
 }
 
@@ -35,7 +35,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '274.0 m/s² (27.9g)',
     climate: '5,500°C Yüzey / 15 Milyon°C Çekirdek',
     atmosphere: 'Hidrojen (%73), Helyum (%25)',
-    texture: 'sun-map.jpg',
+    palette: ['#fff7ae', '#f59e0b', '#9a3412'],
     funFact: 'Güneş Sistemimizin toplam kütlesinin %99.86\'sını tek başına oluşturur.',
   },
   {
@@ -49,7 +49,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '24.79 m/s² (2.53g)',
     climate: '-110°C, Devasa Gaz Fırtınaları',
     atmosphere: 'Hidrojen (%90), Helyum (%10)',
-    texture: 'jupiter-8k.jpg',
+    palette: ['#ffe0bd', '#b86d47', '#57251b'],
     funFact: 'En büyük gezegendir; içine 1,300 adet Dünya sığabilir.',
   },
   {
@@ -63,7 +63,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '10.44 m/s² (1.06g)',
     climate: '-140°C, Supersonik Rüzgarlar',
     atmosphere: 'Hidrojen (%96), Helyum (%3)',
-    texture: 'saturn-8k.jpg',
+    palette: ['#f7e6b5', '#c5a569', '#66533a'],
     funFact: 'Yoğunluğu sudan azdır; devasa bir okyanusa konsaydı suda yüzerdi.',
   },
   {
@@ -77,7 +77,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '8.69 m/s² (0.89g)',
     climate: '-195°C, 97.7° Yan Yatan Eksen',
     atmosphere: 'Hidrojen (%83), Helyum (%15), Metan',
-    texture: 'uranus-2k.jpg',
+    palette: ['#c5f2f0', '#48a6bf', '#164e63'],
     funFact: 'Ekseni 98 derece yatıktır, yana yatmış bir varil gibi yörüngesinde yuvarlanır.',
   },
   {
@@ -91,7 +91,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '11.15 m/s² (1.14g)',
     climate: '-200°C, 2,000 km/h Fırtınalar',
     atmosphere: 'Hidrojen (%80), Helyum (%19), Metan',
-    texture: 'neptune-2k.jpg',
+    palette: ['#b7cdfd', '#3264bd', '#172554'],
     funFact: 'Güneş Sistemi\'nin en güçlü rüzgarlarına sahiptir (2,000 km/h üzeri).',
   },
   {
@@ -105,7 +105,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '9.81 m/s² (1.00g)',
     climate: '-88°C ile +58°C, Sıvı Su Okyanusları',
     atmosphere: 'Azot (%78), Oksijen (%21), Argon',
-    texture: 'earth-day-8k.jpg',
+    palette: ['#b7f1ef', '#1477b8', '#062653'],
     funFact: 'Sıvı halde okyanuslara ve yaşama sahip bilinen tek gök cismidir.',
   },
   {
@@ -119,7 +119,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '8.87 m/s² (0.90g)',
     climate: '465°C, Sülfürik Asit Yağmurları',
     atmosphere: 'Karbondioksit (%96.5), Azot (%3.5)',
-    texture: 'venus-surface-8k.jpg',
+    palette: ['#fee2a8', '#d97706', '#7c2d12'],
     funFact: 'Sera etkisi nedeniyle en sıcak gezegendir; kurşun bile erir.',
   },
   {
@@ -133,7 +133,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '3.72 m/s² (0.38g)',
     climate: '-63°C, Kızıl Regolit & Devasa Toz',
     atmosphere: 'Karbondioksit (%95), Argon (%1.9)',
-    texture: 'mars-8k.jpg',
+    palette: ['#f4b49b', '#c2410c', '#5b1d15'],
     funFact: 'Güneş Sistemi\'nin en yüksek dağı Olympus Mons (21.9 km) buradadır.',
   },
   {
@@ -147,7 +147,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '1.43 m/s² (0.15g)',
     climate: '-160°C, Tektonik Buz Çatlakları',
     atmosphere: 'İnce Oksijen Egzozferi',
-    texture: 'ganymede-4k.jpg',
+    palette: ['#e4e4e7', '#777d88', '#252a33'],
     funFact: 'Güneş Sistemi\'nin en büyük uydusudur; Merkür gezegeninden daha büyüktür.',
   },
   {
@@ -161,7 +161,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '1.35 m/s² (0.14g)',
     climate: '-179°C, Sıvı Metan Gölleri ve Denizleri',
     atmosphere: 'Azot (%95), Metan (%5)',
-    texture: 'titan-4k.jpg',
+    palette: ['#f3c37b', '#bf6c25', '#633116'],
     funFact: 'Yüzeyinde sıvı metan gölleri ve yoğun atmosferi olan tek uydudur.',
   },
   {
@@ -175,7 +175,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '3.70 m/s² (0.38g)',
     climate: '-180°C (Gece) / +430°C (Gündüz)',
     atmosphere: 'İnce ekzosfer: Oksijen, Sodyum, Hidrojen, Helyum ve Potasyum',
-    texture: 'mercury-4k.jpg',
+    palette: ['#d8d4cd', '#77716a', '#2d2926'],
     funFact: 'Güneş\'e en yakın gezegendir; ince ekzosferi ısıyı tutamadığı için gece ve gündüz sıcaklıkları çok farklıdır.',
   },
   {
@@ -189,7 +189,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '1.24 m/s² (0.13g)',
     climate: '-140°C, Kadim Kraterleşmiş Yüzey',
     atmosphere: 'Karbondioksit İzleri',
-    texture: 'callisto-4k.jpg',
+    palette: ['#d2c3ae', '#6b6258', '#302a25'],
     funFact: 'Güneş Sistemi\'nin en yoğun kraterli yüzeyine sahiptir.',
   },
   {
@@ -203,7 +203,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '1.79 m/s² (0.18g)',
     climate: '-130°C, 400+ Aktif Yanardağ',
     atmosphere: 'Kükürtdioksit (%90)',
-    texture: 'io-4k.jpg',
+    palette: ['#f7da70', '#bd6c1a', '#642a10'],
     funFact: 'Güneş Sistemi\'nin en aktif volkanik gök cismidir; 400\'den fazla aktif volkanı vardır.',
   },
   {
@@ -217,7 +217,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '1.62 m/s² (0.17g)',
     climate: '-130°C ile +120°C, Anortozit Kraterler',
     atmosphere: 'Yok (Çok ince egzozfer)',
-    texture: 'moon-8k.jpg',
+    palette: ['#e5e7eb', '#7c838c', '#20242b'],
     funFact: 'İnsanoğlunun üzerine ayak bastığı Dünya dışındaki tek gök cismidir.',
   },
   {
@@ -231,7 +231,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '1.31 m/s² (0.13g)',
     climate: '-160°C, Global Okyanus & Kabuk',
     atmosphere: 'Seyrek Oksijen',
-    texture: 'europa-4k.jpg',
+    palette: ['#eef2dc', '#9ba5a2', '#43474b'],
     funFact: 'Buz kabuğunun altında küresel tuzlu bir okyanus olduğu düşünülür; varlığı gelecekteki görevlerle doğrulanmayı bekliyor.',
   },
   {
@@ -245,7 +245,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.78 m/s² (0.08g)',
     climate: '-235°C, Azot Gayzerleri',
     atmosphere: 'Azot & Metan İzleri',
-    texture: 'triton-4k.jpg',
+    palette: ['#f2d9e4', '#a47f95', '#493742'],
     funFact: 'Ters yönde dönen (retrograd) tek büyük uydudur; azot gayzerleri püskürtür.',
   },
   {
@@ -259,7 +259,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.62 m/s² (0.06g)',
     climate: '-230°C, Azot & Karbonmonoksit Buzları',
     atmosphere: 'Azot, Metan, Karbonmonoksit',
-    texture: 'pluto-2k.jpg',
+    palette: ['#eee6dd', '#8d7568', '#3f322c'],
     funFact: 'Yüzeyinde devasa bir azot buzu kalbi (Sputnik Planitia) taşır.',
   },
   {
@@ -273,7 +273,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.37 m/s² (0.04g)',
     climate: '-203°C, Devasa Kanyonlar',
     atmosphere: 'Doğrulanmış atmosfer yok',
-    texture: 'titania-4k.jpg',
+    palette: ['#dcecf2', '#7d9aa8', '#334955'],
     funFact: 'Uranüs\'ün en büyük uydusudur; devasa kanyon sistemleri barındırır.',
   },
   {
@@ -287,7 +287,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.35 m/s² (0.04g)',
     climate: '-198°C, Kraterli Buz ve Kaya',
     atmosphere: 'Yok',
-    texture: 'oberon-4k.jpg',
+    palette: ['#d3d8da', '#68737a', '#31383c'],
     funFact: 'Uranüs\'ün ikinci büyük ve en dıştaki büyük uydusudur.',
   },
   {
@@ -301,7 +301,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.11 m/s² (0.01g)',
     climate: '-201°C, Buz Kabuğu ve Su Gayzerleri',
     atmosphere: 'Su buharı ağırlıklı ince egzozfer',
-    texture: 'enceladus-4k.jpg',
+    palette: ['#effaff', '#a7c3cf', '#4d6570'],
     funFact: 'Güney kutbundaki çatlaklardan uzaya su ve buz püskürtür.',
   },
   {
@@ -315,7 +315,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.0057 m/s²',
     climate: '-112°C Ortalama, Tozlu Kaya',
     atmosphere: 'Yok',
-    texture: 'phobos-4k.jpg',
+    palette: ['#c4ad99', '#766457', '#352c26'],
     funFact: 'Mars çevresinde bir Mars gününde yaklaşık üç tur atar.',
   },
   {
@@ -329,7 +329,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.003 m/s²',
     climate: '-40°C Ortalama, Tozlu Kaya',
     atmosphere: 'Yok',
-    texture: 'deimos-4k.jpg',
+    palette: ['#d0ba9e', '#7a6a59', '#3e332b'],
     funFact: 'Mars\'ın daha küçük ve daha uzaktaki doğal uydusudur.',
   },
 ]
@@ -493,7 +493,7 @@ export default function ScaleSandboxModal({
                         style={{
                           width: `${spherePx}px`,
                           height: `${spherePx}px`,
-                          backgroundImage: `url(${import.meta.env.BASE_URL}textures/${b.texture})`,
+                          background: `radial-gradient(circle at 31% 28%, ${b.palette[0]} 0 12%, transparent 34%), repeating-linear-gradient(18deg, ${b.palette[1]} 0 3px, ${b.palette[2]} 4px 8px)`,
                         }}
                       />
                       <div className="mt-3 text-center">

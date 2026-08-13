@@ -14,6 +14,7 @@ import {
 } from 'astronomy-engine'
 import type { CelestialBodyId } from './planets.ts'
 import { METEOR_CALENDAR_BY_YEAR } from './meteor-calendar.ts'
+import type { EvidenceRecord } from './scientific-evidence.ts'
 import type { UiLanguage } from './ui-language.ts'
 
 export type SkyEventKind =
@@ -47,6 +48,7 @@ export interface SkyEvent {
   sourceUrl: string
   targetBody: CelestialBodyId
   visibility: SkyEventVisibility
+  evidence: EvidenceRecord
 }
 
 interface SkyEventInput {
@@ -58,6 +60,20 @@ interface SkyEventInput {
 
 const NASA_ECLIPSE_URL = 'https://science.nasa.gov/eclipses/future-eclipses/'
 const JPL_PLANETS_URL = 'https://ssd.jpl.nasa.gov/planets/'
+const ASTRONOMY_ENGINE_URL = 'https://github.com/cosinekitty/astronomy'
+
+function calculatedEvidence(epoch: string, limitation: string): EvidenceRecord {
+  return {
+    evidenceClass: 'calculated',
+    publisher: 'CosineKitty',
+    sourceUrl: ASTRONOMY_ENGINE_URL,
+    verifiedAt: '2026-08-13',
+    method: 'Astronomy Engine 2.1.19',
+    epoch,
+    uncertainty: 'Unknown; values are rounded for display.',
+    limitation,
+  }
+}
 
 const BODY_INFO: Record<Body.Mercury | Body.Venus | Body.Mars | Body.Jupiter | Body.Saturn, {
   id: CelestialBodyId
@@ -134,6 +150,7 @@ function addSolarEclipses(input: SkyEventInput, events: SkyEvent[]) {
       sourceUrl: NASA_ECLIPSE_URL,
       targetBody: 'sun',
       visibility: solarVisibility(peak, input.observer),
+      evidence: calculatedEvidence(toIso(peak), 'Global eclipse geometry is calculated; local visibility depends on observer coordinates.'),
     })
     eclipse = NextGlobalSolarEclipse(eclipse.peak)
   }
@@ -168,6 +185,7 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
       sourceUrl: NASA_ECLIPSE_URL,
       targetBody: 'moon',
       visibility: lunarVisibility(peak, input.observer),
+      evidence: calculatedEvidence(toIso(peak), 'Eclipse contacts are calculated; local visibility depends on observer coordinates.'),
     })
     eclipse = NextLunarEclipse(eclipse.peak)
   }
@@ -206,6 +224,16 @@ function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: stream.sourceUrl,
         targetBody: 'earth',
         visibility: input.observer ? 'global' : 'location-required',
+        evidence: {
+          evidenceClass: 'sourced-static',
+          publisher: 'International Meteor Organization',
+          sourceUrl: stream.sourceUrl,
+          verifiedAt: '2026-08-13',
+          validFrom: stream.activeStart,
+          validUntil: stream.activeEnd,
+          uncertainty: 'The published maximum is a time window, not an exact instant.',
+          limitation: 'Observed rates depend on sky conditions and observer location.',
+        },
       })
     }
   }
@@ -236,6 +264,7 @@ function addMaximumElongations(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: JPL_PLANETS_URL,
         targetBody: info.id,
         visibility: input.observer ? 'global' : 'location-required',
+        evidence: calculatedEvidence(toIso(event.time.date), 'Geocentric event time; local observing conditions are not included.'),
       })
       event = SearchMaxElongation(body, new Date(event.time.date.getTime() + 24 * 60 * 60 * 1000))
     }
@@ -258,6 +287,7 @@ function addPlanetAlignments(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: JPL_PLANETS_URL,
         targetBody: info.id,
         visibility: input.observer ? 'global' : 'location-required',
+        evidence: calculatedEvidence(toIso(opposition), 'Geocentric alignment; local observing conditions are not included.'),
       })
     }
 
@@ -274,6 +304,7 @@ function addPlanetAlignments(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: JPL_PLANETS_URL,
         targetBody: info.id,
         visibility: input.observer ? 'global' : 'location-required',
+        evidence: calculatedEvidence(toIso(conjunction), 'Geocentric alignment; local observing conditions are not included.'),
       })
     }
   }

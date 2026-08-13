@@ -1,13 +1,23 @@
 import { UI_GROUPS } from '@/lib/satellites'
+import type { EvidenceRecord } from '@/lib/scientific-evidence'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import EvidenceMark from './EvidenceMark'
+
+const SCHEMATIC_BELT_EVIDENCE: EvidenceRecord = {
+  evidenceClass: 'schematic',
+  publisher: 'ASTROBENDER',
+  sourceUrl: '',
+  verifiedAt: '2026-08-13',
+  method: 'Deterministic educational particle placement',
+  uncertainty: 'Not applicable; this geometry is not a measurement.',
+  limitation: 'Particle positions, sizes, and densities are visual aids and do not represent catalog objects.',
+}
 
 interface LayerPanelProps {
   counts: number[]
   visible: boolean[]
   onToggle: (index: number) => void
   onToggleScaleSandbox?: () => void
-  onToggleAudio?: () => void
-  audioPlaying?: boolean
   onTogglePlanetaryOrbits?: () => void
   planetaryOrbitsVisible?: boolean
   onToggleProbes?: () => void
@@ -16,12 +26,15 @@ interface LayerPanelProps {
   constellationsVisible?: boolean
   onToggleAsteroids?: () => void
   asteroidsVisible?: boolean
+  onToggleSchematicSurfaces: () => void
+  schematicSurfacesVisible: boolean
   onToggleEarthObservatory?: () => void
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
   smallBodiesVisible?: boolean
   onToggleSkywatch?: () => void
   skywatchVisible?: boolean
+  tleEvidence?: EvidenceRecord | null
   language?: UiLanguage
 }
 
@@ -30,18 +43,19 @@ export default function LayerPanel({
   visible,
   onToggle,
   onToggleScaleSandbox,
-  onToggleAudio,
-  audioPlaying = false,
   onTogglePlanetaryOrbits,
   planetaryOrbitsVisible = false,
   onToggleAsteroids,
   asteroidsVisible = false,
+  onToggleSchematicSurfaces,
+  schematicSurfacesVisible,
   onToggleEarthObservatory,
   earthObservatoryVisible = false,
   onToggleSmallBodies,
   smallBodiesVisible = false,
   onToggleSkywatch,
   skywatchVisible = false,
+  tleEvidence = null,
   language = 'tr',
 }: LayerPanelProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
@@ -49,22 +63,12 @@ export default function LayerPanel({
   return (
     <div data-hud-surface className="pointer-events-auto w-full md:w-[248px] rounded-xl border border-white/10 bg-[#0a0e14]/80 px-4 py-3.5 backdrop-blur-xl space-y-3">
       {/* Top Utility Controls */}
-      <div className="flex gap-1">
+      <div>
         <button
           onClick={onToggleScaleSandbox}
           className="flex-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 py-1 font-mono text-[9.5px] font-semibold text-cyan-200 hover:bg-cyan-500/20 transition-all"
         >
           ⚖️ {t('Ölçek Laboratuvarı', 'Scale Sandbox')}
-        </button>
-        <button
-          onClick={onToggleAudio}
-          className={`px-2.5 rounded-md border py-1 font-mono text-[10px] transition-all ${
-            audioPlaying
-              ? 'border-emerald-400/60 bg-emerald-500/20 text-emerald-200'
-              : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
-          }`}
-        >
-          {audioPlaying ? `🔊 ${t('Ortam Açık', 'Ambient On')}` : `🔇 ${t('Sessiz', 'Mute')}`}
         </button>
       </div>
 
@@ -114,6 +118,22 @@ export default function LayerPanel({
           {t('Görsel Yardımcılar', 'Visual Aids')}
         </div>
         <button
+          type="button"
+          onClick={onToggleSchematicSurfaces}
+          aria-pressed={schematicSurfacesVisible}
+          aria-label={schematicSurfacesVisible
+            ? t('Şematik yüzey görsellerini kapat', 'Hide schematic surface visuals')
+            : t('Şematik yüzey görsellerini aç', 'Show schematic surface visuals')}
+          className={`mt-1.5 w-full rounded border py-1 font-mono text-[9px] transition-all ${
+            schematicSurfacesVisible ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 font-semibold shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'border-white/5 bg-white/5 text-white/60'
+          }`}
+        >
+          ◐ {t('Şematik yüzey görselleri', 'Schematic surface visuals')}
+        </button>
+        <p className="mt-1 font-mono text-[7px] leading-relaxed text-slate-600">
+          {t('Varsayılan kapalı · bilimsel ölçüm değildir.', 'Off by default · not a scientific measurement.')}
+        </p>
+        <button
           onClick={onToggleAsteroids}
           aria-pressed={asteroidsVisible}
           className={`mt-1.5 w-full rounded border py-1 font-mono text-[9px] transition-all ${
@@ -125,12 +145,28 @@ export default function LayerPanel({
         <p className="mt-1 font-mono text-[7px] leading-relaxed text-slate-600">
           {t('Varsayılan kapalı · katalog ölçümü değildir.', 'Off by default · not a catalog measurement.')}
         </p>
+        <div className="mt-1.5">
+          <EvidenceMark
+            evidence={SCHEMATIC_BELT_EVIDENCE}
+            language={language}
+            contextLabel={t('Asteroit ve Kuiper kuşakları', 'Asteroid and Kuiper belts')}
+          />
+        </div>
       </div>
 
       {/* Satellite Layers */}
       <div>
-        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-slate-500">
-          {t('Dünya Uyduları', 'Earth Satellites')}
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-slate-500">
+            {t('Dünya Uyduları', 'Earth Satellites')}
+          </div>
+          {tleEvidence && (
+            <EvidenceMark
+              evidence={tleEvidence}
+              language={language}
+              contextLabel={t('Uydu konumları', 'Satellite positions')}
+            />
+          )}
         </div>
         <div className="space-y-0.5 max-h-[20vh] md:max-h-[140px] overflow-y-auto pr-1">
           {UI_GROUPS.map((g, i) => (

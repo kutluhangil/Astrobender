@@ -96,17 +96,16 @@ test('Perseid product heuristic calculates every astronomical input at one insta
   assert.equal('astronomicalScore' in watch.observer, false)
 })
 
-test('duplicated catalog claims use primary-source uncertainty language consistently', () => {
+test('catalog keeps primary-source uncertainty language while unsupported profile chemistry stays unavailable', () => {
   assert.match(CELESTIAL_FACTS.mercury.atmosphere, /ekzosfer/i)
   assert.doesNotMatch(CELESTIAL_FACTS.mercury.atmosphere, /^Yok/)
   assert.match(CELESTIAL_FACTS.europa.funFactTr, /düşünül|olası/i)
   assert.match(CELESTIAL_FACTS.titan.atmosphere, /%95.*%5/)
-  assert.match(CELESTIAL_PHYSICAL_PROFILES.titan.chemistry.tr, /%95.*%5/)
   assert.match(CELESTIAL_FACTS.ariel.atmosphere, /doğrulanmış atmosfer yok/i)
   assert.match(CELESTIAL_FACTS.titania.atmosphere, /doğrulanmış atmosfer yok/i)
-  assert.match(CELESTIAL_PHYSICAL_PROFILES.ariel.chemistry.en, /surface/i)
-  assert.match(CELESTIAL_PHYSICAL_PROFILES.titania.chemistry.en, /no atmosphere detected/i)
-  assert.match(CELESTIAL_PHYSICAL_PROFILES.makemake.chemistry.en, /may develop/i)
+  for (const bodyId of ['titan', 'ariel', 'titania', 'makemake'] as const) {
+    assert.equal(CELESTIAL_PHYSICAL_PROFILES[bodyId].chemistry, null, bodyId)
+  }
 
   const uranus = PLANETS.find((planet) => planet.id === 'uranus')
   assert.equal(uranus?.knownMoonCount, 29)

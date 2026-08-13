@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -51,25 +52,29 @@ test('runtime and CI use the pinned Node release and split browser quality gates
   assert.match(playwright, /--strictPort/)
 })
 
-test('offline download feedback exposes storage use and a user-owned cache clear action', () => {
+test('offline feedback accurately describes the media-free app shell', () => {
   const control = read('src/components/hud/PrepareOfflineControl.tsx')
-  const storageHook = read('src/hooks/useOfflineStorage.ts')
   const worker = read('src/sw.ts')
 
-  assert.match(control, /Varlıkları sil/)
-  assert.match(control, /offline-download-failed/)
-  assert.match(storageHook, /caches\.delete/)
-  assert.match(worker, /failureCount/)
+  assert.match(control, /Çevrimdışı uygulama kabuğunu doğrula/)
+  assert.match(control, /Şematik görseller kod içinde üretilir/)
+  assert.match(worker, /APP_SHELL_CACHE/)
+  assert.doesNotMatch(worker, /PREPARE_OFFLINE_TEXTURES/)
+  assert.doesNotMatch(worker, /\/textures\//)
+  assert.doesNotMatch(worker, /\/audio\//)
 })
 
-test('catalog source governance is date-bound and reviewed by a scheduled check', () => {
-  const governance = read('src/lib/source-governance.ts')
-  const sourceCheck = read('scripts/check-source-freshness.mjs')
+test('source governance validates every evidence group through the scheduled check', () => {
+  const catalog = read('src/lib/celestial-catalog.ts')
   const workflow = readRepository('.github/workflows/source-review.yml')
+  const result = spawnSync(process.execPath, ['scripts/check-source-freshness.mjs'], {
+    cwd: appRoot,
+    encoding: 'utf8',
+  })
 
-  assert.match(governance, /CATALOG_VERIFIED_AT = '20\d{2}-\d{2}-\d{2}'/)
-  assert.match(governance, /SOURCE_REVIEW_MAX_AGE_DAYS = 120/)
-  assert.match(sourceCheck, /source review is overdue/i)
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /Evidence source reviews are current: \d+ groups checked/)
+  assert.doesNotMatch(catalog, /CATALOG_VERIFIED_AT/)
   assert.match(workflow, /schedule:/)
   assert.match(workflow, /npm run check:sources/)
 })
@@ -88,10 +93,15 @@ test('document language and font policy are self-contained', () => {
   assert.match(html, /property="og:title"/)
 })
 
-test('asset attribution registry covers runtime media groups', () => {
-  const registry = JSON.parse(read('public/data/asset-attributions.json'))
-  const scopes = new Set(registry.attributions.map((entry) => entry.scope))
-  assert.deepEqual(scopes, new Set(['textures/*', 'audio/*', 'icons/*']))
+test('asset attribution registry exactly covers and verifies runtime media files', () => {
+  const result = spawnSync(process.execPath, ['scripts/check-asset-attributions.mjs'], {
+    cwd: appRoot,
+    encoding: 'utf8',
+  })
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /exactly covers \d+ runtime media files/)
+  assert.match(result.stdout, /complete provenance/)
+  assert.doesNotMatch(result.stdout, /incomplete provenance/)
 })
 
 test('production responses include baseline security headers', () => {
@@ -152,16 +162,23 @@ test('method, source, and privacy disclosures are available from the HUD', () =>
   assert.match(home, /showAboutModal/)
 })
 
-test('surface textures no longer rely on partial-mosaic workarounds', () => {
+test('procedural surfaces are explicit opt-in and never claim untraceable imagery', () => {
+  const engine = read('src/lib/globe-engine.ts')
   const planets = read('src/lib/planets.ts')
-  assert.doesNotMatch(planets, /missingTextureTone/)
-  for (const body of ['europa', 'titania', 'oberon', 'triton', 'pluto']) {
-    assert.match(
-      planets,
-      new RegExp(`id: '${body}'[\\s\\S]*?texture: '[^']+'`),
-      body,
-    )
-  }
+  const home = read('src/pages/Home.tsx')
+  const layers = read('src/components/hud/LayerPanel.tsx')
+  const schematicSurfaces = read('src/lib/schematic-surfaces.ts')
+
+  assert.match(schematicSurfaces, /DEFAULT_SCHEMATIC_SURFACES_VISIBLE = false/)
+  assert.match(engine, /createSchematicSurfaceTexture/)
+  assert.match(engine, /setSchematicSurfacesVisible\(visible: boolean\)/)
+  assert.match(home, /useState\([\s\S]*?DEFAULT_SCHEMATIC_SURFACES_VISIBLE/)
+  assert.match(home, /engineRef\.current\?\.setSchematicSurfacesVisible\(next\)/)
+  assert.match(home, /schematicActive: schematicSurfacesVisible \|\| asteroidsVisible \|\| meteorFlowVisible/)
+  assert.match(layers, /onToggleSchematicSurfaces/)
+  assert.match(layers, /Şematik yüzey görselleri/)
+  assert.doesNotMatch(engine, /TextureLoader/)
+  assert.doesNotMatch(planets, /texture:/)
 })
 
 test('celestial pointer selection flies the engine to the selected body', () => {
@@ -169,14 +186,12 @@ test('celestial pointer selection flies the engine to the selected body', () => 
   assert.match(home, /onSelectBody: \(body\) => \{[\s\S]*?engine\.setFocusTarget\(body\)/)
 })
 
-test('cinematic narration asset and timeline wiring are present', () => {
-  assert.equal(existsSync(`${appRoot}/public/audio/astrobender-sinematik-uzay-turu.mp3`), true)
-  assert.equal(existsSync(`${appRoot}/public/audio/astrobender-cinematic-space-tour-en.mp3`), true)
+test('cinematic tour is a fixed-duration visual sequence without narration media', () => {
   const home = read('src/pages/Home.tsx')
   const tour = read('src/lib/cinematic-tour.ts')
-  assert.match(home, /CINEMATIC_TOUR_AUDIO_PATHS/)
-  assert.match(home, /engine\.startCinematicTour\(audio\.duration\)/)
-  assert.match(home, /cinematicTourLanguage/)
+  assert.match(home, /engine\.startCinematicTour\(CINEMATIC_TOUR_SCRIPT_DURATION_S\)/)
+  assert.doesNotMatch(home, /new Audio\(/)
+  assert.doesNotMatch(tour, /CINEMATIC_TOUR_AUDIO_PATHS/)
   assert.match(tour, /CINEMATIC_TOUR_SCRIPT_DURATION_S = 273/)
 })
 
@@ -221,18 +236,9 @@ test('the temporary ASTROBENDER transmission animates over the opening 3D globe'
   assert.doesNotMatch(styles, /\.intro-splash/)
 })
 
-test('known invalid and duplicate textures are removed', () => {
-  for (const path of [
-    'public/textures/milkyway-4k.jpg',
-    'public/textures/milkyway-raw.jpg',
-    'public/textures/milkyway.jpg',
-    'public/textures/sun.jpg',
-    'public/textures/sun.png',
-    'public/textures/earth-day.jpg',
-    'public/textures/earth-night.jpg',
-  ]) {
-    assert.equal(existsSync(`${appRoot}/${path}`), false, path)
-  }
+test('untraceable runtime-media directories are absent', () => {
+  assert.equal(existsSync(`${appRoot}/public/textures`), false)
+  assert.equal(existsSync(`${appRoot}/public/audio`), false)
 })
 
 test('body changes clear stale surface pins and keep Earth highlights controlled', () => {
@@ -254,8 +260,8 @@ test('moon atmosphere data is consistent and obsolete visual assets are absent',
   assert.doesNotMatch(facts, /atmosphere: 'Karbondioksit, Azot'/)
   assert.match(facts, /Çok ince CO₂, Oksijen ve Hidrojen egzosferi/)
   assert.match(facts, /atmosphere: 'Azot \(%95\), Metan \(%5\)'/)
-  assert.match(sandbox, /texture: 'sun-map\.jpg'/)
-  assert.equal(existsSync(`${appRoot}/public/textures/sun-8k.jpg`), false)
+  assert.match(sandbox, /palette: \['#fff7ae', '#f59e0b', '#9a3412'\]/)
+  assert.equal(existsSync(`${appRoot}/public/textures`), false)
   assert.equal(existsSync(`${appRoot}/src/components/hud/CinematicTitleOverlay.tsx`), false)
 })
 

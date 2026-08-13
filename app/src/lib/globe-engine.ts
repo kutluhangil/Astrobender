@@ -38,6 +38,10 @@ import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 import type { AuroraPoint, EarthEvent } from './earth-observatory'
+import {
+  applySchematicSurfaceVisibility,
+  DEFAULT_SCHEMATIC_SURFACES_VISIBLE,
+} from './schematic-surfaces'
 
 export { TOUR_SEQUENCE } from './cinematic-tour'
 
@@ -57,7 +61,6 @@ interface PlanetRuntime {
   ring?: THREE.Mesh
   minorMoonPoints?: THREE.Points
   moons: PlanetRuntime[]
-  ensureLoaded?: () => void
 }
 
 export interface EngineCallbacks {
@@ -161,47 +164,42 @@ void main() {
 `
 
 const EARTH_FRAG = /* glsl */ `
-uniform sampler2D uDay;
-uniform sampler2D uNight;
-uniform sampler2D uSpec;
-uniform sampler2D uBump;
 uniform vec3 uSunDir;
 uniform float uTime;
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vPosW;
 
+float surfaceField(vec2 uv) {
+  float broad = sin(uv.x * 15.0 + sin(uv.y * 8.0) * 2.4);
+  float detail = sin(uv.x * 49.0 - uv.y * 37.0) * 0.18;
+  return broad * 0.5 + detail;
+}
+
 void main() {
-  // Topography Bump normal perturbation
-  float bCenter = texture2D(uBump, vUv).r;
-  float bRight  = texture2D(uBump, vUv + vec2(0.0003, 0.0)).r;
-  float bUp     = texture2D(uBump, vUv + vec2(0.0, 0.0003)).r;
+  float bCenter = surfaceField(vUv);
+  float bRight = surfaceField(vUv + vec2(0.0003, 0.0));
+  float bUp = surfaceField(vUv + vec2(0.0, 0.0003));
   vec3 dNorm    = vec3((bCenter - bRight) * 3.5, (bCenter - bUp) * 3.5, 1.0);
   vec3 n        = normalize(vNormalW + dNorm * 0.10);
 
   float sd = dot(n, uSunDir);
   float dayMix = smoothstep(-0.05, 0.15, sd);
-  
-  // Day & Night textures
-  vec3 dayT = texture2D(uDay, vUv).rgb;
-  float luma = dot(dayT, vec3(0.299, 0.587, 0.114));
-  dayT = clamp(mix(vec3(luma), dayT, 1.25), 0.0, 1.0);
-  vec3 nightT = texture2D(uNight, vUv).rgb * 1.15;
-  
-  float lit = clamp(sd * 1.1, 0.0, 1.0);
-  vec3 col = dayT * lit * 0.78 + dayT * 0.02;
-  col += nightT * (1.0 - dayMix) * 0.85;
 
-  // Specular Ocean Sun Reflection
-  float specMask = texture2D(uSpec, vUv).r;
+  float terrain = smoothstep(0.03, 0.28, bCenter + sin(vUv.y * 23.0) * 0.16);
+  vec3 ocean = mix(vec3(0.018, 0.075, 0.18), vec3(0.04, 0.22, 0.42), vUv.y);
+  vec3 land = mix(vec3(0.12, 0.30, 0.19), vec3(0.46, 0.36, 0.17), abs(vUv.y - 0.5) * 1.8);
+  vec3 surface = mix(ocean, land, terrain);
+  float lit = clamp(sd * 1.1, 0.0, 1.0);
+  vec3 col = surface * (lit * 0.92 + 0.04);
+
   vec3 v = normalize(cameraPosition - vPosW);
   vec3 h = normalize(uSunDir + v);
-  float specAmount = pow(max(dot(n, h), 0.0), 32.0) * specMask * dayMix;
+  float specAmount = pow(max(dot(n, h), 0.0), 32.0) * (1.0 - terrain) * dayMix;
   float controlledSpec = min(specAmount, 0.35);
   vec3 sunSpecColor = vec3(1.0, 0.95, 0.85) * controlledSpec * 0.45;
   col += sunSpecColor;
 
-  // Atmosphere Rim
   float rim = pow(1.0 - max(dot(n, v), 0.0), 3.5);
   col += vec3(0.20, 0.40, 0.72) * rim * (0.15 + 0.85 * dayMix) * 0.4;
 
@@ -239,7 +237,6 @@ void main() {
 `
 
 const CLOUD_FRAG = /* glsl */ `
-uniform sampler2D uCloudsTex;
 uniform vec3 uSunDir;
 varying vec2 vUv;
 varying vec3 vNormalW;
@@ -248,8 +245,8 @@ void main() {
   vec3 n = normalize(vNormalW);
   float sd = dot(n, uSunDir);
   float dayMix = smoothstep(-0.08, 0.12, sd);
-  float cloudDensity = texture2D(uCloudsTex, vUv).r;
-  
+  float cloudDensity = sin(vUv.x * 36.0 + sin(vUv.y * 21.0) * 3.0)
+    * sin(vUv.y * 29.0 - sin(vUv.x * 14.0) * 2.0) * 0.5 + 0.5;
   if (cloudDensity < 0.05) discard;
 
   vec3 cloudDay = vec3(0.96, 0.98, 1.0) * (0.35 + 0.65 * clamp(sd, 0.0, 1.0));
@@ -275,31 +272,29 @@ void main() {
 `
 
 const MOON_FRAG = /* glsl */ `
-uniform sampler2D uMoonTex;
-uniform sampler2D uMoonBump;
-uniform sampler2D uMoonSpec;
 uniform vec3 uSunDir;
-uniform float uTime;
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vPosW;
 
+float lunarField(vec2 uv) {
+  return sin(uv.x * 53.0 + sin(uv.y * 31.0) * 4.0)
+    * sin(uv.y * 47.0 - sin(uv.x * 17.0) * 3.0);
+}
+
 void main() {
-  // Crater Bump topography normal perturbation
-  float bCenter = texture2D(uMoonBump, vUv).r;
-  float bRight  = texture2D(uMoonBump, vUv + vec2(0.0003, 0.0)).r;
-  float bUp     = texture2D(uMoonBump, vUv + vec2(0.0, 0.0003)).r;
+  float bCenter = lunarField(vUv);
+  float bRight = lunarField(vUv + vec2(0.0003, 0.0));
+  float bUp = lunarField(vUv + vec2(0.0, 0.0003));
   vec3 dNorm    = vec3((bCenter - bRight) * 4.2, (bCenter - bUp) * 4.2, 1.0);
   vec3 n        = normalize(vNormalW + dNorm * 0.12);
 
   float sd = dot(n, uSunDir);
   float dayMix = smoothstep(-0.02, 0.06, sd);
-  
-  vec3 texCol = texture2D(uMoonTex, vUv).rgb;
+  float regolith = bCenter * 0.5 + 0.5;
+  vec3 surface = mix(vec3(0.13, 0.15, 0.19), vec3(0.62, 0.64, 0.68), regolith);
   float lit = clamp(sd * 1.15, 0.0, 1.0);
-  
-  // Base lunar surface color + subtle dark side earthshine
-  vec3 col = texCol * lit * 0.95 + texCol * 0.035;
+  vec3 col = surface * lit * 0.95 + surface * 0.035;
 
   // Earthshine: Blue-cyan Earth light reflecting onto Moon's night side
   vec3 earthDir = normalize(-vPosW);
@@ -307,11 +302,9 @@ void main() {
   vec3 earthshineColor = vec3(0.20, 0.48, 0.80) * earthLit * (1.0 - dayMix) * 0.22;
   col += earthshineColor;
 
-  // Lunar regolith & impact melt specular reflection
-  float specMask = texture2D(uMoonSpec, vUv).r;
   vec3 v = normalize(cameraPosition - vPosW);
   vec3 h = normalize(uSunDir + v);
-  float specAmount = pow(max(dot(n, h), 0.0), 28.0) * specMask * dayMix;
+  float specAmount = pow(max(dot(n, h), 0.0), 28.0) * regolith * dayMix;
   col += vec3(0.9, 0.92, 1.0) * specAmount * 0.7;
 
   // Subtle lunar exosphere rim glow
@@ -359,12 +352,28 @@ const PLANET_BASE_COLORS: Record<string, string> = {
   charon: '#a7a19d',
 }
 
-function createPlanetBaseTexture(planetId: string): THREE.Texture {
+function createSchematicSurfaceTexture(planetId: string): THREE.Texture {
   const c = document.createElement('canvas')
-  c.width = c.height = 4
-  const ctx = c.getContext('2d')!
-  ctx.fillStyle = PLANET_BASE_COLORS[planetId] || '#666666'
-  ctx.fillRect(0, 0, 4, 4)
+  c.width = 96
+  c.height = 48
+  const ctx = c.getContext('2d')
+  if (!ctx) throw new Error(`Could not create schematic surface canvas for ${planetId}`)
+  const base = new THREE.Color(PLANET_BASE_COLORS[planetId] || '#666666')
+  const pixels = ctx.createImageData(c.width, c.height)
+  const variationSeed = [...planetId].reduce((total, character) => total + character.charCodeAt(0), 0)
+  for (let y = 0; y < c.height; y += 1) {
+    for (let x = 0; x < c.width; x += 1) {
+      const index = (y * c.width + x) * 4
+      const band = Math.sin((y / c.height) * Math.PI * (3 + (variationSeed % 5)))
+      const grain = deterministicUnit(x + y * c.width, variationSeed) - 0.5
+      const luminance = THREE.MathUtils.clamp(0.78 + band * 0.11 + grain * 0.16, 0.45, 1.08)
+      pixels.data[index] = Math.round(base.r * luminance * 255)
+      pixels.data[index + 1] = Math.round(base.g * luminance * 255)
+      pixels.data[index + 2] = Math.round(base.b * luminance * 255)
+      pixels.data[index + 3] = 255
+    }
+  }
+  ctx.putImageData(pixels, 0, 0)
   const tex = new THREE.CanvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace
   return tex
@@ -436,13 +445,14 @@ export class GlobeEngine {
   private signalCone: THREE.Mesh
   private moon: THREE.Mesh
   private moonMat: THREE.ShaderMaterial
-  private moonHighResolutionRequested = false
   private moonOrbitLine: THREE.Line
+  private earthAtmosphere: THREE.Mesh
   private earthLandmarks: THREE.Group
   private earthObservatoryMarkers: THREE.Group
   private auroraOverlay: THREE.Points
   private focusTarget: CelestialBodyId = 'earth'
   private planetRuntimes: PlanetRuntime[] = []
+  private schematicSurfaceRoots: THREE.Object3D[] = []
   private probeGroup: THREE.Group | null = null
   private constellationGroup: THREE.Group | null = null
   private asteroidSwarm: AsteroidSwarm | null = null
@@ -455,7 +465,7 @@ export class GlobeEngine {
   public isCinematicTourActive: boolean = false
   public tourTargetIndex: number = 0
   private tourStartTime: number = 0
-  private tourAudioDurationS = 0
+  private tourVisualDurationS = 0
   private flyToActive = false
   private flyToStartTime = 0
   private flyToStartCam = new THREE.Vector3()
@@ -544,32 +554,11 @@ export class GlobeEngine {
     this.controls.autoRotate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
     this.controls.autoRotateSpeed = 0.25
 
-    // --- Earth ---
-    const loader = new THREE.TextureLoader()
-    const dayTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-day-8k.jpg`)
-    const nightTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-night-4k.jpg`)
-    const specTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-specular-2k.jpg`)
-    const bumpTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-bump-2k.jpg`)
-
-    dayTex.colorSpace = THREE.SRGBColorSpace
-    nightTex.colorSpace = THREE.SRGBColorSpace
-    dayTex.anisotropy = 16
-    nightTex.anisotropy = 16
-    // scalar masks (land/ocean, height field) sampled for a finite-difference gradient —
-    // anisotropic filtering is wasted work here
-    specTex.anisotropy = 1
-    bumpTex.anisotropy = 1
-    dayTex.minFilter = THREE.LinearMipmapLinearFilter
-    dayTex.magFilter = THREE.LinearFilter
-
+    // --- Earth: intentional in-code schematic surface, not observation imagery ---
     const geo = new THREE.SphereGeometry(1, 128, 128)
     geo.rotateX(Math.PI / 2) // poles -> +z, lon0 -> +x
     this.earthMat = new THREE.ShaderMaterial({
       uniforms: {
-        uDay: { value: dayTex },
-        uNight: { value: nightTex },
-        uSpec: { value: specTex },
-        uBump: { value: bumpTex },
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
         uTime: { value: 0 },
       },
@@ -628,15 +617,11 @@ export class GlobeEngine {
     this.auroraOverlay.visible = false
     this.earth.add(this.auroraOverlay)
 
-    // --- Cloud Layer — 96×96 sphere (vs old 256×256 = 86% fewer vertices, no visible diff) ---
-    const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-4k.jpg`)
-    cloudsTex.colorSpace = THREE.SRGBColorSpace
-    cloudsTex.anisotropy = 8  // 8 is imperceptible vs 16 on clouds; saves GPU bandwidth
+    // --- Procedural cloud layer — decorative visual aid, not weather data ---
     const cloudGeo = new THREE.SphereGeometry(1.015, 96, 96)
     cloudGeo.rotateX(Math.PI / 2)
     this.cloudsMat = new THREE.ShaderMaterial({
       uniforms: {
-        uCloudsTex: { value: cloudsTex },
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
       },
       vertexShader: CLOUD_VERT,
@@ -649,7 +634,7 @@ export class GlobeEngine {
     this.scene.add(this.clouds)
 
     // --- narrow atmospheric rim (may bloom; Earth must not) ---
-    const atmo = new THREE.Mesh(
+    this.earthAtmosphere = new THREE.Mesh(
       new THREE.SphereGeometry(1.09, 128, 128),
       new THREE.ShaderMaterial({
         vertexShader: ATMO_VERT,
@@ -660,30 +645,14 @@ export class GlobeEngine {
         depthWrite: false,
       }),
     )
-    this.scene.add(atmo)
+    this.scene.add(this.earthAtmosphere)
 
-    // --- Moon (colour upgrades to 8K on focus; bump/specular stay at 2K — see loadMoonHighResolution) ---
-    const moonTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-4k.webp`)
-    const moonBumpTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-bump-2k.webp`)
-    const moonSpecTex = loader.load(`${import.meta.env.BASE_URL}textures/moon-specular-2k.webp`)
-
-    moonTex.colorSpace = THREE.SRGBColorSpace
-    moonTex.anisotropy = 16
-    // scalar masks (height field, specular mask) — anisotropic filtering is wasted work here
-    moonBumpTex.anisotropy = 1
-    moonSpecTex.anisotropy = 1
-    moonTex.minFilter = THREE.LinearMipmapLinearFilter
-    moonTex.magFilter = THREE.LinearFilter
-
+    // --- Moon: intentional in-code schematic surface, not an observation mosaic ---
     const moonGeo = new THREE.SphereGeometry(0.2727, 64, 64)
     moonGeo.rotateX(Math.PI / 2)
     this.moonMat = new THREE.ShaderMaterial({
       uniforms: {
-        uMoonTex: { value: moonTex },
-        uMoonBump: { value: moonBumpTex },
-        uMoonSpec: { value: moonSpecTex },
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
-        uTime: { value: 0 },
       },
       vertexShader: MOON_VERT,
       fragmentShader: MOON_FRAG,
@@ -714,16 +683,12 @@ export class GlobeEngine {
     this.moonOrbitLine.visible = false
     this.scene.add(this.moonOrbitLine)
 
-    // --- 8K 3D Sun Globe & Volumetric Corona Atmosphere ---
-    const sunMapTex = loader.load(`${import.meta.env.BASE_URL}textures/sun-map.jpg`)
-    sunMapTex.colorSpace = THREE.SRGBColorSpace
-    sunMapTex.anisotropy = 16
+    // --- Procedural solar colour field ---
     const sunGeo = new THREE.SphereGeometry(2.5, 64, 64)
     sunGeo.rotateX(Math.PI / 2)
 
     this.sunMat = new THREE.ShaderMaterial({
       uniforms: {
-        uSunMap: { value: sunMapTex },
         uTime: { value: 0 },
       },
       vertexShader: /* glsl */ `
@@ -739,7 +704,6 @@ export class GlobeEngine {
         }
       `,
       fragmentShader: /* glsl */ `
-        uniform sampler2D uSunMap;
         uniform float uTime;
         varying vec2 vUv;
         varying vec3 vNormalW;
@@ -750,7 +714,8 @@ export class GlobeEngine {
           uv.x += sin(uv.y * 35.0 + uTime * 0.6) * 0.0018;
           uv.y += cos(uv.x * 35.0 + uTime * 0.6) * 0.0018;
 
-          vec3 texCol = texture2D(uSunMap, uv).rgb;
+          float bands = sin(uv.y * 45.0 + sin(uv.x * 21.0 + uTime) * 3.0) * 0.5 + 0.5;
+          vec3 texCol = mix(vec3(0.82, 0.12, 0.01), vec3(1.0, 0.78, 0.16), bands);
           vec3 v = normalize(cameraPosition - vPosW);
           float rim = 1.0 - max(dot(vNormalW, v), 0.0);
           float coronaGlow = pow(rim, 2.0);
@@ -801,10 +766,22 @@ export class GlobeEngine {
     // ═══════════════════════════════════════════════════════════════════════
     // SOLAR SYSTEM PLANETS & MOONS — dynamic from PLANETS config
     // ═══════════════════════════════════════════════════════════════════════
-    this.planetRuntimes = PLANETS.map((def) => this.createPlanet(def, loader))
-    // Detailed planet and moon textures are loaded on focus. Loading every 2K–8K
-    // source in the background exhausts the WebGL texture budget on long sessions;
-    // distant bodies keep their lightweight procedural preview until selected.
+    this.planetRuntimes = PLANETS.map((def) => this.createPlanet(def))
+    this.schematicSurfaceRoots = [
+      this.earth,
+      this.clouds,
+      this.earthAtmosphere,
+      this.moon,
+      this.sun,
+    ]
+    const addPlanetRuntimes = (runtimes: PlanetRuntime[]) => {
+      for (const runtime of runtimes) {
+        this.schematicSurfaceRoots.push(runtime.mesh)
+        addPlanetRuntimes(runtime.moons)
+      }
+    }
+    addPlanetRuntimes(this.planetRuntimes)
+    this.setSchematicSurfacesVisible(DEFAULT_SCHEMATIC_SURFACES_VISIBLE)
 
     this.scene.add(this.makeStars())
 
@@ -958,30 +935,8 @@ export class GlobeEngine {
   }
 
   // ─── Planet Factory ─────────────────────────────────────────────────────
-  private createPlanet(def: PlanetDef, loader: THREE.TextureLoader): PlanetRuntime {
-    const tex = createPlanetBaseTexture(def.id)
-    let isLoaded = false
-    const ensureLoaded = () => {
-      if (isLoaded) return
-      isLoaded = true
-      if (!def.texture) return
-      const textureUrl = `${import.meta.env.BASE_URL}textures/${def.texture}`
-      loader.load(
-        textureUrl,
-        (loadedTex) => {
-          loadedTex.colorSpace = THREE.SRGBColorSpace
-          loadedTex.anisotropy = 8
-          loadedTex.minFilter = THREE.LinearMipmapLinearFilter
-          loadedTex.magFilter = THREE.LinearFilter
-          mat.uniforms.uTex.value = loadedTex
-          mat.needsUpdate = true
-        },
-        undefined,
-        () => {
-          throw new Error(`Failed to load texture for ${def.id}: ${textureUrl}`)
-        },
-      )
-    }
+  private createPlanet(def: PlanetDef): PlanetRuntime {
+    const tex = createSchematicSurfaceTexture(def.id)
 
     const geo = new THREE.SphereGeometry(def.radius, def.segments, def.segments)
     geo.rotateX(Math.PI / 2) // poles -> +z
@@ -1094,62 +1049,19 @@ export class GlobeEngine {
     orbitLine.visible = false
     this.scene.add(orbitLine)
 
-    // Planetary ring systems. Saturn uses the detailed texture; the fainter
-    // giant-planet rings use a deliberately subtle procedural material.
+    // Planetary rings are deliberately simple colour bands, not observation imagery.
     let ring: THREE.Mesh | undefined
     if (def.ring) {
       const innerR = def.radius * def.ring.innerRadius
       const outerR = def.radius * def.ring.outerRadius
       const ringGeo = new THREE.RingGeometry(innerR, outerR, 128)
-      const ringMat = def.ring.texture
-        ? new THREE.ShaderMaterial({
-            uniforms: {
-              uRingTex: {
-                value: loader.load(
-                  `${import.meta.env.BASE_URL}textures/${def.ring.texture}`,
-                ),
-              },
-              uInnerR: { value: innerR },
-              uOuterR: { value: outerR },
-              uOpacity: { value: def.ring.opacity },
-            },
-            vertexShader: /* glsl */ `
-          varying vec3 vLocalPos;
-          void main() {
-            vLocalPos = position;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-            fragmentShader: /* glsl */ `
-          varying vec3 vLocalPos;
-          uniform sampler2D uRingTex;
-          uniform float uInnerR;
-          uniform float uOuterR;
-          uniform float uOpacity;
-
-          void main() {
-            float r = length(vLocalPos.xy);
-            float t = (r - uInnerR) / (uOuterR - uInnerR);
-            t = clamp(t, 0.0, 1.0);
-
-            vec4 ringCol = texture2D(uRingTex, vec2(t, 0.5));
-            float edgeFade = smoothstep(0.0, 0.04, t) * (1.0 - smoothstep(0.96, 1.0, t));
-
-            gl_FragColor = vec4(ringCol.rgb, ringCol.a * edgeFade * uOpacity);
-          }
-        `,
-            side: THREE.DoubleSide,
-            transparent: true,
-            depthWrite: false,
-            blending: THREE.NormalBlending,
-          })
-        : new THREE.MeshBasicMaterial({
-            color: def.ring.color,
-            opacity: def.ring.opacity,
-            transparent: true,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-          })
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: def.ring.color,
+        opacity: def.ring.opacity,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
       ring = new THREE.Mesh(ringGeo, ringMat)
       ring.rotation.x = Math.PI / 2
       mesh.add(ring)
@@ -1187,7 +1099,7 @@ export class GlobeEngine {
     // Moons (recursive, orbit around parent planet)
     const moonRTs: PlanetRuntime[] = []
     for (const moonDef of def.moons ?? []) {
-      const moonRT = this.createPlanet(moonDef, loader)
+      const moonRT = this.createPlanet(moonDef)
       // Keep moonRT.mesh in scene so moon renders in 3D world space
       moonRTs.push(moonRT)
     }
@@ -1209,7 +1121,6 @@ export class GlobeEngine {
       ring,
       minorMoonPoints,
       moons: moonRTs,
-      ensureLoaded,
     }
   }
 
@@ -1749,7 +1660,6 @@ export class GlobeEngine {
     this.earth.rotation.z = satellite.gstime(this.reusableDate)
     this.clouds.rotation.z = (simS * 0.00015) + (performance.now() * 0.00003)
     this.earthMat.uniforms.uTime.value = performance.now() * 0.001
-    this.moonMat.uniforms.uTime.value = performance.now() * 0.001
     this.sunMat.uniforms.uTime.value = performance.now() * 0.001
     ;(this.sunCorona.material as THREE.ShaderMaterial).uniforms.uTime.value = performance.now() * 0.001
     const planetPositions = getGeocentricScenePositions(simMs)
@@ -1807,14 +1717,14 @@ export class GlobeEngine {
     // Camera Fly-To & Up-Close Focus Lerping — supports all celestial bodies
     if (this.isCinematicTourActive) {
       const now = performance.now()
-      const audioElapsedS = (now - this.tourStartTime) / 1000
-      if (audioElapsedS >= this.tourAudioDurationS) {
+      const visualElapsedS = (now - this.tourStartTime) / 1000
+      if (visualElapsedS >= this.tourVisualDurationS) {
         this.stopCinematicTour()
         this.cb.onTourEnded?.()
         return
       }
 
-      const nextCueIndex = getCinematicTourCueIndex(audioElapsedS, this.tourAudioDurationS)
+      const nextCueIndex = getCinematicTourCueIndex(visualElapsedS, this.tourVisualDurationS)
       if (nextCueIndex !== this.tourTargetIndex) {
         this.tourTargetIndex = nextCueIndex
         const nextBody = TOUR_SEQUENCE[this.tourTargetIndex]
@@ -1827,10 +1737,10 @@ export class GlobeEngine {
       if (targetInfo) {
         const bodyPos = this.tmpVec2
         targetInfo.mesh.getWorldPosition(bodyPos)
-        const cueWindow = getCinematicTourCueWindow(this.tourTargetIndex, this.tourAudioDurationS)
+        const cueWindow = getCinematicTourCueWindow(this.tourTargetIndex, this.tourVisualDurationS)
         const cueProgress = Math.min(
           1,
-          Math.max(0, (audioElapsedS - cueWindow.startS) / cueWindow.durationS),
+          Math.max(0, (visualElapsedS - cueWindow.startS) / cueWindow.durationS),
         )
 
         const r = Math.max(0.4, targetInfo.radius * 3.4)
@@ -2021,15 +1931,15 @@ export class GlobeEngine {
     }
   }
 
-  private getTargetBodyInfo(id: CelestialBodyId): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null {
+  private getTargetBodyInfo(id: CelestialBodyId): { mesh: THREE.Mesh; radius: number; name: string } | null {
     if (id === 'earth') return { mesh: this.earth, radius: 1.0, name: '🌍 EARTH' }
     if (id === 'moon') return { mesh: this.moon, radius: 0.2727, name: '🌕 MOON' }
     if (id === 'sun') return { mesh: this.sun, radius: 2.5, name: '☀️ SUN' }
 
-    const findInRuntimes = (list: PlanetRuntime[]): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null => {
+    const findInRuntimes = (list: PlanetRuntime[]): { mesh: THREE.Mesh; radius: number; name: string } | null => {
       for (const prt of list) {
         if (prt.def.id === id) {
-          return { mesh: prt.mesh, radius: prt.def.radius, name: `${prt.def.emoji} ${prt.def.name.toUpperCase()}`, ensureLoaded: prt.ensureLoaded }
+          return { mesh: prt.mesh, radius: prt.def.radius, name: `${prt.def.emoji} ${prt.def.name.toUpperCase()}` }
         }
         const sub = findInRuntimes(prt.moons)
         if (sub) return sub
@@ -2071,13 +1981,13 @@ export class GlobeEngine {
     }
   }
 
-  startCinematicTour(audioDurationS: number) {
-    if (!Number.isFinite(audioDurationS) || audioDurationS <= 0) {
-      throw new Error(`Cinematic tour requires a valid narration duration, received ${audioDurationS}`)
+  startCinematicTour(visualDurationS: number) {
+    if (!Number.isFinite(visualDurationS) || visualDurationS <= 0) {
+      throw new Error(`Cinematic tour requires a valid visual duration, received ${visualDurationS}`)
     }
     this.isCinematicTourActive = true
     this.tourTargetIndex = 0
-    this.tourAudioDurationS = audioDurationS
+    this.tourVisualDurationS = visualDurationS
     this.tourStartTime = performance.now()
     const firstBody = TOUR_SEQUENCE[0]
     this.setFocusTarget(firstBody)
@@ -2180,41 +2090,6 @@ export class GlobeEngine {
     this.showBodyCoordinate('earth', lat, lon)
   }
 
-  // Upgrades only the colour texture to 8K on focus. Bump/specular are scalar
-  // masks (height field, specular mask) sampled at a coarse UV offset for a
-  // finite-difference gradient — the 2K versions loaded at startup are already
-  // plenty of resolution, so there is no 8K bump/specular upgrade.
-  private loadMoonHighResolution() {
-    if (this.moonHighResolutionRequested) return
-    this.moonHighResolutionRequested = true
-    const loader = new THREE.TextureLoader()
-    const path = `${import.meta.env.BASE_URL}textures/moon-8k.jpg`
-    loader.loadAsync(path).then(
-      (surface) => {
-        if (this.disposed) {
-          surface.dispose()
-          return
-        }
-        surface.colorSpace = THREE.SRGBColorSpace
-        surface.anisotropy = 16
-        surface.needsUpdate = true
-        surface.minFilter = THREE.LinearMipmapLinearFilter
-        surface.magFilter = THREE.LinearFilter
-        const previous = this.moonMat.uniforms.uMoonTex.value as THREE.Texture
-        this.moonMat.uniforms.uMoonTex.value = surface
-        previous.dispose()
-      },
-      (error: unknown) => {
-        this.moonHighResolutionRequested = false
-        console.error(
-          `Moon 8K texture upgrade failed for ${path}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        )
-      },
-    )
-  }
-
   setFocusTarget(target: CelestialBodyId) {
     const isSameTarget = this.focusTarget === target
     this.focusTarget = target
@@ -2226,9 +2101,6 @@ export class GlobeEngine {
       target === 'earth' && this.auroraOverlay.geometry.getAttribute('position') !== undefined
     const info = this.getTargetBodyInfo(target)
     if (!info) return
-    if (target === 'moon') this.loadMoonHighResolution()
-    info.ensureLoaded?.()
-
     // Dynamically adjust camera near clipping plane so small moons are never sliced off
     this.camera.near = Math.max(0.001, Math.min(0.1, info.radius * 0.08))
     this.camera.updateProjectionMatrix()
@@ -2248,7 +2120,7 @@ export class GlobeEngine {
   setTheme(theme: 'dark' | 'light') {
     this.currentTheme = theme
     if (theme === 'light') {
-      // Cool daylight space keeps planet texture contrast while making the scene readable.
+      // Cool daylight space keeps schematic surface contrast while making the scene readable.
       this.scene.background = new THREE.Color(0xe8f1f6)
       this.renderer.setClearColor(0xe8f1f6, 1)
       if (this.starsMat) {
@@ -2280,6 +2152,11 @@ export class GlobeEngine {
         if (m.orbitLine) m.orbitLine.visible = v
       }
     }
+  }
+
+  /** Show or hide the opt-in, code-generated celestial surface visual aids. */
+  setSchematicSurfacesVisible(visible: boolean) {
+    applySchematicSurfaceVisibility(this.schematicSurfaceRoots, visible)
   }
 
   setProbesVisible(v: boolean) {

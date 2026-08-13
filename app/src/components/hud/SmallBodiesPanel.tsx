@@ -2,10 +2,12 @@ import { useState } from 'react'
 import {
   JPL_CAD_SOURCE_URL,
   NAMED_SMALL_BODIES,
+  getJplCadEvidence,
   type CloseApproach,
 } from '@/lib/jpl-small-bodies'
 import { DEEP_SPACE_PROBES } from '@/lib/probes'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import EvidenceMark from './EvidenceMark'
 
 interface SmallBodiesPanelProps {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -87,7 +89,7 @@ export default function SmallBodiesPanel({
             key={id}
             onClick={() => setTab(id)}
             className={`rounded-md px-2 py-1.5 font-mono text-[8px] transition-colors ${
-              tab === id ? 'bg-amber-400/15 text-amber-200' : 'text-slate-500 hover:text-slate-300'
+              tab === id ? 'bg-amber-400/15 text-amber-200' : 'text-amber-100/45 hover:text-amber-100/75'
             }`}
           >
             {label}
@@ -98,6 +100,13 @@ export default function SmallBodiesPanel({
       <div className="max-h-[44vh] overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-white/10">
         {tab === 'approaches' && (
           <div className="space-y-1.5">
+            {updatedAt && (
+              <EvidenceMark
+                evidence={getJplCadEvidence(updatedAt)}
+                language={language}
+                contextLabel={t('Yakın geçişler', 'Close approaches')}
+              />
+            )}
             {status === 'loading' && (
               <p className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 font-mono text-[9px] text-amber-100">
                 {t('JPL yakın geçiş verileri alınıyor…', 'Loading JPL close-approach data…')}
@@ -130,9 +139,9 @@ export default function SmallBodiesPanel({
               </button>
             ))}
             {selected && (
-              <div className="rounded-lg border border-amber-400/25 bg-amber-400/5 p-2.5 font-mono text-[8px] text-slate-300">
+              <div className="rounded-lg border border-amber-400/25 bg-amber-400/5 p-2.5 font-mono text-[8px] text-amber-50/85">
                 <div className="font-semibold text-amber-200">{selected.fullName}</div>
-                <div className="mt-1 grid grid-cols-2 gap-1 text-slate-400">
+                <div className="mt-1 grid grid-cols-2 gap-1 text-amber-100/65">
                   <span>{t('Nominal', 'Nominal')}: {distanceLabel(selected.distanceAu)}</span>
                   <span>{t('Çap', 'Diameter')}: {selected.diameterKm === null ? t('Bilinmiyor', 'Unknown') : `${selected.diameterKm.toFixed(3)} km`}</span>
                   <span>{t('Min', 'Min')}: {selected.minimumDistanceAu === null ? '—' : distanceLabel(selected.minimumDistanceAu)}</span>
@@ -149,11 +158,8 @@ export default function SmallBodiesPanel({
         {tab === 'catalog' && (
           <div className="space-y-1.5">
             {NAMED_SMALL_BODIES.map((body) => (
-              <a
+              <article
                 key={body.id}
-                href={body.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
                 className="block rounded-lg border border-white/7 bg-white/[0.03] p-2.5 hover:border-amber-400/25"
               >
                 <span className="font-mono text-[10px] font-semibold text-amber-100">
@@ -163,7 +169,22 @@ export default function SmallBodiesPanel({
                 <p className="mt-1 text-[9px] leading-relaxed text-slate-400">
                   {body.summaryTr}
                 </p>
-              </a>
+                <span className="mt-2 block">
+                  <EvidenceMark
+                    evidence={body.evidence}
+                    language={language}
+                    contextLabel={language === 'tr' ? body.nameTr : body.name}
+                  />
+                </span>
+                <a
+                  href={body.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex font-mono text-[8px] text-amber-300"
+                >
+                  {t('JPL katalog kaydı', 'JPL catalog record')} ↗
+                </a>
+              </article>
             ))}
           </div>
         )}

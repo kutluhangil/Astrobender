@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { SkyEvent, SkyEventKind, SkyEventVisibility, SkyObserver } from '@/lib/sky-events'
 import { directionLabel, getPerseidWatch, type PerseidWatch } from '@/lib/perseid-watch'
+import {
+  createPerseidHeuristicEvidence,
+  type EvidenceRecord,
+} from '@/lib/scientific-evidence'
 import { eventDayKey } from '@/lib/skywatch-calendar'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import SkywatchEventCalendar from './SkywatchEventCalendar'
+import EvidenceMark from './EvidenceMark'
 
 interface SkywatchPanelProps {
   events: SkyEvent[]
@@ -115,6 +120,19 @@ function scoreLabel(score: number, language: UiLanguage): string {
   return pickLanguage(language, 'Şu an uygun değil', 'Not favorable now')
 }
 
+function perseidCalendarEvidence(watch: PerseidWatch): EvidenceRecord {
+  return {
+    evidenceClass: 'sourced-static',
+    publisher: 'International Meteor Organization',
+    sourceUrl: watch.sourceUrl,
+    verifiedAt: '2026-08-13',
+    validFrom: watch.activeStart,
+    validUntil: watch.activeEnd,
+    uncertainty: 'The published maximum is a time window, not an exact instant.',
+    limitation: 'Observed rates depend on sky conditions and observer location.',
+  }
+}
+
 function PerseidWatchCard({ watch, language, onStartSimulation }: {
   watch: PerseidWatch
   language: UiLanguage
@@ -177,6 +195,20 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
           <a href={watch.sourceUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">IMO {t('takvimi', 'calendar')} ↗</a>
           <a href={watch.reportUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">{t('Gözlem bildir', 'Report observation')} ↗</a>
           <a href={watch.fireballUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">{t('Ateştopu bildir', 'Report fireball')} ↗</a>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <EvidenceMark
+            evidence={perseidCalendarEvidence(watch)}
+            language={language}
+            contextLabel={t('Perseid takvimi', 'Perseid calendar')}
+          />
+          {observer && (
+            <EvidenceMark
+              evidence={createPerseidHeuristicEvidence(watch.observedAt)}
+              language={language}
+              contextLabel={t('Perseid ürün sezgisi', 'Perseid product heuristic')}
+            />
+          )}
         </div>
         <button type="button" onClick={() => onStartSimulation(watch)} className="mt-2 w-full rounded-md border border-amber-100/35 bg-amber-200/[0.08] px-2 py-1.5 font-mono text-[9px] font-semibold text-amber-50 transition-colors hover:bg-amber-200/[0.16]">
           {t('Aralık başlangıcında şematik akışı göster', 'Show schematic stream at window start')}
@@ -285,17 +317,12 @@ export default function SkywatchPanel({
   onClose,
 }: SkywatchPanelProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
-  const [now, setNow] = useState(() => Date.now())
+  const now = calculatedAt
   const perseidWatch = getPerseidWatch(new Date(now), observer ?? undefined)
   const months = useMemo(() => [...new Set(events.map((event) => monthKey(event.startsAt)))], [events])
   const [requestedMonth, setRequestedMonth] = useState(() => months[0] ?? '')
   const [requestedDay, setRequestedDay] = useState<string | null>(null)
   const selectedMonth = months.includes(requestedMonth) ? requestedMonth : (months[0] ?? '')
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 60_000)
-    return () => window.clearInterval(interval)
-  }, [])
 
   const selectedIndex = months.indexOf(selectedMonth)
   const monthEvents = events.filter((event) => monthKey(event.startsAt) === selectedMonth)
@@ -400,7 +427,11 @@ export default function SkywatchPanel({
                       <p className="mt-1 text-[8px] leading-relaxed text-slate-500">{event.guidance}</p>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="font-mono text-[7px] uppercase tracking-[0.08em] text-slate-500">{visibilityLabel(event.visibility, language)}</span>
-                        <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="font-mono text-[8px] text-cyan-200 hover:text-cyan-100">{t('Kaynak', 'Source')} ↗</a>
+                        <EvidenceMark
+                          evidence={event.evidence}
+                          language={language}
+                          contextLabel={event.title}
+                        />
                       </div>
                       <button type="button" onClick={() => onSelectEvent(event)} className="mt-2 w-full rounded-md border border-cyan-300/25 bg-cyan-300/[0.06] px-2 py-1.5 font-mono text-[9px] font-semibold text-cyan-100 transition-colors hover:bg-cyan-300/[0.13]">
                         {t('Simülasyonda göster', 'Show in simulation')}

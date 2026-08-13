@@ -1,50 +1,41 @@
 import assert from 'node:assert/strict'
-import { readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import test from 'node:test'
+import {
+  applySchematicSurfaceVisibility,
+  DEFAULT_SCHEMATIC_SURFACES_VISIBLE,
+} from '../src/lib/schematic-surfaces.ts'
 
-const LOW_RES_MOON_TEXTURES = [
-  'public/textures/moon-4k.webp',
-  'public/textures/moon-bump-2k.webp',
-  'public/textures/moon-specular-2k.webp',
-]
+const MEDIA_DIRECTORIES = ['public/textures', 'public/audio']
 
-// Bump/specular are scalar masks (height field, specular mask); they stay at 2K
-// permanently — only the colour texture upgrades to 8K on focus. Budget reflects
-// the new eager-load set: moon-4k.webp (~3.5 MiB) + two 2K masks (~1.5 MiB).
-test('initial Moon texture payload stays below the 5 MiB budget', () => {
-  const totalBytes = LOW_RES_MOON_TEXTURES.reduce(
-    (total, path) => total + statSync(path).size,
-    0,
-  )
-  assert.ok(
-    totalBytes < 5 * 1024 * 1024,
-    `Initial Moon textures are ${(totalBytes / 1024 / 1024).toFixed(2)} MiB`,
-  )
+test('initial scene ships no texture or narration payload', () => {
+  const totalBytes = MEDIA_DIRECTORIES.reduce((total, directory) => {
+    if (!existsSync(directory)) return total
+    return total + readdirSync(directory)
+      .filter((file) => !file.startsWith('.'))
+      .reduce((directoryTotal, file) => directoryTotal + statSync(`${directory}/${file}`).size, 0)
+  }, 0)
+
+  assert.equal(totalBytes, 0, `Shipped texture/audio media is ${totalBytes} bytes`)
 })
 
-test('8K Moon colour texture is requested only by the focus-triggered upgrade', () => {
-  const source = readFileSync('src/lib/globe-engine.ts', 'utf8')
-  const upgradeIndex = source.indexOf('private loadMoonHighResolution()')
-  assert.ok(upgradeIndex > 0)
-  assert.ok(
-    source.indexOf('moon-8k.jpg') > upgradeIndex,
-    'moon-8k.jpg must not be part of the initial texture load',
-  )
-  assert.match(source, /if \(target === 'moon'\) this\.loadMoonHighResolution\(\)/)
+test('procedural surface visibility defaults to hidden and can be enabled only on request', () => {
+  const surfaces = [{ visible: true }, { visible: true }, { visible: true }]
+
+  assert.equal(DEFAULT_SCHEMATIC_SURFACES_VISIBLE, false)
+  applySchematicSurfaceVisibility(surfaces, DEFAULT_SCHEMATIC_SURFACES_VISIBLE)
+  assert.deepEqual(surfaces.map((surface) => surface.visible), [false, false, false])
+
+  applySchematicSurfaceVisibility(surfaces, true)
+  assert.deepEqual(surfaces.map((surface) => surface.visible), [true, true, true])
 })
 
-// Bump/specular no longer have an 8K variant on disk — the finite-difference
-// height/specular sampling doesn't benefit from resolution beyond 2K, so there
-// is no focus-triggered upgrade path for them anymore.
-test('Moon bump/specular textures have no 8K upgrade path', () => {
+test('procedural globe surfaces have no runtime media URLs', () => {
   const source = readFileSync('src/lib/globe-engine.ts', 'utf8')
-  assert.doesNotMatch(source, /moon-bump-8k\.jpg/)
-  assert.doesNotMatch(source, /moon-specular-8k\.jpg/)
-})
-
-test('planet textures are demand-loaded instead of preloaded in the background', () => {
-  const source = readFileSync('src/lib/globe-engine.ts', 'utf8')
-
-  assert.doesNotMatch(source, /planetRuntimes\.forEach[\s\S]*ensureLoaded/)
-  assert.match(source, /info\.ensureLoaded\?\.\(\)/)
+  assert.match(source, /createSchematicSurfaceTexture/)
+  assert.match(source, /setSchematicSurfacesVisible\(visible: boolean\)/)
+  assert.match(source, /applySchematicSurfaceVisibility\(this\.schematicSurfaceRoots, visible\)/)
+  assert.doesNotMatch(source, /TextureLoader/)
+  assert.doesNotMatch(source, /\/textures\//)
+  assert.doesNotMatch(source, /\/audio\//)
 })

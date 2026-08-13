@@ -5,12 +5,14 @@ import {
   type CelestialBodyId,
   type PlanetDef,
 } from './planets.ts'
-import { CATALOG_VERIFIED_AT } from './source-governance.ts'
+import type { EvidenceRecord } from './scientific-evidence.ts'
 
 export interface CelestialCatalogEntry {
   id: CelestialBodyId
   fact: CelestialFact
   definition?: PlanetDef
+  evidence: EvidenceRecord
+  /** Convenience mirrors for non-evidence-aware consumers. */
   sourceUrl: string
   verifiedAt: string
 }
@@ -24,6 +26,7 @@ const NASA_PLUTO_URL = 'https://science.nasa.gov/dwarf-planets/pluto/'
 const NASA_DWARF_PLANETS_URL = 'https://science.nasa.gov/dwarf-planets/'
 const NASA_CERES_MAP_URL =
   'https://science.nasa.gov/resource/colorized-map-of-ceres-mercator-projection/'
+const CATALOG_SOURCE_REVIEWED_AT = '2026-07-26'
 
 const SOURCE_BY_SYSTEM: Partial<Record<CelestialBodyId, string>> = {
   io: NASA_JUPITER_MOONS_URL,
@@ -62,16 +65,29 @@ const SOURCE_BY_SYSTEM: Partial<Record<CelestialBodyId, string>> = {
   eris: NASA_DWARF_PLANETS_URL,
 }
 
+function factEvidence(id: CelestialBodyId): EvidenceRecord {
+  return {
+    evidenceClass: 'sourced-static',
+    publisher: 'NASA',
+    sourceUrl: SOURCE_BY_SYSTEM[id] ?? NASA_SOLAR_SYSTEM_URL,
+    verifiedAt: CATALOG_SOURCE_REVIEWED_AT,
+    uncertainty: 'Unknown where the cited source does not publish an uncertainty.',
+    limitation: 'Values are rounded and localized for the instrument HUD.',
+  }
+}
+
 export const CELESTIAL_CATALOG = Object.fromEntries(
   getAllBodyIds().map((id) => {
     const fact = CELESTIAL_FACTS[id]
     if (!fact) throw new Error(`Missing celestial fact for catalog body: ${id}`)
+    const evidence = factEvidence(id)
     const entry: CelestialCatalogEntry = {
       id,
       fact,
       definition: findPlanetDef(id),
-      sourceUrl: SOURCE_BY_SYSTEM[id] ?? NASA_SOLAR_SYSTEM_URL,
-      verifiedAt: CATALOG_VERIFIED_AT,
+      evidence,
+      sourceUrl: evidence.sourceUrl,
+      verifiedAt: evidence.verifiedAt,
     }
     return [id, entry]
   }),

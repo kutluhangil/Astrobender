@@ -16,8 +16,8 @@ export default function OfflineBanner({ language }: OfflineBannerProps) {
     >
       {pickLanguage(
         language,
-        'Çevrimdışı — daha önce görülen veriler ve dokular gösteriliyor.',
-        'Offline — showing previously cached data and textures.',
+        'Çevrimdışı — uygulama kabuğu ve daha önce alınmış veriler gösteriliyor.',
+        'Offline — showing the app shell and previously retrieved data.',
       )}
     </div>
   )

@@ -105,14 +105,14 @@ CelesTrak TLE ──▶ IndexedDB önbelleği ──▶ satellite.js / SGP4 ─�
 
 JPL ana-gezegen + ortalama uydu elemanları ──▶ orbital-mechanics ──▶ sıkıştırılmış 3B konumlar
                                                          │
-NASA / USGS Astrogeology dokuları ──────────────────────┼──▶ Three.js / WebGL sahnesi
+Kullanıcı opt-in'i ──▶ kod-üretimli şematik yüzey yardımları (varsayılan kapalı) ──┼──▶ Three.js / WebGL sahnesi
                                                          │
 NASA EONET · USGS · NOAA ──▶ Dünya Gözlemevi katmanları ─┘
 ```
 
-- **Dünya:** yüksek çözünürlüklü gün/gece, bulut, specular ve kabartı dokuları.
-- **Gezegenler ve uydular:** dosya kaynakları ve dönüşümleri attribution kaydında tutulan yüzey varlıkları; küre önizlemeleri bilimsel ölçüm değildir.
-- **Europa, Titania, Oberon, Triton ve Plüton:** görsel süreklilik için kullanılan küre dokuları gözlemsel efemeris veya eksiksiz küresel ölçüm iddiası taşımaz.
+- **Gök cisimlerinin yüzeyleri:** paketli görsel veya ses varlığı kullanılmaz. Kod-üretimli şematik yüzey yardımları varsayılan olarak kapalıdır; kullanıcı açtığında sahne bunların ölçüm olmadığını açıkça bildirir.
+- **Dünya Gözlemevi:** NASA EONET, USGS ve NOAA kaynaklı canlı katmanlar yüzey yardımından ayrıdır; başarısız yenilemede son geçerli kaynak zamanı korunur.
+- **Europa, Titania, Oberon, Triton ve Plüton:** kaynaklı fiziksel/katalog bilgileri gösterilir; uygulama bunlar için gözlemsel küresel görüntü veya tam yüzey ölçümü iddia etmez.
 - **Yapay uydular:** gerçek edinim zamanını koruyan paketli TLE ile açılır; kaynak erişilebildiğinde CelesTrak verisiyle güncellenir.
 - **Derin uzay görevleri:** kaynaklı görev kartları gösterilir; Task 4'te Horizons kaydı gelene kadar 3B konum çizilmez.
 
@@ -130,10 +130,9 @@ Earthbender/
 │   │   ├── lib/celestial-catalog.ts      # kaynaklı gök cismi kataloğu
 │   │   ├── lib/celestial-physical-profiles.ts # kütle, yoğunluk, yerçekimi, kimya
 │   │   ├── lib/earth-observatory.ts      # NASA / USGS / NOAA veri ayrıştırması
+│   │   ├── lib/schematic-surfaces.ts      # varsayılan-kapalı yüzey yardımı görünürlüğü
 │   │   ├── hooks/useTleData.ts            # TLE önbellek ve canlı güncelleme
 │   │   ├── components/hud/                # bilgi kartları, arama ve katman kontrolleri
-│   │   ├── public/textures/               # gezegen, uydu ve Dünya dokuları
-│   │   └── public/audio/                  # TR / EN sinematik tur anlatımları
 │   ├── api/jpl-cad.ts                     # JPL CAD aynı-köken proxy'si
 │   ├── tests/                             # birim, katalog ve bütünlük testleri
 │   ├── e2e/                               # Playwright kullanıcı akışları
@@ -185,7 +184,6 @@ npm run lint             # ESLint
 npm run build            # TypeScript + Vite production build
 npm run test:e2e         # Playwright kullanıcı akışları
 npm run verify           # yukarıdaki doğrulama zinciri
-npm run verify:textures  # uydu dokusu kontrolleri
 ```
 
 > Ortam değişkeni, gizli anahtar veya veritabanı kurulumu gerekmiyor. Canlı veri kaynakları erişilemezse uygulama bunu görünür biçimde bildirir.

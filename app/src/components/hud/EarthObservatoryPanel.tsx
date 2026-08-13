@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import {
   EARTH_DATA_URLS,
+  getEarthSourceEvidence,
   type EarthEvent,
   type EarthLayerVisibility,
   type EarthSourceId,
 } from '@/lib/earth-observatory'
 import type { EarthObservatoryState } from '@/hooks/useEarthObservatory'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import EvidenceMark from './EvidenceMark'
 
 interface EarthObservatoryPanelProps extends EarthObservatoryState {
   onClose: () => void
@@ -140,6 +142,20 @@ export default function EarthObservatoryPanel({
           ))}
         </div>
 
+        <div className="flex flex-wrap gap-1.5" aria-label={t('Dünya veri kanıtları', 'Earth data evidence')}>
+          {(['eonet', 'usgs', 'aurora'] as const).map((source) => {
+            const retrievedAt = sourceUpdatedAt[source]
+            return retrievedAt ? (
+              <EvidenceMark
+                key={source}
+                evidence={getEarthSourceEvidence(source, retrievedAt)}
+                language={language}
+                contextLabel={SOURCE_NAMES[source][language]}
+              />
+            ) : null
+          })}
+        </div>
+
         {cachedSources.length > 0 && (
           <div className="rounded-lg border border-sky-400/25 bg-sky-400/5 px-2.5 py-2 font-mono text-[8px] leading-relaxed text-sky-100">
             {t('Önbellekten gösteriliyor:', 'Showing cached data:')}{' '}
@@ -233,7 +249,7 @@ export default function EarthObservatoryPanel({
             <span className="mt-1 block text-[7px] text-slate-500">{t('Katman/API kaynağı', 'Layer/API source')}</span>
           </a>
         </div>
-        <label className="block rounded-lg border border-sky-400/15 bg-sky-400/[0.03] px-2.5 py-2 font-mono text-[8px] text-slate-400">
+        <label className="block rounded-lg border border-sky-400/15 bg-sky-400/[0.03] px-2.5 py-2 font-mono text-[8px] text-sky-100/75">
           {t('NASA günlük görüntü tarihi', 'NASA daily imagery date')}
           <input
             type="date"

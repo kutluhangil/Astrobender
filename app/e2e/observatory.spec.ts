@@ -32,14 +32,16 @@ test('surface sites open sourced bilingual coordinate details', async ({ page })
     'href',
     'https://www.koeri.boun.edu.tr/new/en',
   )
-  await page.getByRole('button', { name: '🧊 Europa', exact: true }).click()
+  await page.getByRole('button', { name: /Jupiter.*moon options/ }).hover()
+  await page.getByRole('button', { name: 'Select Europa moon' }).click()
   await expect(dialog).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Europa (Europa)' })).toBeVisible()
 })
 
-test('body controls still navigate to Europa without changing the Earth default', async ({ page }) => {
+test('celestial tray still navigates to Europa without changing the Earth default', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Dünya (Earth)' })).toBeVisible()
-  await page.getByRole('button', { name: '🧊 Europa', exact: true }).click()
+  await page.getByRole('button', { name: /Jüpiter.*uydu seçeneği/ }).hover()
+  await page.getByRole('button', { name: 'Europa uydusunu seç' }).click()
   await expect(page.getByRole('heading', { name: 'Europa (Europa)' })).toBeVisible()
   await expect(page.getByText('Fiziksel Profil').first()).toBeVisible()
   await expect(page.getByText(/olası küresel tuzlu okyanus/).first()).toBeVisible()
@@ -88,7 +90,7 @@ test('mobile light theme and English mode remain operable', async ({ page }) => 
   await themeButton.click()
   await expect(themeButton).toHaveText('☀️')
   await page.getByRole('button', { name: 'Open layers panel' }).click()
-  await expect(page.getByText('Target Body (3D Globe)').last()).toBeVisible()
+  await expect(page.getByText('Cosmic Environments').last()).toBeVisible()
 })
 
 test('reduced-motion preference suppresses decorative CSS motion', async ({ page }) => {

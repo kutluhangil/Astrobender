@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-13
+
+- Moved celestial-body navigation into a compact textured orbit tray with contextual moon popovers, and kept the layer panel focused on cosmic and Earth-satellite controls.
+
 ## 2026-08-11
 
 - Updated the Vite/PostCSS build chain and its lockfile to resolve all current npm audit findings; CI now fails on a high-severity production dependency finding.

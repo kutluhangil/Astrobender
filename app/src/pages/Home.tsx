@@ -16,6 +16,7 @@ import TimeController, {
   type SystemStatusNotice,
 } from '@/components/hud/TimeController'
 import LayerPanel from '@/components/hud/LayerPanel'
+import CelestialTray from '@/components/hud/CelestialTray'
 import SearchBox from '@/components/hud/SearchBox'
 import DetailPanel from '@/components/hud/DetailPanel'
 import type { Telemetry } from '@/components/hud/DetailPanel'
@@ -852,8 +853,6 @@ export default function Home() {
     counts: dataset?.counts ?? UI_GROUPS.map(() => 0),
     visible: groupVisible,
     onToggle: toggleGroup,
-    focusBody,
-    onSelectBody: handleSelectBody,
     onToggleScaleSandbox: () => { setShowScaleModal(true); setLayersOpen(false) },
     onToggleAudio: handleToggleAudio,
     audioPlaying,
@@ -1110,6 +1109,15 @@ export default function Home() {
         <LayerPanel {...layerPanelProps} language={uiLanguage} />
       </div>
 
+      {/* ============ CELESTIAL BODY TRAY ============ */}
+      <div className="absolute bottom-[84px] left-1/2 z-20 w-[min(1040px,calc(100vw-48px))] -translate-x-1/2 max-md:bottom-[82px] max-md:w-[calc(100vw-24px)]">
+        <CelestialTray
+          focusBody={focusBody}
+          onSelectBody={handleSelectBody}
+          language={uiLanguage}
+        />
+      </div>
+
       {earthObservatoryOpen && (
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
           <EarthObservatoryPanel
@@ -1156,7 +1164,7 @@ export default function Home() {
       {/* Floating Action Button — bottom-right */}
       <button
         onClick={() => setLayersOpen((v) => !v)}
-        className={`pointer-events-auto absolute bottom-[100px] right-3 z-30 h-12 w-12 rounded-full border backdrop-blur-xl shadow-lg transition-all md:hidden flex items-center justify-center text-xl ${
+        className={`pointer-events-auto absolute bottom-[154px] right-3 z-30 h-12 w-12 rounded-full border backdrop-blur-xl shadow-lg transition-all md:hidden flex items-center justify-center text-xl ${
           layersOpen
             ? 'border-cyan-400/60 bg-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.5)] rotate-45'
             : 'border-white/20 bg-[#0a0e14]/80 shadow-[0_4px_20px_rgba(0,0,0,0.5)]'

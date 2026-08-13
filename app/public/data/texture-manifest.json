@@ -1,5 +1,5 @@
 {
-  "totalBytes": 40309147,
+  "totalBytes": 40326555,
   "files": [
     {
       "file": "callisto-4k.jpg",
@@ -104,6 +104,54 @@
     {
       "file": "sun-map.jpg",
       "bytes": 647980
+    },
+    {
+      "file": "thumb-ceres.webp",
+      "bytes": 2542
+    },
+    {
+      "file": "thumb-earth.webp",
+      "bytes": 1836
+    },
+    {
+      "file": "thumb-jupiter.webp",
+      "bytes": 1018
+    },
+    {
+      "file": "thumb-mars.webp",
+      "bytes": 1676
+    },
+    {
+      "file": "thumb-mercury.webp",
+      "bytes": 1352
+    },
+    {
+      "file": "thumb-moon.webp",
+      "bytes": 1862
+    },
+    {
+      "file": "thumb-neptune.webp",
+      "bytes": 326
+    },
+    {
+      "file": "thumb-pluto.webp",
+      "bytes": 1312
+    },
+    {
+      "file": "thumb-saturn.webp",
+      "bytes": 402
+    },
+    {
+      "file": "thumb-sun.webp",
+      "bytes": 2842
+    },
+    {
+      "file": "thumb-uranus.webp",
+      "bytes": 146
+    },
+    {
+      "file": "thumb-venus.webp",
+      "bytes": 2094
     },
     {
       "file": "titan-4k.jpg",

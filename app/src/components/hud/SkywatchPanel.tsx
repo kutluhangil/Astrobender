@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { SkyEvent, SkyEventKind, SkyEventVisibility, SkyObserver } from '@/lib/sky-events'
 import { directionLabel, getPerseidWatch, type PerseidWatch } from '@/lib/perseid-watch'
+import { eventDayKey } from '@/lib/skywatch-calendar'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import SkywatchEventCalendar from './SkywatchEventCalendar'
 
 interface SkywatchPanelProps {
   events: SkyEvent[]
@@ -47,6 +49,21 @@ function formatEventTime(value: string, language: UiLanguage): string {
     timeZone: 'UTC',
     timeZoneName: 'short',
   }).format(new Date(value))
+}
+
+function formatSelectedDay(day: string, language: UiLanguage): string {
+  return new Intl.DateTimeFormat(language === 'tr' ? 'tr-TR' : 'en-US', {
+    day: '2-digit',
+    month: 'short',
+    weekday: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${day}T12:00:00Z`))
+}
+
+function initialEventDay(events: SkyEvent[], now: number): string | null {
+  return events.find((event) => new Date(event.startsAt).getTime() > now)?.startsAt.slice(0, 10)
+    ?? events[0]?.startsAt.slice(0, 10)
+    ?? null
 }
 
 function formatCountdown(startsAt: string, now: number, language: UiLanguage): string {
@@ -272,6 +289,7 @@ export default function SkywatchPanel({
   const perseidWatch = getPerseidWatch(new Date(now), observer ?? undefined)
   const months = useMemo(() => [...new Set(events.map((event) => monthKey(event.startsAt)))], [events])
   const [requestedMonth, setRequestedMonth] = useState(() => months[0] ?? '')
+  const [requestedDay, setRequestedDay] = useState<string | null>(null)
   const selectedMonth = months.includes(requestedMonth) ? requestedMonth : (months[0] ?? '')
 
   useEffect(() => {
@@ -280,14 +298,25 @@ export default function SkywatchPanel({
   }, [])
 
   const selectedIndex = months.indexOf(selectedMonth)
-  const displayedEvents = events.filter((event) => monthKey(event.startsAt) === selectedMonth)
+  const monthEvents = events.filter((event) => monthKey(event.startsAt) === selectedMonth)
+  const selectedDay = monthEvents.some((event) => eventDayKey(event) === requestedDay)
+    ? requestedDay
+    : initialEventDay(monthEvents, now)
+  const displayedEvents = selectedDay
+    ? monthEvents.filter((event) => eventDayKey(event) === selectedDay)
+    : []
   const nextEvent = events.find((event) => new Date(event.startsAt).getTime() > now)?.id
+
+  const changeMonth = (nextMonth: string) => {
+    setRequestedMonth(nextMonth)
+    setRequestedDay(null)
+  }
 
   return (
     <section
       data-hud-surface
       aria-label={t('Gökyüzü Takvimi', 'Skywatch Calendar')}
-      className="pointer-events-auto w-[360px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#071018]/95 shadow-[0_0_44px_rgba(34,211,238,0.12)] backdrop-blur-2xl"
+      className="pointer-events-auto flex max-h-[calc(100dvh-104px)] w-[360px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#071018]/95 shadow-[0_0_44px_rgba(34,211,238,0.12)] backdrop-blur-2xl"
     >
       <header className="border-b border-white/10 px-3.5 py-3">
         <div className="flex items-start justify-between gap-3">
@@ -304,16 +333,26 @@ export default function SkywatchPanel({
           </button>
         </div>
         <div className="mt-3 flex items-center justify-between rounded-lg border border-white/8 bg-black/20 px-2 py-1.5">
-          <button type="button" disabled={selectedIndex <= 0} onClick={() => setRequestedMonth(months[selectedIndex - 1])} aria-label={t('Önceki ay', 'Previous month')} className="px-1.5 text-sm text-cyan-200 disabled:opacity-25">‹</button>
+          <button type="button" disabled={selectedIndex <= 0} onClick={() => changeMonth(months[selectedIndex - 1])} aria-label={t('Önceki ay', 'Previous month')} className="px-1.5 text-sm text-cyan-200 disabled:opacity-25">‹</button>
           <div className="text-center">
             <div className="font-mono text-[10px] font-semibold capitalize text-slate-100">{selectedMonth ? formatMonth(selectedMonth, language) : t('Olay yok', 'No events')}</div>
-            <div className="mt-0.5 font-mono text-[7px] uppercase tracking-[0.12em] text-slate-500">{displayedEvents.length} {t('olay', 'events')} · {new Date(calculatedAt).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US')}</div>
+            <div className="mt-0.5 font-mono text-[7px] uppercase tracking-[0.12em] text-slate-500">{monthEvents.length} {t('olay', 'events')} · {new Date(calculatedAt).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US')}</div>
           </div>
-          <button type="button" disabled={selectedIndex < 0 || selectedIndex >= months.length - 1} onClick={() => setRequestedMonth(months[selectedIndex + 1])} aria-label={t('Sonraki ay', 'Next month')} className="px-1.5 text-sm text-cyan-200 disabled:opacity-25">›</button>
+          <button type="button" disabled={selectedIndex < 0 || selectedIndex >= months.length - 1} onClick={() => changeMonth(months[selectedIndex + 1])} aria-label={t('Sonraki ay', 'Next month')} className="px-1.5 text-sm text-cyan-200 disabled:opacity-25">›</button>
         </div>
       </header>
 
-      <div className="max-h-[52vh] space-y-2.5 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-white/10">
+      {selectedMonth && (
+        <SkywatchEventCalendar
+          events={monthEvents}
+          month={selectedMonth}
+          selectedDay={selectedDay}
+          language={language}
+          onSelectDay={setRequestedDay}
+        />
+      )}
+
+      <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-white/10">
         <SkywatchLocationControl
           observer={observer}
           locationError={locationError}
@@ -336,7 +375,9 @@ export default function SkywatchPanel({
             {t('Bu hesaplama penceresinde gösterilecek bir olay yok.', 'There are no events in this calculation window.')}
           </p>
         ) : (
-          <ol className="space-y-2">
+          <section aria-label={t('Seçilen günün olayları', 'Selected day events')}>
+            {selectedDay && <h3 className="mb-2 font-mono text-[8px] font-semibold uppercase tracking-[0.15em] text-cyan-100/70">{formatSelectedDay(selectedDay, language)}</h3>}
+            <ol className="space-y-2">
             {displayedEvents.map((event) => {
               const style = EVENT_STYLE[event.kind]
               const isNext = event.id === nextEvent
@@ -365,7 +406,8 @@ export default function SkywatchPanel({
                 </li>
               )
             })}
-          </ol>
+            </ol>
+          </section>
         )}
       </div>
     </section>

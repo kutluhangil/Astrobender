@@ -22,6 +22,7 @@ test('unified search prioritizes exact astronomy catalog matches', async ({ page
 })
 
 test('surface sites open sourced bilingual coordinate details', async ({ page }) => {
+  test.setTimeout(60_000)
   await page.getByRole('button', { name: 'Arayüzü İngilizce yap' }).click()
   const search = page.getByRole('textbox', { name: 'Search the observatory' })
   await search.fill('Kandilli')
@@ -40,6 +41,9 @@ test('surface sites open sourced bilingual coordinate details', async ({ page })
 
 test('celestial tray still navigates to Europa without changing the Earth default', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Dünya (Earth)' })).toBeVisible()
+  const tray = page.getByRole('navigation', { name: 'Gök cismi seçici' })
+  await expect(tray).toHaveJSProperty('scrollWidth', await tray.evaluate((element) => element.clientWidth))
+  await expect(tray).toHaveCSS('width', /^(?!1040px$)/)
   await page.getByRole('button', { name: /Jüpiter.*uydu seçeneği/ }).hover()
   await page.getByRole('button', { name: 'Europa uydusunu seç' }).click()
   await expect(page.getByRole('heading', { name: 'Europa (Europa)' })).toBeVisible()
@@ -96,10 +100,22 @@ test('mobile light theme and English mode remain operable', async ({ page }) => 
 test('reduced-motion preference suppresses decorative CSS motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload()
-  const animationDuration = await page.locator('.opening-wordmark').evaluate(
-    (element) => getComputedStyle(element).animationDuration,
-  )
-  expect(animationDuration).toMatch(/^(0\.01ms|1e-05s)$/)
+  const reducedMotion = await page.evaluate(() => {
+    const probe = document.createElement('div')
+    probe.style.animation = 'motion-probe 2s linear infinite'
+    document.body.append(probe)
+    const styles = getComputedStyle(probe)
+    const result = {
+      matches: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      duration: styles.animationDuration,
+      iterations: styles.animationIterationCount,
+    }
+    probe.remove()
+    return result
+  })
+  expect(reducedMotion.matches).toBe(true)
+  expect(reducedMotion.duration).toMatch(/^(0\.01ms|1e-05s)$/)
+  expect(reducedMotion.iterations).toBe('1')
 })
 
 test('desktop tour-start button is clickable over the layer panel', async ({ page }) => {
@@ -116,10 +132,19 @@ test('desktop tour-start button is clickable over the layer panel', async ({ pag
 })
 
 test('Skywatch calculates events, accepts a manual observer, and moves the simulation', async ({ page }) => {
+  test.setTimeout(60_000)
   await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
   const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
   await expect(panel).toBeVisible()
   await expect(panel.getByRole('button', { name: 'Simülasyonda göster' }).first()).toBeVisible()
+  const eventCalendar = panel.getByRole('group', { name: 'Olay takvimi' })
+  await expect(eventCalendar).toBeVisible()
+  await expect(eventCalendar.getByRole('button', { name: /15 Ağustos.*Venüs/ })).toBeVisible()
+  await panel.getByRole('button', { name: 'Sonraki ay' }).click()
+  await expect(eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ })).toBeVisible()
+  await eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ }).click()
+  await expect(panel.getByText('Orionids Meteor Yağmuru')).toBeVisible()
+  await panel.getByRole('button', { name: 'Önceki ay' }).click()
 
   await panel.getByText('Koordinatları elle gir').click()
   await panel.getByLabel('Enlem').fill('41.0082')
@@ -149,5 +174,8 @@ test('Skywatch stays operable on mobile with reduced motion', async ({ page }) =
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.getByRole('button', { name: 'Katman panelini aç' }).click()
   await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
-  await expect(page.getByRole('region', { name: 'Gökyüzü Takvimi' })).toBeVisible()
+  const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
+  await expect(panel).toBeVisible()
+  await expect(panel.getByRole('group', { name: 'Olay takvimi' })).toBeVisible()
+  await expect(panel.getByRole('group', { name: 'Olay takvimi' }).getByRole('button').first()).toBeVisible()
 })

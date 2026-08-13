@@ -61,19 +61,11 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
     <nav
       data-hud-surface
       aria-label={t('Gök cismi seçici', 'Celestial body selector')}
-      className="pointer-events-auto relative rounded-[28px] border border-white/10 bg-[#06090e]/85 px-3 py-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.58)] backdrop-blur-2xl"
+      className="pointer-events-auto relative inline-block max-w-full rounded-[28px] border border-white/10 bg-[#06090e]/85 px-3 py-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.58)] backdrop-blur-2xl"
       onMouseLeave={() => setMoonSystemId(null)}
     >
       <span className="sr-only">{t('Gök cisimleri', 'Celestial bodies')}</span>
-      <div className="flex min-w-0 items-center gap-2 overflow-x-auto px-1 pb-0.5 scrollbar-none">
-        <span
-          aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-cyan-300/15 bg-cyan-400/10 font-mono text-lg text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,0.1)]"
-        >
-          ◉
-        </span>
-        <span aria-hidden="true" className="h-5 w-px shrink-0 bg-white/10" />
-
+      <div className="flex max-w-full items-center gap-2 overflow-x-auto px-1 pb-0.5 scrollbar-none">
         {TRAY_BODIES.map((body) => {
           const moonCount = body.moons?.length ?? (body.id === 'earth' ? 1 : 0)
           const hasMoons = moonCount > 0

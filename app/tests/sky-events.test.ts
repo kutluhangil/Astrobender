@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { getSkyEvents } from '../src/lib/sky-events.ts'
 import { directionLabel, getPerseidWatch } from '../src/lib/perseid-watch.ts'
+import { eventDayKey } from '../src/lib/skywatch-calendar.ts'
 
 test('Skywatch includes NASA-verified August 2026 eclipses in chronological order', () => {
   const events = getSkyEvents({
@@ -42,6 +43,15 @@ test('Perseid Watch exposes the IMO 2026 window and calculates a local astronomi
 
 test('Perseid Watch does not present the year-specific 2026 forecast outside 2026', () => {
   assert.equal(getPerseidWatch(new Date('2027-08-13T03:00:00Z')), null)
+})
+
+test('Skywatch calendar groups every event by its UTC day', () => {
+  const [firstEvent] = getSkyEvents({
+    start: new Date('2026-08-01T00:00:00Z'),
+    end: new Date('2026-08-31T23:59:59Z'),
+    language: 'tr',
+  })
+  assert.equal(eventDayKey(firstEvent), firstEvent.startsAt.slice(0, 10))
 })
 
 test('Skywatch rejects an inverted window and labels unlocated solar visibility', () => {

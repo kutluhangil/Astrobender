@@ -1133,7 +1133,7 @@ export default function Home() {
       </div>
 
       {/* ============ CELESTIAL BODY TRAY ============ */}
-      <div className="absolute bottom-[84px] left-1/2 z-20 w-[min(1040px,calc(100vw-48px))] -translate-x-1/2 max-md:bottom-[82px] max-md:w-[calc(100vw-24px)]">
+      <div className="absolute bottom-[84px] left-1/2 z-20 w-fit max-w-[calc(100vw-48px)] -translate-x-1/2 max-md:bottom-[82px] max-md:max-w-[calc(100vw-24px)]">
         <CelestialTray
           focusBody={focusBody}
           onSelectBody={handleSelectBody}
@@ -1167,7 +1167,7 @@ export default function Home() {
       )}
 
       {skywatchOpen && (
-        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
           <SkywatchPanel
             events={skywatchEvents}
             observer={skywatchLocation.observer}

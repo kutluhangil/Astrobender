@@ -3,6 +3,7 @@ import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
 import { formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
 import type { SatInfo } from '@/lib/satellites'
+import type { CloseApproachHighlight } from '@/lib/jpl-small-bodies'
 import type { CelestialBodyId } from '@/lib/planets'
 import { useSimClock } from '@/hooks/useSimClock'
 import { useTleData } from '@/hooks/useTleData'
@@ -492,6 +493,26 @@ export default function Home() {
         : `${event.title} opened in the simulation.`,
     )
   }, [clock, handleSelectBody, selectSat, uiLanguage])
+
+  const handleShowCloseApproach = useCallback((highlight: CloseApproachHighlight) => {
+    selectSat(null)
+    clock.setTime(highlight.timeMs)
+    handleSelectBody(highlight.namedBody?.bodyId ?? 'earth')
+    setSmallBodiesOpen(false)
+    setLayersOpen(false)
+    setSearchNotice(
+      uiLanguage === 'tr'
+        ? `${highlight.approach.fullName} yakın geçişi simülasyon saatine alındı (${highlight.approach.closeApproachDate} TDB).`
+        : `${highlight.approach.fullName} close approach loaded into the simulation clock (${highlight.approach.closeApproachDate} TDB).`,
+    )
+  }, [clock, handleSelectBody, selectSat, uiLanguage])
+
+  const handleFocusSmallBody = useCallback((bodyId: CelestialBodyId) => {
+    selectSat(null)
+    handleSelectBody(bodyId)
+    setSmallBodiesOpen(false)
+    setLayersOpen(false)
+  }, [handleSelectBody, selectSat])
 
   const handleStartPerseidSimulation = useCallback((watch: PerseidWatch) => {
     const peakTime = Date.parse(watch.peakAt)
@@ -1172,6 +1193,8 @@ export default function Home() {
             language={uiLanguage}
             onClose={() => setSmallBodiesOpen(false)}
             onRefresh={() => void smallBodies.refresh()}
+            onShowApproach={handleShowCloseApproach}
+            onFocusBody={handleFocusSmallBody}
           />
         </div>
       )}

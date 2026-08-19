@@ -2,8 +2,12 @@ import { useState } from 'react'
 import {
   JPL_CAD_SOURCE_URL,
   NAMED_SMALL_BODIES,
+  lunarDistances,
+  upcomingCloseApproaches,
   type CloseApproach,
+  type CloseApproachHighlight,
 } from '@/lib/jpl-small-bodies'
+import type { CelestialBodyId } from '@/lib/planets'
 import { DEEP_SPACE_PROBES } from '@/lib/probes'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
@@ -14,6 +18,8 @@ interface SmallBodiesPanelProps {
   updatedAt: number | null
   onClose: () => void
   onRefresh: () => void
+  onShowApproach: (highlight: CloseApproachHighlight) => void
+  onFocusBody: (bodyId: CelestialBodyId) => void
   language?: UiLanguage
 }
 
@@ -23,6 +29,10 @@ function distanceLabel(distanceAu: number): string {
   return `${distanceAu.toFixed(4)} AU`
 }
 
+function lunarDistanceLabel(distanceAu: number): string {
+  return `${lunarDistances(distanceAu).toFixed(1)} LD`
+}
+
 export default function SmallBodiesPanel({
   status,
   approaches,
@@ -30,11 +40,16 @@ export default function SmallBodiesPanel({
   updatedAt,
   onClose,
   onRefresh,
+  onShowApproach,
+  onFocusBody,
   language = 'tr',
 }: SmallBodiesPanelProps) {
   const [tab, setTab] = useState<PanelTab>('approaches')
   const [selected, setSelected] = useState<CloseApproach | null>(null)
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  // `updatedAt` is the fetch time, so the upcoming window is measured from the
+  // instant the feed was read rather than from an unrelated render-time clock.
+  const upcoming = updatedAt === null ? [] : upcomingCloseApproaches(approaches, updatedAt)
 
   return (
     <section
@@ -78,8 +93,8 @@ export default function SmallBodiesPanel({
 
       <div className="grid grid-cols-3 border-b border-white/10 p-1">
         {([
-          ['approaches', `${t('Yakın Geçiş', 'Approaches')} ${approaches.length}`],
-          ['catalog', `${t('Katalog', 'Catalog')} 7`],
+          ['approaches', `${t('Yakın Geçiş', 'Approaches')} ${upcoming.length}`],
+          ['catalog', `${t('Katalog', 'Catalog')} ${NAMED_SMALL_BODIES.length}`],
           ['missions', `${t('Görevler', 'Missions')} ${DEEP_SPACE_PROBES.length}`],
         ] as const).map(([id, label]) => (
           <button
@@ -109,31 +124,69 @@ export default function SmallBodiesPanel({
                 <p className="mt-1 break-words text-[8px] text-red-200/70">{error}</p>
               </details>
             )}
-            {approaches.slice(0, 24).map((approach) => (
-              <button
-                type="button"
-                key={`${approach.designation}-${approach.closeApproachDate}`}
-                onClick={() => setSelected(approach)}
-                className={`w-full rounded-lg border px-2.5 py-2 text-left transition-colors ${
-                  selected === approach
+            {status === 'ready' && upcoming.length === 0 && !error && (
+              <p className="rounded-lg border border-white/7 bg-white/[0.03] p-3 font-mono text-[9px] text-slate-400">
+                {t(
+                  'Önümüzdeki 60 gün için 0.2 AU içinde kayıtlı yakın geçiş yok.',
+                  'No close approach within 0.2 au is on record for the next 60 days.',
+                )}
+              </p>
+            )}
+            {upcoming.slice(0, 24).map((highlight) => (
+              <div
+                key={`${highlight.approach.designation}-${highlight.approach.closeApproachDate}`}
+                className={`rounded-lg border transition-colors ${
+                  selected === highlight.approach
                     ? 'border-amber-400/50 bg-amber-400/12'
                     : 'border-white/7 bg-white/[0.03] hover:border-amber-400/25'
                 }`}
               >
-                <span className="block truncate text-[10px] font-medium text-slate-200">
-                  {approach.fullName}
-                </span>
-                <span className="mt-1 flex justify-between font-mono text-[8px] text-slate-500">
-                  <span>{approach.closeApproachDate}</span>
-                  <span>{distanceLabel(approach.distanceAu)} · {approach.relativeVelocityKmS.toFixed(1)} km/s</span>
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSelected(highlight.approach)}
+                  className="w-full px-2.5 py-2 text-left"
+                >
+                  <span className="block truncate text-[10px] font-medium text-slate-200">
+                    {highlight.approach.fullName}
+                    {highlight.namedBody && (
+                      <span className="ml-1.5 rounded border border-amber-400/30 px-1 font-mono text-[7px] uppercase tracking-[0.1em] text-amber-200/90">
+                        {t('katalogda', 'catalogued')}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-1 flex justify-between font-mono text-[8px] text-slate-500">
+                    <span>{highlight.approach.closeApproachDate}</span>
+                    <span>
+                      {lunarDistanceLabel(highlight.approach.distanceAu)} · {highlight.approach.relativeVelocityKmS.toFixed(1)} km/s
+                    </span>
+                  </span>
+                </button>
+                <div className="flex flex-wrap gap-1 border-t border-white/5 px-2.5 py-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onShowApproach(highlight)}
+                    className="rounded-md border border-amber-400/25 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[8px] text-amber-100 hover:bg-amber-400/20"
+                  >
+                    {t('Simülasyonu bu tarihe al', 'Move simulation to this date')}
+                  </button>
+                  {highlight.namedBody?.bodyId && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusBody(highlight.namedBody!.bodyId!)}
+                      className="rounded-md border border-cyan-400/25 bg-cyan-400/10 px-1.5 py-0.5 font-mono text-[8px] text-cyan-100 hover:bg-cyan-400/20"
+                    >
+                      {t('Sahnede göster', 'Show in scene')}
+                    </button>
+                  )}
+                </div>
+              </div>
             ))}
             {selected && (
               <div className="rounded-lg border border-amber-400/25 bg-amber-400/5 p-2.5 font-mono text-[8px] text-slate-300">
                 <div className="font-semibold text-amber-200">{selected.fullName}</div>
                 <div className="mt-1 grid grid-cols-2 gap-1 text-slate-400">
                   <span>{t('Nominal', 'Nominal')}: {distanceLabel(selected.distanceAu)}</span>
+                  <span>{t('Ay uzaklığı', 'Lunar distance')}: {lunarDistanceLabel(selected.distanceAu)}</span>
                   <span>{t('Çap', 'Diameter')}: {selected.diameterKm === null ? t('Bilinmiyor', 'Unknown') : `${selected.diameterKm.toFixed(3)} km`}</span>
                   <span>{t('Min', 'Min')}: {selected.minimumDistanceAu === null ? '—' : distanceLabel(selected.minimumDistanceAu)}</span>
                   <span>{t('Maks', 'Max')}: {selected.maximumDistanceAu === null ? '—' : distanceLabel(selected.maximumDistanceAu)}</span>
@@ -149,12 +202,9 @@ export default function SmallBodiesPanel({
         {tab === 'catalog' && (
           <div className="space-y-1.5">
             {NAMED_SMALL_BODIES.map((body) => (
-              <a
+              <div
                 key={body.id}
-                href={body.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded-lg border border-white/7 bg-white/[0.03] p-2.5 hover:border-amber-400/25"
+                className="rounded-lg border border-white/7 bg-white/[0.03] p-2.5"
               >
                 <span className="font-mono text-[10px] font-semibold text-amber-100">
                   {language === 'tr' ? body.nameTr : body.name}
@@ -163,7 +213,26 @@ export default function SmallBodiesPanel({
                 <p className="mt-1 text-[9px] leading-relaxed text-slate-400">
                   {body.summaryTr}
                 </p>
-              </a>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  <a
+                    href={body.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-[8px] uppercase tracking-[0.14em] text-amber-300/80 hover:text-amber-200"
+                  >
+                    {t('JPL SBDB', 'JPL SBDB')} ↗
+                  </a>
+                  {body.bodyId && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusBody(body.bodyId!)}
+                      className="font-mono text-[8px] uppercase tracking-[0.14em] text-cyan-300/85 hover:text-cyan-200"
+                    >
+                      {t('Sahnede göster', 'Show in scene')}
+                    </button>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         )}

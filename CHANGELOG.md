@@ -2,6 +2,8 @@
 
 ## 2026-08-19
 
+- Bound the live JPL close-approach feed to the named small-body catalog: rows now resolve to a catalogued body, sort into a genuine upcoming window, report lunar distances, and can move the simulation clock to the approach date or focus the modelled body.
+- Expanded the named small-body catalog to fifteen entries with SBDB designations, scene links for the nine that are modelled, and Apophis added for its 2029 pass.
 - Drew Jupiter's, Uranus's, and Neptune's ring systems as their real named bands from the NASA PDS Ring-Moon Systems tables, with the ten sub-pixel Uranian rings widened to stay visible and labelled as such in the body panel.
 - Added the seven missing modelled moons — Metis, Thebe, Elara, Pasiphae, Janus, Epimetheus, and Phoebe — with the distant irregulars referenced to the solar plane instead of their planet's equator.
 - Added eight JPL-sourced bodies — Vesta, Pallas, Hygiea, Juno, Psyche, Quaoar, Gonggong, and Sedna — with Keplerian elements re-anchored to J2000 and pinned against JPL Horizons vectors to within 0.001 au.

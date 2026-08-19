@@ -24,6 +24,9 @@ const NASA_PLUTO_URL = 'https://science.nasa.gov/dwarf-planets/pluto/'
 const NASA_DWARF_PLANETS_URL = 'https://science.nasa.gov/dwarf-planets/'
 const NASA_CERES_MAP_URL =
   'https://science.nasa.gov/resource/colorized-map-of-ceres-mercator-projection/'
+const NASA_ASTEROIDS_URL = 'https://science.nasa.gov/solar-system/asteroids/'
+const NASA_VESTA_URL = 'https://science.nasa.gov/solar-system/asteroids/4-vesta/'
+const NASA_PSYCHE_URL = 'https://science.nasa.gov/solar-system/asteroids/16-psyche/'
 
 const SOURCE_BY_SYSTEM: Partial<Record<CelestialBodyId, string>> = {
   io: NASA_JUPITER_MOONS_URL,
@@ -60,6 +63,14 @@ const SOURCE_BY_SYSTEM: Partial<Record<CelestialBodyId, string>> = {
   haumea: NASA_DWARF_PLANETS_URL,
   makemake: NASA_DWARF_PLANETS_URL,
   eris: NASA_DWARF_PLANETS_URL,
+  vesta: NASA_VESTA_URL,
+  psyche: NASA_PSYCHE_URL,
+  pallas: NASA_ASTEROIDS_URL,
+  hygiea: NASA_ASTEROIDS_URL,
+  juno: NASA_ASTEROIDS_URL,
+  quaoar: NASA_DWARF_PLANETS_URL,
+  gonggong: NASA_DWARF_PLANETS_URL,
+  sedna: NASA_DWARF_PLANETS_URL,
 }
 
 export const CELESTIAL_CATALOG = Object.fromEntries(

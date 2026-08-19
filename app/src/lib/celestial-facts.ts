@@ -513,6 +513,62 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     atmosphere: 'Kalıcı atmosfer doğrulanmadı',
     funFactTr: 'Eris’in keşfi, gezegen tanımının yeniden ele alınmasına ve cüce gezegen sınıfının oluşturulmasına katkı sağladı.',
   },
+  vesta: {
+    id: 'vesta', name: 'Vesta', nameTr: 'Vesta', emoji: '🪨',
+    typeTr: 'Asteroit (Ana Kuşak)', radiusKm: '261 km (ortalama)',
+    distFromSunAu: '2.36 AU', rotationPeriod: '5 saat 21 dk', orbitPeriod: '3.63 yıl',
+    moonsCount: '0', atmosphere: 'Yok',
+    funFactTr: 'Dawn görevi Vesta’nın güney kutbunda, gövdenin neredeyse tamamı kadar geniş Rheasilvia çarpma havzasını haritaladı.',
+  },
+  pallas: {
+    id: 'pallas', name: 'Pallas', nameTr: 'Pallas', emoji: '🪨',
+    typeTr: 'Asteroit (Ana Kuşak)', radiusKm: '257 km (ortalama)',
+    distFromSunAu: '2.77 AU', rotationPeriod: '7 saat 49 dk', orbitPeriod: '4.61 yıl',
+    moonsCount: '0', atmosphere: 'Yok',
+    funFactTr: 'Yörünge eğikliği 34.9° ile ana kuşağın en eğik büyük cismidir; kuşak düzleminin çok dışına çıkar.',
+  },
+  hygiea: {
+    id: 'hygiea', name: 'Hygiea', nameTr: 'Hygiea', emoji: '🪨',
+    typeTr: 'Asteroit (Ana Kuşak)', radiusKm: '204 km (ortalama)',
+    distFromSunAu: '3.15 AU', rotationPeriod: '13 saat 50 dk', orbitPeriod: '5.59 yıl',
+    moonsCount: '0', atmosphere: 'Yok',
+    funFactTr: 'Ana kuşağın dördüncü büyük cismidir ve karbonca zengin C tipi ailesinin en büyük üyesidir.',
+  },
+  juno: {
+    id: 'juno', name: 'Juno', nameTr: 'Juno', emoji: '🪨',
+    typeTr: 'Asteroit (Ana Kuşak)', radiusKm: '123 km (ortalama)',
+    distFromSunAu: '2.67 AU', rotationPeriod: '7 saat 13 dk', orbitPeriod: '4.37 yıl',
+    moonsCount: '0', atmosphere: 'Yok',
+    funFactTr: 'Keşfedilen üçüncü asteroittir ve taşsı S tipi cisimlerin en büyüklerinden biridir.',
+  },
+  psyche: {
+    id: 'psyche', name: 'Psyche', nameTr: 'Psyche', emoji: '🪨',
+    typeTr: 'Asteroit (Ana Kuşak)', radiusKm: '111 km (ortalama)',
+    distFromSunAu: '2.93 AU', rotationPeriod: '4 saat 12 dk', orbitPeriod: '5.00 yıl',
+    moonsCount: '0', atmosphere: 'Yok',
+    funFactTr: 'Metalce zengin yapısıyla NASA’nın Psyche görevinin hedefidir; bir gezegen çekirdeğinin açıkta kalmış kalıntısı olabilir.',
+  },
+  quaoar: {
+    id: 'quaoar', name: 'Quaoar', nameTr: 'Quaoar', emoji: '⚪',
+    typeTr: 'Cüce Gezegen Adayı (Kuiper Kuşağı)', radiusKm: '555 km (örtülme ölçümü)',
+    distFromSunAu: '43.16 AU', rotationPeriod: '8 saat 50 dk', orbitPeriod: '283 yıl',
+    moonsCount: '1 (Weywot)', atmosphere: 'Küresel atmosfer saptanmadı',
+    funFactTr: 'Roche sınırının çok dışında iki halkası bulunur; bu, halka oluşumu kuramlarının beklemediği bir yapıdır.',
+  },
+  gonggong: {
+    id: 'gonggong', name: 'Gonggong', nameTr: 'Gonggong', emoji: '⚪',
+    typeTr: 'Cüce Gezegen Adayı (Dağınık Disk)', radiusKm: '612 km (termal ölçüm)',
+    distFromSunAu: '66.87 AU', rotationPeriod: '22 saat 24 dk', orbitPeriod: '547 yıl',
+    moonsCount: '1 (Xiangliu)', atmosphere: 'Küresel atmosfer saptanmadı',
+    funFactTr: 'Bilinen en büyük beşinci Kuiper Kuşağı cismidir; kütlesi ve yoğunluğu uydusu Xiangliu’nun yörüngesinden ölçüldü.',
+  },
+  sedna: {
+    id: 'sedna', name: 'Sedna', nameTr: 'Sedna', emoji: '⚪',
+    typeTr: 'Cüce Gezegen Adayı (İç Oort Bulutu)', radiusKm: '498 km (termal ölçüm)',
+    distFromSunAu: '543.72 AU (yarı-büyük eksen)', rotationPeriod: '10 saat 16 dk', orbitPeriod: '12,678 yıl',
+    moonsCount: '0', atmosphere: 'Küresel atmosfer saptanmadı',
+    funFactTr: 'Günberisi 76 AU’dur; Neptün’ün kütleçekimine hiç yaklaşmaz, bu yüzden yörüngesi iç Oort Bulutu’nun kanıtı sayılır.',
+  },
 }
 
 export const CELESTIAL_FUN_FACTS_EN: Record<CelestialBodyId, string> = {
@@ -562,10 +618,22 @@ export const CELESTIAL_FUN_FACTS_EN: Record<CelestialBodyId, string> = {
   haumea: 'Haumea’s rapid spin elongates it; it was the first dwarf planet found with a ring.',
   makemake: 'Frozen methane and ethane give Makemake a reddish surface.',
   eris: 'Eris helped trigger the modern planet definition and dwarf-planet category.',
+  vesta: 'Dawn mapped Rheasilvia, a south-polar impact basin nearly as wide as Vesta itself.',
+  pallas: 'Pallas has the most inclined orbit of any large main-belt body, tilted 34.9 degrees.',
+  hygiea: 'Hygiea is the fourth-largest main-belt body and the largest of its carbon-rich C-type family.',
+  juno: 'Juno was the third asteroid ever discovered and is one of the largest stony S-type bodies.',
+  psyche: 'Metal-rich Psyche is the target of the NASA Psyche mission and may be an exposed planetary core.',
+  quaoar: 'Quaoar carries two rings far outside its Roche limit, which ring-formation theory did not predict.',
+  gonggong: 'Gonggong is the fifth-largest known Kuiper Belt object; its moon Xiangliu yielded its mass and density.',
+  sedna: 'Sedna never comes closer than 76 au to the Sun, so its orbit is treated as evidence of an inner Oort Cloud.',
 }
 
 const ENGLISH_VALUE_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
   ['Kütleçekimsel Kilitli', 'Tidally locked'],
+  ['Küresel atmosfer saptanmadı', 'No global atmosphere detected'],
+  ['örtülme ölçümü', 'occultation measurement'],
+  ['termal ölçüm', 'thermal measurement'],
+  ['yarı-büyük eksen', 'semi-major axis'],
   ['Ters Yörünge', 'Retrograde orbit'],
   ['Ters Döner!', 'Retrograde'],
   ['Bilinen Uydu', 'known moons'],
@@ -658,6 +726,8 @@ export function celestialValueEn(value: string): string {
 
 export function celestialTypeEn(typeTr: string): string {
   if (typeTr.includes('Yıldız')) return 'Star'
+  if (typeTr.includes('Cüce Gezegen Adayı')) return 'Dwarf-Planet Candidate'
+  if (typeTr.includes('Asteroit')) return 'Asteroid'
   if (typeTr.includes('Karasal')) return 'Terrestrial Planet'
   if (typeTr.includes('Gaz Devi')) return 'Gas Giant'
   if (typeTr.includes('Buz Devi')) return 'Ice Giant'

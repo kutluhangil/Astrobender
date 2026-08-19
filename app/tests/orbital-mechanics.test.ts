@@ -8,6 +8,7 @@ import {
   getGeocentricScenePositions,
   getSatelliteScenePosition,
   heliocentricPositionAu,
+  solveEccentricAnomaly,
   type PlanetaryBodyId,
 } from '../src/lib/orbital-mechanics.ts'
 
@@ -55,6 +56,57 @@ test('modeled dwarf planets have finite distinct heliocentric positions', () => 
     assert.ok(Number.isFinite(position.z))
   }
   assert.equal(new Set(positions.map((position) => Math.hypot(position.x, position.y, position.z).toFixed(3))).size, 4)
+})
+
+/**
+ * Equatorial (ICRF) heliocentric vectors read from the JPL Horizons API for
+ * 2026-08-19 00:00 TDB, `CENTER='500@10'`, `REF_PLANE='FRAME'`. They pin the
+ * J2000 re-anchoring applied to the SBDB osculating elements: a phase mistake
+ * in that conversion moves a body by astronomical units, not metres.
+ */
+const HORIZONS_2026_08_19_AU: Record<string, { x: number; y: number; z: number }> = {
+  vesta: { x: 2.388728, y: 0.329150, z: -0.181760 },
+  pallas: { x: 2.874196, y: 0.410935, z: -0.290362 },
+  hygiea: { x: -1.985054, y: 2.358301, z: 0.923333 },
+  juno: { x: 1.670564, y: -2.121328, z: -0.466564 },
+  psyche: { x: -1.884592, y: 2.168168, z: 0.876235 },
+  quaoar: { x: 8.394590, y: -40.291808, z: -11.018718 },
+  gonggong: { x: 81.805317, y: -33.586215, z: -15.829338 },
+  sedna: { x: 38.825706, y: 72.095191, z: 12.722798 },
+}
+
+test('small-body elements reproduce the JPL Horizons vectors for 2026-08-19', () => {
+  const timeMs = Date.UTC(2026, 7, 19)
+  for (const [bodyId, reference] of Object.entries(HORIZONS_2026_08_19_AU)) {
+    const position = heliocentricPositionAu(bodyId as PlanetaryBodyId, timeMs)
+    const errorAu = Math.hypot(
+      position.x - reference.x,
+      position.y - reference.y,
+      position.z - reference.z,
+    )
+    assert.ok(errorAu < 0.001, `${bodyId} deviates ${errorAu.toFixed(6)} au from Horizons`)
+  }
+})
+
+test('the Kepler solver converges on near-parabolic eccentricities', () => {
+  // 1P/Halley sits at e = 0.968, where the naive M + e sin M starter stalls.
+  for (const eccentricity of [0, 0.5, 0.86, 0.95, 0.968, 0.99]) {
+    for (let step = 0; step < 64; step++) {
+      const meanAnomaly = (step / 64) * Math.PI * 2
+      const eccentricAnomaly = solveEccentricAnomaly(meanAnomaly, eccentricity)
+      const residual = Math.abs(
+        Math.sin(eccentricAnomaly - eccentricity * Math.sin(eccentricAnomaly)) -
+          Math.sin(meanAnomaly),
+      )
+      assert.ok(residual < 1e-9, `e=${eccentricity} M=${meanAnomaly} residual ${residual}`)
+    }
+  }
+})
+
+test('the Kepler solver rejects parabolic and hyperbolic eccentricities', () => {
+  assert.throws(() => solveEccentricAnomaly(1, 1), /Elliptical eccentricity must be in \[0, 1\)/)
+  assert.throws(() => solveEccentricAnomaly(1, 1.4), /Elliptical eccentricity must be in \[0, 1\)/)
+  assert.throws(() => solveEccentricAnomaly(Number.NaN, 0.2), /Invalid Kepler input/)
 })
 
 test('compressed distances stay navigable without changing orbital ordering', () => {

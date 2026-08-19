@@ -32,6 +32,14 @@ export type PlanetaryBodyId =
   | 'haumea'
   | 'makemake'
   | 'eris'
+  | 'vesta'
+  | 'pallas'
+  | 'hygiea'
+  | 'juno'
+  | 'psyche'
+  | 'quaoar'
+  | 'gonggong'
+  | 'sedna'
 
 export type SatelliteBodyId =
   | 'moon'
@@ -199,6 +207,74 @@ export const PLANETARY_ELEMENTS: Record<PlanetaryBodyId, PlanetaryElements> = {
     meanLongitudeDeg: element(204.0, 64.52),
     longitudePerihelionDeg: element(151.6, 0),
     longitudeAscendingNodeDeg: element(35.95, 0),
+  },
+  // Small bodies below are JPL SBDB osculating elements re-anchored to J2000:
+  // the mean longitude base is the epoch value walked back at the mean motion,
+  // and the remaining elements carry no secular rate because SBDB publishes a
+  // single-epoch solution rather than a fitted rate.
+  vesta: {
+    semiMajorAxisAu: element(2.36136597, 0),
+    eccentricity: element(0.09020374, 0),
+    inclinationDeg: element(7.14393, 0),
+    meanLongitudeDeg: element(233.74901, 9920.86065),
+    longitudePerihelionDeg: element(255.16994, 0),
+    longitudeAscendingNodeDeg: element(103.70129, 0),
+  },
+  pallas: {
+    semiMajorAxisAu: element(2.76955901, 0),
+    eccentricity: element(0.2307001, 0),
+    inclinationDeg: element(34.93279, 0),
+    meanLongitudeDeg: element(113.3779, 7810.4915),
+    longitudePerihelionDeg: element(123.85654, 0),
+    longitudeAscendingNodeDeg: element(172.88662, 0),
+  },
+  hygiea: {
+    semiMajorAxisAu: element(3.15097403, 0),
+    eccentricity: element(0.10670927, 0),
+    inclinationDeg: element(3.82953, 0),
+    meanLongitudeDeg: element(226.15827, 6436.16341),
+    longitudePerihelionDeg: element(235.54413, 0),
+    longitudeAscendingNodeDeg: element(283.11989, 0),
+  },
+  juno: {
+    semiMajorAxisAu: element(2.67098953, 0),
+    eccentricity: element(0.25569998, 0),
+    inclinationDeg: element(12.98659, 0),
+    meanLongitudeDeg: element(300.36833, 8246.81061),
+    longitudePerihelionDeg: element(57.70667, 0),
+    longitudeAscendingNodeDeg: element(169.8116, 0),
+  },
+  psyche: {
+    semiMajorAxisAu: element(2.92572047, 0),
+    eccentricity: element(0.13493247, 0),
+    inclinationDeg: element(3.09875, 0),
+    meanLongitudeDeg: element(358.1318, 7193.5796),
+    longitudePerihelionDeg: element(20.00806, 0),
+    longitudeAscendingNodeDeg: element(149.97539, 0),
+  },
+  quaoar: {
+    semiMajorAxisAu: element(43.15617649, 0),
+    eccentricity: element(0.03520024, 0),
+    inclinationDeg: element(7.99158, 0),
+    meanLongitudeDeg: element(251.40979, 126.9784),
+    longitudePerihelionDeg: element(352.12818, 0),
+    longitudeAscendingNodeDeg: element(188.91912, 0),
+  },
+  gonggong: {
+    semiMajorAxisAu: element(66.8666119, 0),
+    eccentricity: element(0.50425058, 0),
+    inclinationDeg: element(30.89906, 0),
+    meanLongitudeDeg: element(277.72167, 65.83856),
+    longitudePerihelionDeg: element(183.4615, 0),
+    longitudeAscendingNodeDeg: element(336.83832, 0),
+  },
+  sedna: {
+    semiMajorAxisAu: element(543.71952891, 0),
+    eccentricity: element(0.85988246, 0),
+    inclinationDeg: element(11.92528, 0),
+    meanLongitudeDeg: element(93.45002, 2.83943),
+    longitudePerihelionDeg: element(95.60494, 0),
+    longitudeAscendingNodeDeg: element(144.50617, 0),
   },
 }
 
@@ -572,7 +648,24 @@ function normalizeRadians(value: number): number {
   return ((value + Math.PI) % twoPi + twoPi) % twoPi - Math.PI
 }
 
-function solveEccentricAnomaly(meanAnomalyRad: number, eccentricity: number): number {
+const KEPLER_MAX_ITERATIONS = 60
+const KEPLER_TOLERANCE_RAD = 1e-12
+
+/**
+ * Danby's starter. Near-parabolic orbits (Halley at e = 0.968, Sedna at
+ * e = 0.86) diverge from the naive `M + e sin M` guess, which is why the
+ * near-perihelion branch is offset toward the mean anomaly's own half-plane.
+ */
+function eccentricAnomalyStart(meanAnomalyRad: number, eccentricity: number): number {
+  if (eccentricity < 0.8) return meanAnomalyRad + eccentricity * Math.sin(meanAnomalyRad)
+  return meanAnomalyRad + 0.85 * eccentricity * Math.sign(meanAnomalyRad || 1)
+}
+
+/**
+ * Solves Kepler's equation with Halley's method, which stays stable across the
+ * whole elliptical range instead of stalling on high-eccentricity comets.
+ */
+export function solveEccentricAnomaly(meanAnomalyRad: number, eccentricity: number): number {
   if (!Number.isFinite(meanAnomalyRad) || !Number.isFinite(eccentricity)) {
     throw new Error(`Invalid Kepler input: meanAnomaly=${meanAnomalyRad}, eccentricity=${eccentricity}`)
   }
@@ -581,17 +674,27 @@ function solveEccentricAnomaly(meanAnomalyRad: number, eccentricity: number): nu
   }
 
   const mean = normalizeRadians(meanAnomalyRad)
-  let eccentricAnomaly = mean + eccentricity * Math.sin(mean)
-  for (let iteration = 0; iteration < 12; iteration++) {
-    const delta =
-      (mean - (eccentricAnomaly - eccentricity * Math.sin(eccentricAnomaly))) /
-      (1 - eccentricity * Math.cos(eccentricAnomaly))
+  let eccentricAnomaly = eccentricAnomalyStart(mean, eccentricity)
+  for (let iteration = 0; iteration < KEPLER_MAX_ITERATIONS; iteration++) {
+    const sinE = Math.sin(eccentricAnomaly)
+    const cosE = Math.cos(eccentricAnomaly)
+    const residual = eccentricAnomaly - eccentricity * sinE - mean
+    const firstDerivative = 1 - eccentricity * cosE
+    const secondDerivative = eccentricity * sinE
+    const denominator =
+      2 * firstDerivative * firstDerivative - residual * secondDerivative
+    if (denominator === 0) {
+      throw new Error(
+        `Kepler solver hit a zero denominator: meanAnomaly=${meanAnomalyRad}, eccentricity=${eccentricity}`,
+      )
+    }
+    const delta = (-2 * residual * firstDerivative) / denominator
     eccentricAnomaly += delta
-    if (Math.abs(delta) <= 1e-12) return eccentricAnomaly
+    if (Math.abs(delta) <= KEPLER_TOLERANCE_RAD) return eccentricAnomaly
   }
 
   throw new Error(
-    `Kepler solver did not converge: meanAnomaly=${meanAnomalyRad}, eccentricity=${eccentricity}`,
+    `Kepler solver did not converge in ${KEPLER_MAX_ITERATIONS} iterations: meanAnomaly=${meanAnomalyRad}, eccentricity=${eccentricity}`,
   )
 }
 
@@ -716,21 +819,17 @@ export function getGeocentricScenePositions(
     z: position.z - earth.z,
   })
 
+  const geocentric = Object.fromEntries(
+    (Object.keys(heliocentric) as PlanetaryBodyId[]).map((bodyId) => [
+      bodyId,
+      fromEarth(heliocentric[bodyId]),
+    ]),
+  ) as Record<PlanetaryBodyId, CartesianPosition>
+
   return {
-    sun: fromEarth({ x: 0, y: 0, z: 0 }),
-    mercury: fromEarth(heliocentric.mercury),
-    venus: fromEarth(heliocentric.venus),
+    ...geocentric,
     earth: { x: 0, y: 0, z: 0 },
-    mars: fromEarth(heliocentric.mars),
-    jupiter: fromEarth(heliocentric.jupiter),
-    saturn: fromEarth(heliocentric.saturn),
-    uranus: fromEarth(heliocentric.uranus),
-    neptune: fromEarth(heliocentric.neptune),
-    pluto: fromEarth(heliocentric.pluto),
-    ceres: fromEarth(heliocentric.ceres),
-    haumea: fromEarth(heliocentric.haumea),
-    makemake: fromEarth(heliocentric.makemake),
-    eris: fromEarth(heliocentric.eris),
+    sun: fromEarth({ x: 0, y: 0, z: 0 }),
   }
 }
 
@@ -781,9 +880,14 @@ export function samplePlanetOrbitScene(
   }
   const centuriesSinceJ2000 = (timeMs - J2000_MS) / DAY_MS / DAYS_PER_JULIAN_CENTURY
   const elements = PLANETARY_ELEMENTS[bodyId]
+  const eccentricity = valueAtCentury(elements.eccentricity, centuriesSinceJ2000)
   const points: CartesianPosition[] = []
+  // Stepping the eccentric anomaly keeps the drawn ellipse evenly spaced in
+  // geometry; stepping the mean anomaly would bunch every sample near aphelion
+  // and cut the perihelion corner off high-eccentricity orbits.
   for (let index = 0; index <= segments; index++) {
-    const meanAnomaly = (index / segments) * Math.PI * 2
+    const eccentricAnomaly = (index / segments) * Math.PI * 2
+    const meanAnomaly = eccentricAnomaly - eccentricity * Math.sin(eccentricAnomaly)
     points.push(
       compressHeliocentricPosition(
         planetaryPositionForMeanAnomaly(elements, centuriesSinceJ2000, meanAnomaly),
@@ -803,9 +907,9 @@ export function sampleSatelliteOrbitScene(
   const elements = SATELLITE_ELEMENTS[bodyId]
   const points: CartesianPosition[] = []
   for (let index = 0; index <= segments; index++) {
-    points.push(
-      satellitePositionForMeanAnomaly(elements, (index / segments) * Math.PI * 2),
-    )
+    const eccentricAnomaly = (index / segments) * Math.PI * 2
+    const meanAnomaly = eccentricAnomaly - elements.eccentricity * Math.sin(eccentricAnomaly)
+    points.push(satellitePositionForMeanAnomaly(elements, meanAnomaly))
   }
   return points
 }

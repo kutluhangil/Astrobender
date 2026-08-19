@@ -61,6 +61,23 @@ test('celestial tray still navigates to Europa without changing the Earth defaul
   await expect(callout).toHaveCount(0, { timeout: 7_000 })
 })
 
+test('small-body drawer reaches the newly catalogued dwarf planets and asteroids', async ({ page }) => {
+  const tray = page.getByRole('navigation', { name: 'Gök cismi seçici' })
+  await expect(tray).toHaveJSProperty('scrollWidth', await tray.evaluate((element) => element.clientWidth))
+  await tray.getByRole('button', { name: /Küçük cisimler · 12 cisim/ }).hover()
+  const drawer = page.getByRole('group', { name: 'Küçük cisimler' })
+  await expect(drawer).toBeVisible()
+  await drawer.getByRole('button', { name: 'Vesta cismini seç' }).click()
+  await expect(page.getByRole('heading', { name: 'Vesta (Vesta)' })).toBeVisible()
+  await expect(page.getByText('Asteroit (Ana Kuşak)').first()).toBeVisible()
+  await expect(page.getByText('3.46 g/cm³').first()).toBeVisible()
+
+  await tray.getByRole('button', { name: /Küçük cisimler · 12 cisim/ }).hover()
+  await drawer.getByRole('button', { name: 'Sedna cismini seç' }).click()
+  await expect(page.getByRole('heading', { name: 'Sedna (Sedna)' })).toBeVisible()
+  await expect(page.getByText('Güvenilir ölçüm yok').first()).toBeVisible()
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

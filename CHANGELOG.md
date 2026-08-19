@@ -2,6 +2,10 @@
 
 ## 2026-08-19
 
+- Added eight JPL-sourced bodies — Vesta, Pallas, Hygiea, Juno, Psyche, Quaoar, Gonggong, and Sedna — with Keplerian elements re-anchored to J2000 and pinned against JPL Horizons vectors to within 0.001 au.
+- Replaced the Kepler solver's Newton iteration with a Halley step and a Danby starter so near-parabolic orbits (Sedna at e = 0.86, comets above e = 0.95) converge instead of stalling.
+- Orbit lines now sample by eccentric anomaly, which keeps eccentric orbits from losing their perihelion arc to aphelion-bunched samples.
+- Grouped dwarf planets, asteroids, and trans-Neptunian bodies into one celestial-tray drawer so the tray stays inside the viewport as the catalog grows.
 - Recorded the project design direction (`high-end-visual-design`) and working rules in a root `CLAUDE.md`.
 - Pinned the Skywatch calendar end-to-end test to a fixed clock so its event assertions no longer break as the real 90-day window drifts past them.
 - Fixed the celestial tray moon popover closing while the pointer crossed the gap toward it, gave Earth its Moon entry in that popover, moved the desktop body panel next to the focused body instead of a fixed corner, and stopped the starfield from bleeding through planet surfaces.

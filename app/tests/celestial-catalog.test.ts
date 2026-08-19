@@ -13,7 +13,7 @@ import { PLANETS, getAllBodyIds } from '../src/lib/planets.ts'
 test('catalog covers every selectable rendered body with a dated primary source', () => {
   const bodyIds = getAllBodyIds()
   assert.equal(new Set(bodyIds).size, bodyIds.length)
-  assert.equal(bodyIds.length, 46)
+  assert.equal(bodyIds.length, 54)
 
   for (const bodyId of bodyIds) {
     const entry = CELESTIAL_CATALOG[bodyId]
@@ -76,6 +76,14 @@ test('major satellite models have orbital elements and complete systems retain m
     haumea: 2,
     makemake: 1,
     eris: 1,
+    vesta: 0,
+    pallas: 0,
+    hygiea: 0,
+    juno: 0,
+    psyche: 0,
+    quaoar: 1,
+    gonggong: 1,
+    sedna: 0,
   })
 })
 

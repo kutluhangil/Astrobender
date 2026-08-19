@@ -27,6 +27,10 @@ const UNKNOWN_PROFILE_VALUE: string | null = null
  * for a readable HUD; planets/dwarf planets use JPL physical parameters and
  * resolved satellites use JPL satellite physical parameters. A null is shown as
  * "no reliable measurement" rather than inventing precision for small moons.
+ *
+ * Asteroid and trans-Neptunian temperatures are radiative-equilibrium estimates
+ * computed from the JPL SSD albedo and semi-major axis, not surface
+ * measurements; masses come from the published GM where JPL lists one.
  */
 export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysicalProfile> = {
   sun: {
@@ -212,6 +216,38 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   eris: {
     mass: '1.647 × 10²² kg', density: '2.52 g/cm³', gravity: '0.82 m/s²', temperature: '~−231 °C',
     chemistry: { tr: 'Metan buzu ve kaya; uzak konumda geçici atmosfer olasılığı araştırılıyor.', en: 'Methane ice and rock; a transient atmosphere at its distant location is being studied.' },
+  },
+  vesta: {
+    mass: '2.590 × 10²⁰ kg', density: '3.46 g/cm³', gravity: '0.253 m/s²', temperature: '~−115 °C',
+    chemistry: { tr: 'Bazaltik kabuk, olivince zengin manto ve demir çekirdek; HED göktaşlarının kaynağı.', en: 'Basaltic crust, olivine-rich mantle, and an iron core; the source of the HED meteorites.' },
+  },
+  pallas: {
+    mass: '2.042 × 10²⁰ kg', density: '2.89 g/cm³', gravity: '0.207 m/s²', temperature: '~−113 °C',
+    chemistry: { tr: 'Hidratlı silikatlar barındıran B tipi yüzey; atmosfer saptanmadı.', en: 'B-type surface carrying hydrated silicates; no detected atmosphere.' },
+  },
+  hygiea: {
+    mass: '≈1.0 × 10²⁰ kg', density: UNKNOWN_PROFILE_VALUE, gravity: '0.169 m/s²', temperature: '~−119 °C',
+    chemistry: { tr: 'Karbonca zengin C tipi yüzey; su bakımından işlenmiş mineraller içerdiği düşünülüyor.', en: 'Carbon-rich C-type surface thought to carry aqueously altered minerals.' },
+  },
+  juno: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−113 °C',
+    chemistry: { tr: 'Taşsı S tipi yüzey; silikat ve demir-nikel karışımı. JPL yayımlanmış bir GM listelemiyor.', en: 'Stony S-type surface of silicates mixed with iron-nickel. JPL lists no published GM.' },
+  },
+  psyche: {
+    mass: '2.399 × 10¹⁹ kg', density: '4.17 g/cm³', gravity: '0.130 m/s²', temperature: '~−115 °C',
+    chemistry: { tr: 'Metalce zengin M tipi yüzey; demir-nikel ve silikat karışımı.', en: 'Metal-rich M-type surface mixing iron-nickel with silicates.' },
+  },
+  quaoar: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−232 °C',
+    chemistry: { tr: 'Kristalin su buzu ve metan izleri; JPL yayımlanmış bir GM listelemiyor.', en: 'Crystalline water ice with methane traces; JPL lists no published GM.' },
+  },
+  gonggong: {
+    mass: '1.75 × 10²¹ kg', density: '1.74 g/cm³', gravity: '0.31 m/s²', temperature: '~−240 °C',
+    chemistry: { tr: 'Su buzu ve metan buzu; tholin kaynaklı kırmızımsı yüzey.', en: 'Water ice and methane ice with a reddish tholin-bearing surface.' },
+  },
+  sedna: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−246 °C',
+    chemistry: { tr: 'Metan ve azot buzları ile tholinler; Güneş Sistemi’nin en kırmızı yüzeylerinden biri.', en: 'Methane and nitrogen ices with tholins; one of the reddest surfaces in the Solar System.' },
   },
 }
 

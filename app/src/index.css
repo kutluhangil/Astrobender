@@ -11,10 +11,123 @@ body,
   background: #04060a;
 }
 
+/*
+ * HUD design tokens. The project design direction is `high-end-visual-design`:
+ * nested "double bezel" surfaces, hairline rings instead of grey borders,
+ * concentric radii, diffuse ambient shadow, and one shared motion curve. The
+ * type stack stays on the platform's display face so the installed PWA keeps
+ * working offline without shipping a webfont.
+ */
+:root {
+  --hud-font-sans: ui-sans-serif, system-ui, -apple-system, 'SF Pro Display',
+    'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  --hud-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Monaco, Consolas,
+    monospace;
+
+  --hud-shell: rgba(255, 255, 255, 0.045);
+  --hud-shell-ring: rgba(255, 255, 255, 0.09);
+  --hud-core: rgba(8, 12, 19, 0.92);
+  --hud-core-ring: rgba(255, 255, 255, 0.07);
+  --hud-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --hud-ambient: 0 18px 48px -18px rgba(0, 0, 0, 0.9), 0 2px 10px -4px rgba(0, 0, 0, 0.6);
+  --hud-accent: rgba(94, 228, 255, 0.92);
+
+  --hud-radius-shell: 1.5rem;
+  --hud-radius-core: 1.125rem;
+  --hud-radius-tile: 0.75rem;
+
+  --hud-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 body {
-  font-family:
-    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--hud-font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Double-bezel surface: an outer shell holding a distinct inner core. */
+.hud-shell {
+  padding: 0.375rem;
+  border: 1px solid var(--hud-shell-ring);
+  border-radius: var(--hud-radius-shell);
+  background: var(--hud-shell);
+  box-shadow: var(--hud-ambient);
+}
+
+.hud-core {
+  border: 1px solid var(--hud-core-ring);
+  border-radius: var(--hud-radius-core);
+  background: var(--hud-core);
+  box-shadow: var(--hud-inner-highlight);
+}
+
+.hud-tile {
+  border: 1px solid var(--hud-core-ring);
+  border-radius: var(--hud-radius-tile);
+  background: rgba(255, 255, 255, 0.028);
+  box-shadow: var(--hud-inner-highlight);
+  transition: border-color 420ms var(--hud-ease), background-color 420ms var(--hud-ease);
+}
+
+.hud-tile:hover {
+  border-color: rgba(94, 228, 255, 0.28);
+  background: rgba(94, 228, 255, 0.055);
+}
+
+/* Eyebrow: the microscopic classification pill above a body name. */
+.hud-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(94, 228, 255, 0.22);
+  border-radius: 9999px;
+  background: rgba(94, 228, 255, 0.07);
+  color: rgba(165, 243, 252, 0.95);
+  font-family: var(--hud-font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Disclosure rows share one affordance across every HUD panel. */
+.hud-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  color: rgba(148, 163, 184, 0.95);
+  font-family: var(--hud-font-mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  list-style: none;
+  transition: background-color 420ms var(--hud-ease), color 420ms var(--hud-ease);
+}
+
+.hud-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.hud-disclosure > summary:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(226, 232, 240, 0.98);
+}
+
+.hud-disclosure > summary::after {
+  content: '+';
+  margin-left: 0.5rem;
+  color: var(--hud-accent);
+  font-size: 11px;
+  line-height: 1;
+  transition: transform 420ms var(--hud-ease);
+}
+
+.hud-disclosure[open] > summary::after {
+  content: '−';
 }
 
 .font-display {

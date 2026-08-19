@@ -5,6 +5,12 @@ JPL-sourced physical profiles, bilingual (Turkish primary, English secondary) HU
 
 Design direction: high-end-visual-design
 
+HUD surfaces follow the tokens in `app/src/index.css`: `.hud-shell` (outer bezel) wrapping
+`.hud-core` (inner surface), `.hud-tile` for data cells, `.hud-eyebrow` for classification
+pills, `.hud-disclosure` for progressive disclosure, and one shared motion curve
+(`--hud-ease`). Hairline rings replace grey borders; no webfont ships, so the type stack
+stays on the platform display face and the installed PWA keeps working offline.
+
 ## Working rules
 
 - Every celestial body, event, and numeric claim needs a primary source URL in the data

@@ -54,7 +54,9 @@ test('celestial tray still navigates to Europa without changing the Earth defaul
   await page.getByRole('button', { name: /Jüpiter.*uydu seçeneği/ }).hover()
   await page.getByRole('button', { name: 'Europa uydusunu seç' }).click()
   await expect(page.getByRole('heading', { name: 'Europa (Europa)' })).toBeVisible()
-  await expect(page.getByText('Fiziksel Profil').first()).toBeVisible()
+  // The physical profile is disclosed on demand so the panel leads with three values.
+  await expect(page.getByText(/olası küresel tuzlu okyanus/).first()).not.toBeVisible()
+  await page.getByText('Fiziksel profil').first().click()
   await expect(page.getByText(/olası küresel tuzlu okyanus/).first()).toBeVisible()
   const callout = page.getByText('HEDEF KİLİDİ / EUROPA')
   await expect(callout).toBeVisible()
@@ -70,11 +72,14 @@ test('small-body drawer reaches the newly catalogued dwarf planets and asteroids
   await drawer.getByRole('button', { name: 'Vesta cismini seç' }).click()
   await expect(page.getByRole('heading', { name: 'Vesta (Vesta)' })).toBeVisible()
   await expect(page.getByText('Asteroit (Ana Kuşak)').first()).toBeVisible()
+  await expect(page.getByText("Dünya'nın 0,04 katı").first()).toBeVisible()
+  await page.getByText('Fiziksel profil').first().click()
   await expect(page.getByText('3.46 g/cm³').first()).toBeVisible()
 
   await tray.getByRole('button', { name: /Küçük cisimler · 12 cisim/ }).hover()
   await drawer.getByRole('button', { name: 'Sedna cismini seç' }).click()
   await expect(page.getByRole('heading', { name: 'Sedna (Sedna)' })).toBeVisible()
+  // The disclosure opened for Vesta stays open across body changes.
   await expect(page.getByText('Güvenilir ölçüm yok').first()).toBeVisible()
 })
 
@@ -82,11 +87,10 @@ test('ring systems list their sourced named bands with a width disclosure', asyn
   const tray = page.getByRole('navigation', { name: 'Gök cismi seçici' })
   await tray.getByRole('button', { name: 'Uranüs' }).click()
   await expect(page.getByRole('heading', { name: 'Uranüs (Uranus)' })).toBeVisible()
-  const ringDisclosure = page.getByText('Halka Sistemi').first()
-  await ringDisclosure.click()
+  await page.getByText('Halka sistemi').first().click()
   await expect(page.getByText('Epsilon').first()).toBeVisible()
   await expect(page.getByText(/10 dar halka ölçülen genişliğinden/).first()).toBeVisible()
-  await expect(page.getByRole('link', { name: 'PDS Halka-Uydu Sistemleri' }).first()).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /PDS halka verisi/ }).first()).toHaveAttribute(
     'href',
     'https://pds-rings.seti.org/uranus/uranus_rings_table.html',
   )

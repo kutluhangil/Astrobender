@@ -13,6 +13,8 @@ const BODY_GAP_PX = 24
 const VIEWPORT_MARGIN_PX = 16
 /** The layer panel owns the left gutter, so the body panel must clear it. */
 const LEFT_HUD_RESERVED_PX = 248
+/** The offline-storage control owns the bottom-right corner. */
+const BOTTOM_HUD_RESERVED_PX = 96
 
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min
@@ -43,7 +45,7 @@ export function useBodyPanelPlacement(
         const width = panel.offsetWidth
         const height = panel.offsetHeight
         const maxLeft = window.innerWidth - width - VIEWPORT_MARGIN_PX
-        const maxTop = window.innerHeight - height - VIEWPORT_MARGIN_PX
+        const maxTop = window.innerHeight - height - BOTTOM_HUD_RESERVED_PX
         // Sit beside the silhouette when there is room on either side. A body
         // that fills the viewport leaves none, so fall back to the right edge
         // rather than clamping left over the layer panel.

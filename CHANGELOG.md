@@ -2,6 +2,9 @@
 
 ## 2026-08-19
 
+- Rebuilt the body panel around the recorded `high-end-visual-design` direction: three signature values with Earth comparisons lead, orbit, physical profile, and ring data move behind disclosures, and every citation collects into one source strip.
+- Added a shared HUD token layer — nested shell/core bezels, hairline rings, concentric radii, and one motion curve — and dropped the unloaded Inter reference for the platform display face.
+- Reserved the bottom-right HUD corner in the body-panel placement so a fully expanded panel no longer runs under the offline-storage control.
 - Bound the live JPL close-approach feed to the named small-body catalog: rows now resolve to a catalogued body, sort into a genuine upcoming window, report lunar distances, and can move the simulation clock to the approach date or focus the modelled body.
 - Expanded the named small-body catalog to fifteen entries with SBDB designations, scene links for the nine that are modelled, and Apophis added for its 2029 pass.
 - Drew Jupiter's, Uranus's, and Neptune's ring systems as their real named bands from the NASA PDS Ring-Moon Systems tables, with the ten sub-pixel Uranian rings widened to stay visible and labelled as such in the body panel.

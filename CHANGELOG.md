@@ -2,6 +2,10 @@
 
 ## 2026-08-19
 
+- Added a compressed-AU scale-honesty ruler to the body panel: two bars on one axis compare the true orbit with the drawn one and state the percentage the scene is squeezing.
+- Added a terminator and local-time readout for Earth — apparent solar time, Sun altitude, day/night side, and the subsolar point — cited to the NOAA solar calculator.
+- Thinned the satellite shell to 28% of its records as the camera closes on a body so the surface stays readable, and reported the reduction in the LIVE status port instead of dropping records silently.
+- Scaled camera transitions by how far the camera actually travels and made them instant under `prefers-reduced-motion`, which the engine now tracks live rather than reading once at startup.
 - Rebuilt the body panel around the recorded `high-end-visual-design` direction: three signature values with Earth comparisons lead, orbit, physical profile, and ring data move behind disclosures, and every citation collects into one source strip.
 - Added a shared HUD token layer — nested shell/core bezels, hairline rings, concentric radii, and one motion curve — and dropped the unloaded Inter reference for the platform display face.
 - Reserved the bottom-right HUD corner in the body-panel placement so a fully expanded panel no longer runs under the offline-storage control.

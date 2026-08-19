@@ -140,6 +140,9 @@ export default function Home() {
   const [skywatchOpen, setSkywatchOpen] = useState(false)
   const [meteorFlowVisible, setMeteorFlowVisible] = useState(false)
   const [skywatchCalculatedAt, setSkywatchCalculatedAt] = useState(() => Date.now())
+  // Reported in the status port so the close-range satellite reduction is
+  // visible rather than a silent drop in the record count.
+  const [satelliteThinning, setSatelliteThinning] = useState(1)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('tr')
   const [searchNotice, setSearchNotice] = useState<string | null>(null)
@@ -160,6 +163,14 @@ export default function Home() {
   useEffect(() => {
     document.documentElement.lang = uiLanguage
   }, [uiLanguage])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const engine = engineRef.current
+      if (engine) setSatelliteThinning(engine.getSatelliteThinning())
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (!skywatchOpen) return
@@ -808,6 +819,17 @@ export default function Home() {
   const tleFreshness = dataset ? describeTleFreshness(dataset, Date.now()) : null
   const systemMetrics: SystemStatusMetric[] = dataset && tleFreshness
     ? [
+        ...(satelliteThinning < 0.995
+          ? [{
+              id: 'satellite-thinning',
+              label: t('Yakın plan seyreltme', 'Close-range thinning'),
+              value: t(
+                `Kayıtların %${Math.round(satelliteThinning * 100)}'i çiziliyor`,
+                `${Math.round(satelliteThinning * 100)}% of records drawn`,
+              ),
+              tone: 'warning' as const,
+            }]
+          : []),
         {
           id: 'tle-epoch',
           label: t('TLE epoch yaşı', 'TLE epoch age'),
@@ -1314,13 +1336,20 @@ export default function Home() {
                 : { right: 16, top: 16 }
             }
           >
-            <PlanetInfoCard bodyId={focusBody} language={uiLanguage} />
+            <PlanetInfoCard
+              bodyId={focusBody}
+              language={uiLanguage}
+              clock={clock}
+              observer={skywatchLocation.observer}
+            />
           </div>
           {/* Mobile only: slide-up sheet controlled by 🪐 icon */}
           <div className="md:hidden">
             <PlanetInfoCard
               bodyId={focusBody}
               language={uiLanguage}
+              clock={clock}
+              observer={skywatchLocation.observer}
               mobileExpanded={mobilePlanetInfoOpen}
               onMobileToggle={() => setMobilePlanetInfoOpen(false)}
             />

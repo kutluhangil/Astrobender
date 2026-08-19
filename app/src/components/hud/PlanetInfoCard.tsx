@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SimClock } from '@/hooks/useSimClock'
 import { getSignatureMetrics, type SignatureMetric } from '@/lib/body-comparison'
 import { getCelestialEntry } from '@/lib/celestial-catalog'
 import {
@@ -14,8 +15,40 @@ import {
   type CelestialPhysicalProfile,
 } from '@/lib/celestial-physical-profiles'
 import { findPlanetDef, type CelestialBodyId, type RingSystem } from '@/lib/planets'
+import {
+  SCALE_REFERENCE_AU,
+  getScaleHonesty,
+  getScaleRulerBars,
+} from '@/lib/scene-scale'
+import type { SkyObserver } from '@/lib/sky-events'
+import {
+  NOAA_SOLAR_CALCULATOR_URL,
+  formatSolarClock,
+  getSolarIllumination,
+} from '@/lib/solar-illumination'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { formatSourceReviewStatus, getSourceFreshness } from '@/lib/source-governance'
+
+/** Simulation time refresh for the live readouts; the panel shows minutes, not seconds. */
+const LIVE_READOUT_INTERVAL_MS = 2000
+
+function useSimulationTime(clock: SimClock | undefined): number | null {
+  const [timeMs, setTimeMs] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!clock) return
+    // The first sample arrives on the next tick rather than synchronously, so
+    // the effect subscribes to the clock instead of seeding state during it.
+    const id = setInterval(() => setTimeMs(clock.getTime()), LIVE_READOUT_INTERVAL_MS)
+    const first = setTimeout(() => setTimeMs(clock.getTime()), 0)
+    return () => {
+      clearInterval(id)
+      clearTimeout(first)
+    }
+  }, [clock])
+
+  return timeMs
+}
 
 interface PlanetInfoCardProps {
   bodyId: CelestialBodyId
@@ -23,6 +56,9 @@ interface PlanetInfoCardProps {
   mobileExpanded?: boolean
   onMobileToggle?: () => void
   language?: UiLanguage
+  /** Drives the scale ruler and the Earth terminator readout. */
+  clock?: SimClock
+  observer?: SkyObserver | null
 }
 
 /**
@@ -159,6 +195,136 @@ function RingBands({ ring, language }: { ring: RingSystem; language: UiLanguage 
   )
 }
 
+/**
+ * Compressed-AU honesty. The scene keeps the ordering of the Solar System but
+ * not its proportions; the two bars put the true orbit and the drawn one on one
+ * axis so the difference is readable at a glance instead of only in prose.
+ */
+function ScaleRuler({
+  bodyId,
+  timeMs,
+  language,
+}: {
+  bodyId: CelestialBodyId
+  timeMs: number
+  language: UiLanguage
+}) {
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const honesty = getScaleHonesty(bodyId, timeMs)
+  if (!honesty) return null
+  const bars = getScaleRulerBars(honesty, SCALE_REFERENCE_AU)
+  const percent = Math.round(honesty.compression * 100)
+  const format = (au: number) =>
+    new Intl.NumberFormat(language === 'tr' ? 'tr-TR' : 'en-US', {
+      maximumFractionDigits: au < 10 ? 2 : 1,
+    }).format(au)
+
+  const rows: Array<{ label: string; share: number; value: string; tone: string }> = [
+    {
+      label: t('Gerçek', 'True'),
+      share: bars.real,
+      value: `${format(honesty.realAu)} AU`,
+      tone: 'bg-cyan-300/80',
+    },
+    {
+      label: t('Sahnede', 'Drawn'),
+      share: bars.drawn,
+      value: `${format(honesty.drawnAu)} AU`,
+      tone: 'bg-amber-300/80',
+    },
+  ]
+
+  return (
+    <>
+      <div className="space-y-1.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center gap-2">
+            <span className="w-12 shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-slate-500">
+              {row.label}
+            </span>
+            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <span
+                className={`block h-full rounded-full transition-[width] duration-700 [transition-timing-function:var(--hud-ease)] ${row.tone}`}
+                style={{ width: `${Math.max(1.5, row.share * 100)}%` }}
+              />
+            </span>
+            <span className="w-16 shrink-0 text-right font-mono text-[9px] tabular-nums text-slate-300">
+              {row.value}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[9px] leading-relaxed text-slate-400">
+        {t(
+          `Neptün yörüngesine göre ölçeklendi. Bu gövde gerçek uzaklığının %${percent}'inde çiziliyor.`,
+          `Scaled against Neptune's orbit. This body is drawn at ${percent}% of its true distance.`,
+        )}
+      </p>
+    </>
+  )
+}
+
+/**
+ * The Earth shader already draws the terminator from the Sun direction; this
+ * restates the same geometry as a reading the viewer can act on.
+ */
+function TerminatorReadout({
+  timeMs,
+  observer,
+  language,
+}: {
+  timeMs: number
+  observer: SkyObserver | null
+  language: UiLanguage
+}) {
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const site = observer ?? { latitude: 0, longitude: 0, label: t('Ekvator, 0°', 'Equator, 0°') }
+  const illumination = getSolarIllumination(timeMs, site)
+  const coordinate = (value: number, positive: string, negative: string) =>
+    `${Math.abs(value).toFixed(1)}° ${value >= 0 ? positive : negative}`
+
+  return (
+    <>
+      <MetricGrid
+        rows={[
+          {
+            label: t('Yerel güneş saati', 'Local solar time'),
+            value: formatSolarClock(illumination.localSolarHours),
+          },
+          {
+            label: t('Güneş yüksekliği', 'Sun altitude'),
+            value: `${illumination.sunAltitudeDeg.toFixed(1)}°`,
+          },
+          {
+            label: t('Işıklandırma', 'Illumination'),
+            value: illumination.daylight ? t('Gündüz', 'Daylight') : t('Gece', 'Night'),
+          },
+          {
+            label: t('Zirve noktası', 'Subsolar point'),
+            value: `${coordinate(illumination.subsolarLatitude, 'K', 'G')}, ${coordinate(illumination.subsolarLongitude, 'D', 'B')}`,
+          },
+        ]}
+      />
+      <p className="mt-1.5 text-[9px] leading-relaxed text-slate-400">
+        {observer
+          ? t(`Gözlem konumu: ${observer.label}.`, `Observer: ${observer.label}.`)
+          : t(
+              'Gözlem konumu seçilmedi; değerler 0° enlem ve 0° boylam için.',
+              'No observer chosen; values are for 0° latitude and 0° longitude.',
+            )}
+      </p>
+      <a
+        href={NOAA_SOLAR_CALCULATOR_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-1 inline-flex font-mono text-[8px] uppercase tracking-[0.14em] text-cyan-400/70 transition-colors duration-500 [transition-timing-function:var(--hud-ease)] hover:text-cyan-200"
+      >
+        {t('NOAA güneş hesaplayıcı', 'NOAA solar calculator')} ↗
+      </a>
+    </>
+  )
+}
+
 /** Every citation the panel carries, collected into one strip under the content. */
 function SourceStrip({
   language,
@@ -190,7 +356,7 @@ function SourceStrip({
             href={link.href}
             target="_blank"
             rel="noreferrer"
-            className="text-cyan-400/70 transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-cyan-200"
+            className="text-cyan-400/70 transition-colors duration-500 [transition-timing-function:var(--hud-ease)] hover:text-cyan-200"
           >
             {link.label} ↗
           </a>
@@ -211,9 +377,13 @@ function SourceStrip({
 function BodyPanelContent({
   bodyId,
   language,
+  simTimeMs,
+  observer,
 }: {
   bodyId: CelestialBodyId
   language: UiLanguage
+  simTimeMs: number | null
+  observer: SkyObserver | null
 }) {
   const entry = getCelestialEntry(bodyId)
   const fact = entry.fact
@@ -252,6 +422,18 @@ function BodyPanelContent({
       {ring && (
         <Disclosure title={t('Halka sistemi', 'Ring system')} count={ring.bands?.length}>
           <RingBands ring={ring} language={language} />
+        </Disclosure>
+      )}
+
+      {simTimeMs !== null && bodyId !== 'sun' && bodyId !== 'moon' && (
+        <Disclosure title={t('Ölçek dürüstlüğü', 'Scale honesty')}>
+          <ScaleRuler bodyId={bodyId} timeMs={simTimeMs} language={language} />
+        </Disclosure>
+      )}
+
+      {simTimeMs !== null && bodyId === 'earth' && (
+        <Disclosure title={t('Terminatör ve yerel saat', 'Terminator & local time')}>
+          <TerminatorReadout timeMs={simTimeMs} observer={observer} language={language} />
         </Disclosure>
       )}
 
@@ -306,8 +488,11 @@ export default function PlanetInfoCard({
   mobileExpanded = false,
   onMobileToggle,
   language = 'tr',
+  clock,
+  observer = null,
 }: PlanetInfoCardProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const simTimeMs = useSimulationTime(clock)
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
 
   return (
@@ -315,7 +500,7 @@ export default function PlanetInfoCard({
       {/* ===== DESKTOP: always visible panel beside the focused body ===== */}
       <div
         data-hud-surface
-        className="hud-shell pointer-events-auto hidden w-[326px] max-w-[calc(100vw-32px)] backdrop-blur-2xl transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] animate-in fade-in slide-in-from-right-4 md:block"
+        className="hud-shell pointer-events-auto hidden w-[326px] max-w-[calc(100vw-32px)] backdrop-blur-2xl transition-all duration-700 [transition-timing-function:var(--hud-ease)] animate-in fade-in slide-in-from-right-4 md:block"
       >
         <div className="hud-core max-h-[calc(100vh-160px)] overflow-y-auto p-3">
           <BodyHeader
@@ -330,7 +515,7 @@ export default function PlanetInfoCard({
                     ? t('Gezegen bilgi kartını genişlet', 'Expand body information')
                     : t('Gezegen bilgi kartını daralt', 'Collapse body information')
                 }
-                className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2 py-1 font-mono text-[10px] leading-none text-slate-300 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/[0.1] active:scale-95"
+                className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2 py-1 font-mono text-[10px] leading-none text-slate-300 transition-all duration-500 [transition-timing-function:var(--hud-ease)] hover:bg-white/[0.1] active:scale-95"
               >
                 {collapsed ? '＋' : '－'}
               </button>
@@ -338,7 +523,12 @@ export default function PlanetInfoCard({
           />
           {!collapsed && (
             <div className="mt-2">
-              <BodyPanelContent bodyId={bodyId} language={language} />
+              <BodyPanelContent
+                bodyId={bodyId}
+                language={language}
+                simTimeMs={simTimeMs}
+                observer={observer}
+              />
             </div>
           )}
         </div>
@@ -359,7 +549,7 @@ export default function PlanetInfoCard({
                   type="button"
                   onClick={onMobileToggle}
                   aria-label={t('Gezegen bilgi kartını kapat', 'Close body information')}
-                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.08] p-1.5 text-slate-300 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95"
+                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.08] p-1.5 text-slate-300 transition-transform duration-500 [transition-timing-function:var(--hud-ease)] active:scale-95"
                 >
                   <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 stroke-current" strokeWidth="1.4">
                     <path d="M1 1l8 8M9 1l-8 8" />
@@ -368,7 +558,12 @@ export default function PlanetInfoCard({
               }
             />
             <div className="mt-2">
-              <BodyPanelContent bodyId={bodyId} language={language} />
+              <BodyPanelContent
+                bodyId={bodyId}
+                language={language}
+                simTimeMs={simTimeMs}
+                observer={observer}
+              />
             </div>
           </div>
         </div>

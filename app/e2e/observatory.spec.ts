@@ -96,6 +96,28 @@ test('ring systems list their sourced named bands with a width disclosure', asyn
   )
 })
 
+test('scale honesty and terminator readouts open from the body panel', async ({ page }) => {
+  await page.clock.setFixedTime(SKYWATCH_FIXED_NOW)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Dünya (Earth)' })).toBeVisible()
+
+  await page.getByText('Ölçek dürüstlüğü').first().click()
+  await expect(page.getByText(/Neptün yörüngesine göre ölçeklendi/).first()).toBeVisible()
+  await expect(page.getByText('Gerçek').first()).toBeVisible()
+  await expect(page.getByText('Sahnede').first()).toBeVisible()
+
+  await page.getByText('Terminatör ve yerel saat').first().click()
+  await expect(page.getByText('Yerel güneş saati').first()).toBeVisible()
+  await expect(page.getByText('Zirve noktası').first()).toBeVisible()
+  await expect(page.getByText(/Gözlem konumu seçilmedi/).first()).toBeVisible()
+
+  const tray = page.getByRole('navigation', { name: 'Gök cismi seçici' })
+  await tray.getByRole('button', { name: 'Neptün' }).click()
+  await expect(page.getByRole('heading', { name: 'Neptün (Neptune)' })).toBeVisible()
+  // The compressed-AU curve draws Neptune at roughly a quarter of its true distance.
+  await expect(page.getByText(/gerçek uzaklığının %2\d'inde çiziliyor/).first()).toBeVisible()
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

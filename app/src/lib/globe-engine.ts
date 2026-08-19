@@ -446,6 +446,25 @@ function makeRingTexture(): THREE.Texture {
   return tex
 }
 
+/**
+ * Camera transition budget. A hop between neighbouring moons should not take
+ * as long as a hop to Neptune, so the duration is interpolated by how far the
+ * camera actually travels and collapses to nothing under reduced motion.
+ */
+const FLY_TO_MIN_MS = 260
+const FLY_TO_MAX_MS = 1400
+const FLY_TO_FULL_DISTANCE = 240
+
+/**
+ * Close to a body the full 18,000-point satellite shell projects across the
+ * surface and hides it. Each group's draw range is thinned toward
+ * SATELLITE_MIN_KEEP as the camera closes in; the HUD reports the fraction so
+ * the reduction is visible rather than silent.
+ */
+const SATELLITE_MIN_KEEP = 0.28
+const SATELLITE_THIN_NEAR = 1.8
+const SATELLITE_THIN_FAR = 7
+
 export class GlobeEngine {
   private container: HTMLElement
   private cb: EngineCallbacks
@@ -488,6 +507,11 @@ export class GlobeEngine {
   private tourAudioDurationS = 0
   private flyToActive = false
   private flyToStartTime = 0
+  private flyToDurationMs = FLY_TO_MAX_MS
+  private reducedMotion = false
+  private reducedMotionQuery: MediaQueryList | null = null
+  /** Fraction of each satellite group currently drawn; 1 means no thinning. */
+  private satelliteThinning = 1
   private flyToStartCam = new THREE.Vector3()
   private flyToStartTarget = new THREE.Vector3()
   private tmpVec1 = new THREE.Vector3()
@@ -571,7 +595,10 @@ export class GlobeEngine {
     this.controls.dampingFactor = 0.08
     this.controls.minDistance = 1.35
     this.controls.maxDistance = 8000.0
-    this.controls.autoRotate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    this.reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    this.reducedMotion = this.reducedMotionQuery.matches
+    this.reducedMotionQuery.addEventListener('change', this.onReducedMotionChange)
+    this.controls.autoRotate = !this.reducedMotion
     this.controls.autoRotateSpeed = 0.25
 
     // --- Earth ---
@@ -1782,6 +1809,11 @@ export class GlobeEngine {
     this.loop()
   }
 
+  private onReducedMotionChange = (event: MediaQueryListEvent) => {
+    this.reducedMotion = event.matches
+    this.controls.autoRotate = !event.matches
+  }
+
   private onVisibility = () => {
     this.hidden = document.hidden
     if (!this.hidden && !this.contextLost && !this.disposed) {
@@ -1942,7 +1974,9 @@ export class GlobeEngine {
         const targetRadius = targetInfo.radius
 
         const elapsed = performance.now() - this.flyToStartTime
-        const progress = Math.min(1, elapsed / 800)
+        const progress = this.flyToDurationMs <= 0
+          ? 1
+          : Math.min(1, elapsed / this.flyToDurationMs)
         const ease = 1 - Math.pow(1 - progress, 3)
 
         const dir = this.tmpVec3.copy(this.flyToStartCam).sub(this.flyToStartTarget).normalize()
@@ -1982,6 +2016,7 @@ export class GlobeEngine {
 
     const uS = Math.min(Math.max(simS - this.t0, 0), Math.max(this.t1 - this.t0, 0.001))
     for (const g of this.groups) g.mat.uniforms.uS.value = uS
+    this.updateSatelliteThinning()
 
     if (this.selected !== null) {
       const p = this.eciPosition(this.selected, this.tmpV)
@@ -2328,8 +2363,43 @@ export class GlobeEngine {
       this.flyToStartTime = performance.now()
       this.flyToStartCam.copy(this.camera.position)
       this.flyToStartTarget.copy(this.controls.target)
+      this.flyToDurationMs = this.flyToDuration(info.mesh)
       this.hasLastFocusPos = false
     }
+  }
+
+  /** Transition length scaled by travel distance; zero under reduced motion. */
+  private flyToDuration(targetMesh: THREE.Object3D): number {
+    if (this.reducedMotion) return 0
+    const destination = targetMesh.getWorldPosition(this.tmpVec1)
+    const travel = destination.distanceTo(this.flyToStartTarget)
+    if (!Number.isFinite(travel)) return FLY_TO_MAX_MS
+    const span = Math.min(1, travel / FLY_TO_FULL_DISTANCE)
+    return FLY_TO_MIN_MS + (FLY_TO_MAX_MS - FLY_TO_MIN_MS) * Math.sqrt(span)
+  }
+
+  /**
+   * Thins the satellite shell as the camera closes on the focused body. The
+   * feed order is unrelated to orbital position, so a draw-range prefix is an
+   * unbiased spatial sample and costs nothing per frame.
+   */
+  private updateSatelliteThinning() {
+    const distance = this.camera.position.distanceTo(this.controls.target)
+    const openness = Math.min(
+      1,
+      Math.max(0, (distance - SATELLITE_THIN_NEAR) / (SATELLITE_THIN_FAR - SATELLITE_THIN_NEAR)),
+    )
+    const keep = SATELLITE_MIN_KEEP + (1 - SATELLITE_MIN_KEEP) * openness
+    if (Math.abs(keep - this.satelliteThinning) < 0.01) return
+    this.satelliteThinning = keep
+    for (const group of this.groups) {
+      group.points.geometry.setDrawRange(0, Math.max(1, Math.ceil(group.count * keep)))
+    }
+  }
+
+  /** Fraction of the satellite shell currently drawn, for the HUD status port. */
+  getSatelliteThinning(): number {
+    return this.satelliteThinning
   }
 
   setTheme(theme: 'dark' | 'light') {
@@ -2440,6 +2510,7 @@ export class GlobeEngine {
     el.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.resizeObserver?.disconnect()
     document.removeEventListener('visibilitychange', this.onVisibility)
+    this.reducedMotionQuery?.removeEventListener('change', this.onReducedMotionChange)
     this.controls.dispose()
     this.disposeGroups(this.groups)
     if (this.replacement) this.disposeGroups(this.replacement)

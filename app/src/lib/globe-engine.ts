@@ -33,7 +33,7 @@ import {
   type PlanetaryBodyId,
   type SatelliteBodyId,
 } from './orbital-mechanics'
-import { DEEP_SPACE_PROBES, probePositionAu, type DeepSpaceProbe } from './probes'
+import { DEEP_SPACE_PROBES, probeDistanceAuAt, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
@@ -1672,16 +1672,11 @@ export class GlobeEngine {
         if (!(offset instanceof THREE.Vector3) || !definition || (anchor !== 'earth' && anchor !== 'sun')) {
           throw new Error(`Invalid probe scene metadata: ${probe.name || 'unnamed probe'}`)
         }
-        const sourcePosition = probePositionAu(definition)
-        const sourceDistance = Math.hypot(sourcePosition.x, sourcePosition.y, sourcePosition.z)
-        if (!Number.isFinite(sourceDistance) || sourceDistance <= 0) {
-          throw new Error(`Invalid Horizons source position for probe ${definition.id}`)
-        }
-        const scale = compressDistanceAu(sourceDistance) / sourceDistance
+        const distance = compressDistanceAu(probeDistanceAuAt(definition, simMs))
         offset.set(
-          sourcePosition.x * scale,
-          sourcePosition.y * scale,
-          sourcePosition.z * scale,
+          Math.cos(definition.angleRad) * distance,
+          Math.sin(definition.angleRad) * Math.cos(definition.inclinationRad) * distance,
+          Math.sin(definition.angleRad) * Math.sin(definition.inclinationRad) * distance,
         )
         probe.position.copy(offset)
         if (anchor === 'sun') probe.position.add(this.sun.position)
@@ -2183,15 +2178,10 @@ export class GlobeEngine {
     const group = new THREE.Group()
     for (const p of DEEP_SPACE_PROBES) {
       if (!p.rendered) continue
-      const sourcePosition = probePositionAu(p)
-      const sourceDistance = Math.hypot(sourcePosition.x, sourcePosition.y, sourcePosition.z)
-      if (!Number.isFinite(sourceDistance) || sourceDistance <= 0) {
-        throw new Error(`Invalid Horizons source position for probe ${p.id}`)
-      }
-      const scale = compressDistanceAu(sourceDistance) / sourceDistance
-      const px = sourcePosition.x * scale
-      const py = sourcePosition.y * scale
-      const pz = sourcePosition.z * scale
+      const dist = compressDistanceAu(p.distanceAu)
+      const px = Math.cos(p.angleRad) * dist
+      const py = Math.sin(p.angleRad) * Math.cos(p.inclinationRad) * dist
+      const pz = Math.sin(p.angleRad) * Math.sin(p.inclinationRad) * dist
 
       // Deep space probe 3D marker (Cyan / Silver beacon)
       const geo = new THREE.SphereGeometry(0.08, 16, 16)

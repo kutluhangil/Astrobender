@@ -77,9 +77,6 @@ test('source governance validates every evidence group through the scheduled che
   assert.doesNotMatch(catalog, /CATALOG_VERIFIED_AT/)
   assert.match(workflow, /schedule:/)
   assert.match(workflow, /npm run check:sources/)
-  assert.match(workflow, /npm run refresh:primary-data/)
-  assert.match(workflow, /contents: read/)
-  assert.doesNotMatch(workflow, /contents: write/)
 })
 
 test('ASTROBENDER is the only product name in the application source', () => {

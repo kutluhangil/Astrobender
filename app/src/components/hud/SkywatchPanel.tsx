@@ -125,12 +125,11 @@ function perseidCalendarEvidence(watch: PerseidWatch): EvidenceRecord {
     evidenceClass: 'sourced-static',
     publisher: 'International Meteor Organization',
     sourceUrl: watch.sourceUrl,
-    retrievedAt: watch.retrievedAt,
-    verifiedAt: watch.reviewedAt,
+    verifiedAt: '2026-08-13',
     validFrom: watch.activeStart,
     validUntil: watch.activeEnd,
     uncertainty: 'The published maximum is a time window, not an exact instant.',
-    limitation: watch.limitation,
+    limitation: 'Observed rates depend on sky conditions and observer location.',
   }
 }
 
@@ -160,7 +159,7 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
         <div className="mt-2 grid grid-cols-2 gap-1.5 font-mono text-[8px]">
           <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
             <div className="text-amber-100/55">{t('AKTİF', 'ACTIVE')}</div>
-            <div className="mt-0.5">{formatUtcRange(watch.activeStart, watch.activeEnd, language)}</div>
+            <div className="mt-0.5">17 Tem – 24 Ağu</div>
           </div>
           <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
             <div className="text-amber-100/55">{t('ANA MAKSİMUM ARALIĞI', 'MAIN MAXIMUM WINDOW')}</div>

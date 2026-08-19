@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
 import { DEFAULT_SCHEMATIC_SURFACES_VISIBLE } from '@/lib/schematic-surfaces'
-import { createSgp4Record, formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
+import { formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
 import type { SatInfo } from '@/lib/satellites'
 import type { CelestialBodyId } from '@/lib/planets'
 import { useSimClock } from '@/hooks/useSimClock'
@@ -184,7 +184,7 @@ export default function Home() {
     const s = satsRef.current[index]
     if (!s) return null
     try {
-      const rec = createSgp4Record(s)
+      const rec = satellite.twoline2satrec(s.l1, s.l2)
       recCache.current.set(index, rec)
       return rec
     } catch {

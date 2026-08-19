@@ -81,13 +81,11 @@ export default defineConfig({
         target: 'https://celestrak.org',
         changeOrigin: true,
         rewrite: (path) => {
-          const query = new URL(path, 'http://localhost').searchParams
-          const feed = query.get('feed')
+          const feed = new URL(path, 'http://localhost').searchParams.get('feed')
           const group = feed && Object.hasOwn(TLE_GROUPS, feed)
             ? TLE_GROUPS[feed as keyof typeof TLE_GROUPS]
             : 'invalid'
-          const format = query.get('format') === 'csv' ? 'CSV' : 'TLE'
-          return `/NORAD/elements/gp.php?GROUP=${group}&FORMAT=${format}`
+          return `/NORAD/elements/gp.php?GROUP=${group}&FORMAT=tle`
         },
       },
     },

@@ -1,28 +1,18 @@
-// Satellite data model: legacy TLE and OMM parsing, validation, grouping.
+// Satellite data model: TLE parsing, validation, classification, grouping.
 //
 // The catalog is merged from five CelesTrak feeds:
-//   active                -> source-declared active catalog; displayed as Other
-//   visual                -> source-declared Brightest layer (overrides active)
+//   active                -> classified by name into stations/gps/.../other
+//   visual                -> "Brightest" layer (overrides the active class)
 //   cosmos-2251-debris    -> Debris · Cosmos-2251
 //   iridium-33-debris     -> Debris · Iridium-33
 //   fengyun-1c-debris     -> Debris · Fengyun-1C
 // Every object appears in exactly one layer; layer counts sum to the total.
-
-import * as satellite from 'satellite.js'
-import {
-  getCelestrakFeedMetadata,
-  type CelestrakGroupKey,
-  type NormalizedOmmRecord,
-} from './celestrak-omm.ts'
-import type { OMMJsonObject } from 'satellite.js'
 
 export interface SatInfo {
   name: string
   norad: number
   l1: string
   l2: string
-  /** OMM records use json2satrec; bundled legacy snapshots keep this absent. */
-  omm?: OMMJsonObject
   /** UI group index (see UI_GROUPS). */
   group: number
   /** TLE epoch as ms since Unix epoch. */
@@ -67,20 +57,29 @@ const G = {
   Other: 11,
 } as const
 
-const GROUP_INDEX_BY_KEY: Readonly<Record<CelestrakGroupKey, number>> = Object.freeze({
-  stations: G.Stations,
-  gps: G.Gps,
-  glonass: G.Glonass,
-  galileo: G.Galileo,
-  weather: G.Weather,
-  oneweb: G.OneWeb,
-  starlink: G.Starlink,
-  brightest: G.Brightest,
-  'debris-cosmos': G.DebrisCosmos,
-  'debris-iridium': G.DebrisIridium,
-  'debris-fengyun': G.DebrisFengyun,
-  other: G.Other,
-})
+const WEATHER_PREFIXES = [
+  'NOAA', 'GOES', 'METEOSAT', 'METOP', 'FENGYUN', 'FY-', 'HIMAWARI',
+  'ELECTRO-L', 'DMSP', 'GOMS', 'INSAT', 'KALPANA', 'GEO-KOMPSAT', 'ARSAT',
+]
+
+/** Classify an active-catalog name into a UI group index. */
+function classifyActive(nameRaw: string): number {
+  const n = nameRaw.trim().toUpperCase()
+  if (
+    n.includes('ISS') || n.includes('ZARYA') || n.includes('TIANGONG') ||
+    n.startsWith('CSS') || n.includes('TIANHE') || n.includes('WENTIAN') ||
+    n.includes('MENGTIAN')
+  ) {
+    return G.Stations
+  }
+  if (n.startsWith('GPS ') || n.startsWith('NAVSTAR')) return G.Gps
+  if (n.includes('GLONASS')) return G.Glonass
+  if (n.includes('GALILEO') || n.startsWith('GSAT')) return G.Galileo
+  if (n.startsWith('STARLINK')) return G.Starlink
+  if (n.startsWith('ONEWEB')) return G.OneWeb
+  for (const p of WEATHER_PREFIXES) if (n.startsWith(p)) return G.Weather
+  return G.Other // includes BeiDou, Iridium, everything else
+}
 
 /** Parse the TLE epoch (line 1 columns 19-32: YYDDD.DDDDDDDD) to ms. */
 export function tleEpochMs(l1: string): number {
@@ -97,7 +96,6 @@ interface RawSat {
   l1: string
   l2: string
   epochMs: number
-  omm?: OMMJsonObject
 }
 
 function parse3le(text: string): RawSat[] {
@@ -139,31 +137,6 @@ export interface FeedTexts {
   fengyun1c: string | null
 }
 
-/** Normalized CelesTrak OMM feeds; catalog IDs can be one through nine digits. */
-export interface FeedOmmRecords {
-  active: readonly NormalizedOmmRecord[]
-  visual: readonly NormalizedOmmRecord[] | null
-  cosmos2251: readonly NormalizedOmmRecord[] | null
-  iridium33: readonly NormalizedOmmRecord[] | null
-  fengyun1c: readonly NormalizedOmmRecord[] | null
-}
-
-function toSatInfo(record: RawSat, group: number): SatInfo {
-  return { ...record, group }
-}
-
-function toOmmSatInfo(record: NormalizedOmmRecord): SatInfo {
-  return {
-    name: record.name,
-    norad: record.norad,
-    l1: '',
-    l2: '',
-    omm: record.omm,
-    group: GROUP_INDEX_BY_KEY[record.groupKey],
-    epochMs: record.epochMs,
-  }
-}
-
 /**
  * Merge all feeds into validated, NORAD-deduplicated, group-sorted records.
  * Precedence: debris clouds first, then classified active objects, then the
@@ -174,60 +147,27 @@ export function mergeFeeds(feeds: FeedTexts): SatInfo[] {
 
   const add = (r: RawSat, group: number, override: boolean) => {
     if (!override && byNorad.has(r.norad)) return
-    byNorad.set(r.norad, toSatInfo(r, group))
+    byNorad.set(r.norad, { ...r, group })
   }
 
-  for (const [text, feed] of [
-    [feeds.cosmos2251, 'cosmos2251'],
-    [feeds.iridium33, 'iridium33'],
-    [feeds.fengyun1c, 'fengyun1c'],
+  for (const [text, group] of [
+    [feeds.cosmos2251, G.DebrisCosmos],
+    [feeds.iridium33, G.DebrisIridium],
+    [feeds.fengyun1c, G.DebrisFengyun],
   ] as const) {
     if (!text) continue
-    const group = GROUP_INDEX_BY_KEY[getCelestrakFeedMetadata(feed).groupKey]
     for (const r of parse3le(text)) add(r, group, false)
   }
 
-  const activeGroup = GROUP_INDEX_BY_KEY[getCelestrakFeedMetadata('active').groupKey]
-  for (const r of parse3le(feeds.active)) add(r, activeGroup, false)
+  for (const r of parse3le(feeds.active)) add(r, classifyActive(r.name), false)
 
   if (feeds.visual) {
-    const visualGroup = GROUP_INDEX_BY_KEY[getCelestrakFeedMetadata('visual').groupKey]
-    for (const r of parse3le(feeds.visual)) add(r, visualGroup, true)
+    for (const r of parse3le(feeds.visual)) add(r, G.Brightest, true)
   }
 
   const sats = [...byNorad.values()]
   sats.sort((a, b) => a.group - b.group)
   return sats
-}
-
-/**
- * Merge validated OMM source groups. The source feed declares the taxonomy;
- * satellite-name heuristics are deliberately not used.
- */
-export function mergeOmmFeeds(feeds: FeedOmmRecords): SatInfo[] {
-  const byNorad = new Map<number, SatInfo>()
-  const add = (record: NormalizedOmmRecord, override: boolean) => {
-    if (!override && byNorad.has(record.norad)) return
-    byNorad.set(record.norad, toOmmSatInfo(record))
-  }
-  for (const records of [feeds.cosmos2251, feeds.iridium33, feeds.fengyun1c]) {
-    if (!records) continue
-    for (const record of records) add(record, false)
-  }
-  for (const record of feeds.active) add(record, false)
-  if (feeds.visual) {
-    for (const record of feeds.visual) add(record, true)
-  }
-  const sats = [...byNorad.values()]
-  sats.sort((a, b) => a.group - b.group || a.norad - b.norad)
-  return sats
-}
-
-/** Create a satellite.js record from either an OMM or legacy TLE source record. */
-export function createSgp4Record(satelliteInfo: SatInfo): satellite.SatRec {
-  return satelliteInfo.omm
-    ? satellite.json2satrec(satelliteInfo.omm)
-    : satellite.twoline2satrec(satelliteInfo.l1, satelliteInfo.l2)
 }
 
 /** The active feed must parse to at least this many objects to be accepted. */

@@ -23,4 +23,3 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run check:sources
-      - run: npm run refresh:primary-data

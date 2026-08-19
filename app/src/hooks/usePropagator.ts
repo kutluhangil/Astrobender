@@ -217,11 +217,8 @@ export function usePropagator(
     const initMsg: PropagatorRequest = {
       type: 'init',
       gen,
-      records: dataset.sats.map((satellite) => ({
-        l1: satellite.l1,
-        l2: satellite.l2,
-        omm: satellite.omm,
-      })),
+      l1: dataset.sats.map((s) => s.l1),
+      l2: dataset.sats.map((s) => s.l2),
     }
     worker.postMessage(initMsg)
 

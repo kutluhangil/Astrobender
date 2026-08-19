@@ -9,8 +9,6 @@ const STORE = 'tle'
 export interface CachedBundle {
   key: string
   texts: FeedTexts
-  /** OMM payloads use a new cache key and an explicit format discriminator. */
-  format?: 'omm-bundle-csv-v1'
   fetchedAt: number
 }
 

@@ -209,8 +209,8 @@ function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
         title: t(input.language, stream.nameTr, stream.name),
         summary: t(
           input.language,
-          `${stream.parentBody} kaynaklı akış için IMO, bu kaynak-kaydı yılına ait etkinlik ve maksimum aralığını verir.`,
-          `IMO supplies the activity and maximum window for this ${stream.parentBody} stream in the reviewed source record year.`,
+          `${stream.parentBody} kaynaklı akış 17 Temmuz–24 Ağustos arasında etkindir; IMO ana maksimumu 13 Ağustos 02:00–04:00 UTC olarak verir.`,
+          `The ${stream.parentBody} stream is active July 17–August 24; IMO gives the main maximum as Aug. 13, 02:00–04:00 UTC.`,
         ),
         guidance: t(
           input.language,
@@ -228,12 +228,11 @@ function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
           evidenceClass: 'sourced-static',
           publisher: 'International Meteor Organization',
           sourceUrl: stream.sourceUrl,
-          retrievedAt: stream.retrievedAt,
-          verifiedAt: stream.reviewedAt,
+          verifiedAt: '2026-08-13',
           validFrom: stream.activeStart,
           validUntil: stream.activeEnd,
           uncertainty: 'The published maximum is a time window, not an exact instant.',
-          limitation: stream.limitation,
+          limitation: 'Observed rates depend on sky conditions and observer location.',
         },
       })
     }

@@ -192,9 +192,12 @@ export default function SmallBodiesPanel({
         {tab === 'missions' && (
           <div className="space-y-1.5">
             {DEEP_SPACE_PROBES.map((probe) => (
-              <article
+              <a
                 key={probe.id}
-                className="rounded-lg border border-white/7 bg-white/[0.03] p-2.5 hover:border-cyan-400/25"
+                href={probe.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg border border-white/7 bg-white/[0.03] p-2.5 hover:border-cyan-400/25"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[10px] font-semibold text-cyan-100">
@@ -204,27 +207,9 @@ export default function SmallBodiesPanel({
                 </div>
                 <p className="mt-1 text-[9px] text-slate-300">{probe.statusTr}</p>
                 <p className="mt-1 font-mono text-[7px] leading-relaxed text-slate-500">
-                  {probe.ephemeris
-                    ? t(
-                        `${probe.ephemeris.epoch.value} ${probe.ephemeris.epoch.timeScale} · ${probe.ephemeris.frame} · ${probe.ephemeris.limitation}`,
-                        `${probe.ephemeris.epoch.value} ${probe.ephemeris.epoch.timeScale} · ${probe.ephemeris.frame} · ${probe.ephemeris.limitation}`,
-                      )
-                    : t(
-                        'Kaynaklı Horizons konum kaydı bulunmuyor; 3D konum kullanılamıyor.',
-                        'No reviewed Horizons position record is available; 3D position is unavailable.',
-                      )}
+                  {probe.ephemerisNoteTr}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[8px]">
-                  <a href={probe.sourceUrl} target="_blank" rel="noreferrer" className="text-cyan-200 hover:text-cyan-100">
-                    {t('NASA görev kaynağı', 'NASA mission source')} ↗
-                  </a>
-                  {probe.ephemeris && (
-                    <a href={probe.ephemeris.sourceUrl} target="_blank" rel="noreferrer" className="text-cyan-200 hover:text-cyan-100">
-                      JPL Horizons · {t('kayıt', 'record')} ↗
-                    </a>
-                  )}
-                </div>
-              </article>
+              </a>
             ))}
           </div>
         )}

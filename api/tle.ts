@@ -1,5 +1,3 @@
-import { getCelestrakFeedMetadata, parseCelestrakOmmCsv } from '../app/src/lib/celestrak-omm.ts'
-
 interface ApiRequest {
   method?: string
   url?: string
@@ -21,14 +19,9 @@ const FEED_GROUPS = {
 } as const
 
 type FeedKey = keyof typeof FEED_GROUPS
-type ResponseFormat = 'tle' | 'csv'
 
 function isFeedKey(value: string | null): value is FeedKey {
   return value !== null && Object.hasOwn(FEED_GROUPS, value)
-}
-
-function isResponseFormat(value: string | null): value is ResponseFormat {
-  return value === null || value === 'tle' || value === 'csv'
 }
 
 function fail(response: ApiResponse, status: number, error: string) {
@@ -44,27 +37,16 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
   const url = new URL(request.url ?? '/api/tle', 'https://astrobender.invalid')
   const feed = url.searchParams.get('feed')
-  const format = url.searchParams.get('format')
-  const onlyAllowedParameters = [...url.searchParams.keys()].every((key) => key === 'feed' || key === 'format')
-  if (
-    url.searchParams.size < 1
-    || url.searchParams.size > 2
-    || url.searchParams.getAll('feed').length !== 1
-    || url.searchParams.getAll('format').length > 1
-    || !onlyAllowedParameters
-    || !isFeedKey(feed)
-    || !isResponseFormat(format)
-  ) {
-    fail(response, 400, 'tle requires one allowed feed parameter and optional format=csv')
+  if (url.searchParams.size !== 1 || !isFeedKey(feed)) {
+    fail(response, 400, 'tle requires exactly one allowed feed parameter')
     return
   }
 
-  const responseFormat: ResponseFormat = format ?? 'tle'
-  const upstreamUrl = `https://celestrak.org/NORAD/elements/gp.php?GROUP=${FEED_GROUPS[feed]}&FORMAT=${responseFormat.toUpperCase()}`
+  const upstreamUrl = `https://celestrak.org/NORAD/elements/gp.php?GROUP=${FEED_GROUPS[feed]}&FORMAT=tle`
   let upstream: Response
   try {
     upstream = await fetch(upstreamUrl, {
-      headers: { Accept: responseFormat === 'csv' ? 'text/csv' : 'text/plain', 'User-Agent': 'ASTROBENDER/1.0' },
+      headers: { Accept: 'text/plain', 'User-Agent': 'ASTROBENDER/1.0' },
       signal: AbortSignal.timeout(10_000),
     })
   } catch (error) {
@@ -84,19 +66,12 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   }
 
   const text = await upstream.text()
-  try {
-    if (responseFormat === 'csv') {
-      parseCelestrakOmmCsv(text, getCelestrakFeedMetadata(feed))
-    } else if (!(text.startsWith('1 ') || text.includes('\n1 ')) || !text.includes('\n2 ')) {
-      throw new Error('missing TLE line 1 or line 2')
-    }
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    fail(response, 502, `CelesTrak ${feed} returned an invalid ${responseFormat === 'csv' ? 'OMM CSV' : 'TLE'} payload: ${detail}`)
+  if (!(text.startsWith('1 ') || text.includes('\n1 ')) || !text.includes('\n2 ')) {
+    fail(response, 502, `CelesTrak ${feed} returned an invalid TLE payload`)
     return
   }
 
-  response.setHeader('Content-Type', responseFormat === 'csv' ? 'text/csv; charset=utf-8' : 'text/plain; charset=utf-8')
-  response.setHeader('Cache-Control', 'public, s-maxage=7200, stale-while-revalidate=3600')
+  response.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  response.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600')
   response.status(200).send(text)
 }

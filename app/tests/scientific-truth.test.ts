@@ -152,10 +152,12 @@ test('the IAU name catalog ships without unsupported line figures', () => {
   assert.ok(IAU_CONSTELLATIONS.every((entry) => entry.renderedFigure === false))
 })
 
-test('only missions with source-backed Horizons records are plotted', () => {
-  assert.ok(DEEP_SPACE_PROBES.every((probe) => probe.rendered === (probe.ephemeris !== null)))
+test('missions without source-backed ephemeris records remain unplotted', () => {
+  assert.ok(DEEP_SPACE_PROBES.every((probe) => probe.rendered === false))
   const voyager = DEEP_SPACE_PROBES.find((probe) => probe.id === 'voyager1')
   assert.ok(voyager)
-  assert.ok(probeDistanceAuAt(voyager, voyager.referenceEpochMs) > 0)
-  assert.match(voyager.ephemeris?.limitation ?? '', /does not extrapolate/i)
+  assert.throws(
+    () => probeDistanceAuAt(voyager, voyager.referenceEpochMs),
+    /no source-backed ephemeris/i,
+  )
 })

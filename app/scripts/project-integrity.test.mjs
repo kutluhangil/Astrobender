@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -9,28 +8,21 @@ const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 const read = (path) => readFileSync(new URL(path, `${new URL('..', import.meta.url)}/`), 'utf8')
 const readRepository = (path) => readFileSync(new URL(path, `${new URL('../../', import.meta.url)}/`), 'utf8')
 
-test('root Vercel configuration builds the nested app and exposes a standalone JPL CAD function', () => {
+test('root Vercel configuration builds the nested app and exposes the JPL CAD function', () => {
   const vercel = JSON.parse(readRepository('vercel.json'))
   assert.equal(vercel.installCommand, 'npm --prefix app ci')
   assert.equal(vercel.buildCommand, 'npm --prefix app run build')
   assert.equal(vercel.outputDirectory, 'app/dist')
   assert.equal(existsSync(`${repositoryRoot}/api/jpl-cad.ts`), true)
   assert.equal(existsSync(`${repositoryRoot}/api/health.ts`), true)
-  assert.match(readRepository('api/jpl-cad.ts'), /createJplCadHandler/)
-  assert.doesNotMatch(readRepository('api/jpl-cad.ts'), /export \{ default \} from/)
+  assert.match(readRepository('api/jpl-cad.ts'), /app\/api\/jpl-cad/)
 })
 
-test('production smoke target checks live adapters, readiness, security, PWA artifacts, and revision shape', () => {
+test('production smoke target checks the public shell and safe readiness endpoint', () => {
   const smoke = read('scripts/production-smoke.mjs')
   const workflow = readRepository('.github/workflows/production-smoke.yml')
   assert.match(smoke, /\/api\/health/)
-  assert.match(smoke, /mode=ready/)
   assert.match(smoke, /\/api\/tle\?feed=active/)
-  assert.match(smoke, /\/api\/jpl-cad/)
-  assert.match(smoke, /manifest\.webmanifest/)
-  assert.match(smoke, /\/sw\.js/)
-  assert.match(smoke, /permissions-policy/)
-  assert.match(smoke, /revision/)
   assert.match(workflow, /workflow_dispatch/)
   assert.match(workflow, /npm run smoke:production/)
 })
@@ -52,29 +44,25 @@ test('runtime and CI use the pinned Node release and split browser quality gates
   assert.match(playwright, /--strictPort/)
 })
 
-test('offline feedback accurately describes the media-free app shell', () => {
+test('offline download feedback exposes storage use and a user-owned cache clear action', () => {
   const control = read('src/components/hud/PrepareOfflineControl.tsx')
+  const storageHook = read('src/hooks/useOfflineStorage.ts')
   const worker = read('src/sw.ts')
 
-  assert.match(control, /Çevrimdışı uygulama kabuğunu doğrula/)
-  assert.match(control, /Şematik görseller kod içinde üretilir/)
-  assert.match(worker, /APP_SHELL_CACHE/)
-  assert.doesNotMatch(worker, /PREPARE_OFFLINE_TEXTURES/)
-  assert.doesNotMatch(worker, /\/textures\//)
-  assert.doesNotMatch(worker, /\/audio\//)
+  assert.match(control, /Varlıkları sil/)
+  assert.match(control, /offline-download-failed/)
+  assert.match(storageHook, /caches\.delete/)
+  assert.match(worker, /failureCount/)
 })
 
-test('source governance validates every evidence group through the scheduled check', () => {
-  const catalog = read('src/lib/celestial-catalog.ts')
+test('catalog source governance is date-bound and reviewed by a scheduled check', () => {
+  const governance = read('src/lib/source-governance.ts')
+  const sourceCheck = read('scripts/check-source-freshness.mjs')
   const workflow = readRepository('.github/workflows/source-review.yml')
-  const result = spawnSync(process.execPath, ['scripts/check-source-freshness.mjs'], {
-    cwd: appRoot,
-    encoding: 'utf8',
-  })
 
-  assert.equal(result.status, 0, result.stderr)
-  assert.match(result.stdout, /Evidence source reviews are current: \d+ groups checked/)
-  assert.doesNotMatch(catalog, /CATALOG_VERIFIED_AT/)
+  assert.match(governance, /CATALOG_VERIFIED_AT = '20\d{2}-\d{2}-\d{2}'/)
+  assert.match(governance, /SOURCE_REVIEW_MAX_AGE_DAYS = 120/)
+  assert.match(sourceCheck, /source review is overdue/i)
   assert.match(workflow, /schedule:/)
   assert.match(workflow, /npm run check:sources/)
 })
@@ -93,15 +81,10 @@ test('document language and font policy are self-contained', () => {
   assert.match(html, /property="og:title"/)
 })
 
-test('asset attribution registry exactly covers and verifies runtime media files', () => {
-  const result = spawnSync(process.execPath, ['scripts/check-asset-attributions.mjs'], {
-    cwd: appRoot,
-    encoding: 'utf8',
-  })
-  assert.equal(result.status, 0, result.stderr)
-  assert.match(result.stdout, /exactly covers \d+ runtime media files/)
-  assert.match(result.stdout, /complete provenance/)
-  assert.doesNotMatch(result.stdout, /incomplete provenance/)
+test('asset attribution registry covers runtime media groups', () => {
+  const registry = JSON.parse(read('public/data/asset-attributions.json'))
+  const scopes = new Set(registry.attributions.map((entry) => entry.scope))
+  assert.deepEqual(scopes, new Set(['textures/*', 'audio/*', 'icons/*']))
 })
 
 test('production responses include baseline security headers', () => {
@@ -118,7 +101,6 @@ test('production responses include baseline security headers', () => {
   ]) {
     assert.match(vercel, new RegExp(header))
   }
-  assert.match(vercel, /geolocation=\(self\)/)
 })
 
 test('unused vulnerable template dependencies are absent', () => {
@@ -133,9 +115,6 @@ test('current moon counts and Neptune wind units are correct', () => {
 
   assert.match(facts, /101 Bilinen Uydu/)
   assert.match(facts, /274 Bilinen Uydu/)
-  assert.match(facts, /29 Bilinen Uydu/)
-  assert.match(facts, /new-moon-discovered-orbiting-uranus/)
-  assert.match(read('src/lib/planets.ts'), /knownMoonCount: 29/)
   assert.doesNotMatch(scaleModal, /2,100 km\/s/)
   assert.match(scaleModal, /2,000 km\/h/)
 })
@@ -162,23 +141,16 @@ test('method, source, and privacy disclosures are available from the HUD', () =>
   assert.match(home, /showAboutModal/)
 })
 
-test('procedural surfaces are explicit opt-in and never claim untraceable imagery', () => {
-  const engine = read('src/lib/globe-engine.ts')
+test('surface textures no longer rely on partial-mosaic workarounds', () => {
   const planets = read('src/lib/planets.ts')
-  const home = read('src/pages/Home.tsx')
-  const layers = read('src/components/hud/LayerPanel.tsx')
-  const schematicSurfaces = read('src/lib/schematic-surfaces.ts')
-
-  assert.match(schematicSurfaces, /DEFAULT_SCHEMATIC_SURFACES_VISIBLE = false/)
-  assert.match(engine, /createSchematicSurfaceTexture/)
-  assert.match(engine, /setSchematicSurfacesVisible\(visible: boolean\)/)
-  assert.match(home, /useState\([\s\S]*?DEFAULT_SCHEMATIC_SURFACES_VISIBLE/)
-  assert.match(home, /engineRef\.current\?\.setSchematicSurfacesVisible\(next\)/)
-  assert.match(home, /schematicActive: schematicSurfacesVisible \|\| asteroidsVisible \|\| meteorFlowVisible/)
-  assert.match(layers, /onToggleSchematicSurfaces/)
-  assert.match(layers, /Şematik yüzey görselleri/)
-  assert.doesNotMatch(engine, /TextureLoader/)
-  assert.doesNotMatch(planets, /texture:/)
+  assert.doesNotMatch(planets, /missingTextureTone/)
+  for (const body of ['europa', 'titania', 'oberon', 'triton', 'pluto']) {
+    assert.match(
+      planets,
+      new RegExp(`id: '${body}'[\\s\\S]*?texture: '[^']+'`),
+      body,
+    )
+  }
 })
 
 test('celestial pointer selection flies the engine to the selected body', () => {
@@ -186,12 +158,14 @@ test('celestial pointer selection flies the engine to the selected body', () => 
   assert.match(home, /onSelectBody: \(body\) => \{[\s\S]*?engine\.setFocusTarget\(body\)/)
 })
 
-test('cinematic tour is a fixed-duration visual sequence without narration media', () => {
+test('cinematic narration asset and timeline wiring are present', () => {
+  assert.equal(existsSync(`${appRoot}/public/audio/astrobender-sinematik-uzay-turu.mp3`), true)
+  assert.equal(existsSync(`${appRoot}/public/audio/astrobender-cinematic-space-tour-en.mp3`), true)
   const home = read('src/pages/Home.tsx')
   const tour = read('src/lib/cinematic-tour.ts')
-  assert.match(home, /engine\.startCinematicTour\(CINEMATIC_TOUR_SCRIPT_DURATION_S\)/)
-  assert.doesNotMatch(home, /new Audio\(/)
-  assert.doesNotMatch(tour, /CINEMATIC_TOUR_AUDIO_PATHS/)
+  assert.match(home, /CINEMATIC_TOUR_AUDIO_PATHS/)
+  assert.match(home, /engine\.startCinematicTour\(audio\.duration\)/)
+  assert.match(home, /cinematicTourLanguage/)
   assert.match(tour, /CINEMATIC_TOUR_SCRIPT_DURATION_S = 273/)
 })
 
@@ -236,9 +210,18 @@ test('the temporary ASTROBENDER transmission animates over the opening 3D globe'
   assert.doesNotMatch(styles, /\.intro-splash/)
 })
 
-test('untraceable runtime-media directories are absent', () => {
-  assert.equal(existsSync(`${appRoot}/public/textures`), false)
-  assert.equal(existsSync(`${appRoot}/public/audio`), false)
+test('known invalid and duplicate textures are removed', () => {
+  for (const path of [
+    'public/textures/milkyway-4k.jpg',
+    'public/textures/milkyway-raw.jpg',
+    'public/textures/milkyway.jpg',
+    'public/textures/sun.jpg',
+    'public/textures/sun.png',
+    'public/textures/earth-day.jpg',
+    'public/textures/earth-night.jpg',
+  ]) {
+    assert.equal(existsSync(`${appRoot}/${path}`), false, path)
+  }
 })
 
 test('body changes clear stale surface pins and keep Earth highlights controlled', () => {
@@ -260,8 +243,8 @@ test('moon atmosphere data is consistent and obsolete visual assets are absent',
   assert.doesNotMatch(facts, /atmosphere: 'Karbondioksit, Azot'/)
   assert.match(facts, /Çok ince CO₂, Oksijen ve Hidrojen egzosferi/)
   assert.match(facts, /atmosphere: 'Azot \(%95\), Metan \(%5\)'/)
-  assert.match(sandbox, /palette: \['#fff7ae', '#f59e0b', '#9a3412'\]/)
-  assert.equal(existsSync(`${appRoot}/public/textures`), false)
+  assert.match(sandbox, /texture: 'sun-map\.jpg'/)
+  assert.equal(existsSync(`${appRoot}/public/textures/sun-8k.jpg`), false)
   assert.equal(existsSync(`${appRoot}/src/components/hud/CinematicTitleOverlay.tsx`), false)
 })
 
@@ -277,30 +260,15 @@ test('ambient belts are deterministic and explicitly described as schematic', ()
 test('JPL close approaches use a same-origin server proxy with no client query string', () => {
   const smallBodies = read('src/lib/jpl-small-bodies.ts')
   const vite = read('vite.config.ts')
-  const proxy = readRepository('api/jpl-cad.ts')
+  const proxy = read('api/jpl-cad.ts')
 
   // No query string on the client URL: the CDN caches per full URL, so
   // arbitrary parameters would each miss the cache and bill a fresh
   // invocation. The proxy rejects them and hardcodes the upstream query.
   assert.match(smallBodies, /JPL_CAD_API_URL = '\/api\/jpl-cad'/)
   assert.match(proxy, /accepts no query parameters/)
-  assert.match(proxy, /JPL_NETWORK_ERROR/)
-  assert.match(proxy, /JPL_UPSTREAM_ERROR/)
-  assert.match(proxy, /JPL_INVALID_PAYLOAD/)
   assert.match(vite, /'\/api\/jpl-cad'/)
   assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
-})
-
-test('live-data hooks retain real source timestamps after failed refreshes', () => {
-  const earth = read('src/hooks/useEarthObservatory.ts')
-  const smallBodies = read('src/hooks/useSmallBodies.ts')
-  const tle = read('src/hooks/useTleData.ts')
-  const metadata = read('src/lib/tle-snapshot-metadata.ts')
-
-  assert.match(earth, /reduceEarthRefreshUpdatedAt/)
-  assert.match(smallBodies, /reduceSmallBodyRefreshFailure/)
-  assert.match(tle, /TLE_SNAPSHOT_DOWNLOADED_AT/)
-  assert.match(metadata, /2026-07-16T11:24:19Z/)
 })
 
 test('TLE refresh uses an allow-listed same-origin proxy and exposes propagation diagnostics', () => {

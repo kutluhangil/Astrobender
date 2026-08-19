@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { CINEMATIC_TOUR_AUDIO_PATHS } from '@/lib/cinematic-tour'
 
-export type PrepareOfflineStatus = 'idle' | 'done' | 'error'
+export type PrepareOfflineStatus = 'idle' | 'loading-manifest' | 'downloading' | 'done' | 'error'
 
 export interface PrepareOfflineState {
   status: PrepareOfflineStatus
@@ -11,38 +12,178 @@ export interface PrepareOfflineState {
   error: string | null
 }
 
-export const ERROR_SW_UNSUPPORTED = 'sw-unsupported'
-export const ERROR_SW_NOT_ACTIVE = 'sw-not-active'
-
-const INITIAL_STATE: PrepareOfflineState = {
-  status: 'idle',
-  done: 0,
-  total: 0,
-  totalBytes: 0,
-  failureCount: 0,
-  error: null,
+interface TextureManifestEntry {
+  file: string
+  bytes: number
 }
 
-// Runtime imagery and narration are intentionally not packaged without exact
-// provenance. The service worker still caches the app shell;
-// this hook preserves the offline-control contract without claiming a media
-// download that does not exist.
+interface TextureManifest {
+  totalBytes: number
+  files: TextureManifestEntry[]
+}
+
+const MANIFEST_URL = `${import.meta.env.BASE_URL}data/texture-manifest.json`
+
+// Cinematic-tour narration is runtime-cached (see sw.ts), not part of the
+// texture manifest, so "prepare for offline" has to fetch it explicitly —
+// otherwise the guarantee ("prepare for offline" or "play the tour once"
+// means narration works offline) only holds for the second case.
+const NARRATION_AUDIO_URLS = Object.values(CINEMATIC_TOUR_AUDIO_PATHS).map(
+  (path) => `${import.meta.env.BASE_URL}${path}`,
+)
+
+// public/audio/*.mp3 sizes, not tracked by the texture manifest — update if
+// the narration files change. Only used to make the control's displayed
+// size estimate match what it actually downloads.
+const NARRATION_AUDIO_BYTES = 6_817_789 + 5_412_192
+
+// Language-neutral error codes for the two conditions this hook can name
+// itself — the hook has no `language` prop, so it can't pick copy. The
+// consuming component (PrepareOfflineControl) translates these via
+// pickLanguage; any other `state.error` value is a raw fetch/HTTP error
+// message, already language-neutral (technical, not user-facing prose).
+export const ERROR_SW_UNSUPPORTED = 'sw-unsupported'
+export const ERROR_SW_NOT_ACTIVE = 'sw-not-active'
+export const ERROR_STALLED = 'stalled'
+
+// The service worker posts a progress message after every URL it processes
+// (successes and per-URL failures alike), so messages arrive steadily even
+// on a slow connection. Going this long without one means the worker was
+// terminated or the message channel broke — not that a single file is slow.
+// Re-running the download is cheap: already-cached entries are skipped.
+const PROGRESS_STALL_TIMEOUT_MS = 120_000
+
 export function usePrepareOfflineTextures() {
-  const [state, setState] = useState<PrepareOfflineState>(INITIAL_STATE)
+  const [state, setState] = useState<PrepareOfflineState>({
+    status: 'idle',
+    done: 0,
+    total: 0,
+    totalBytes: null,
+    failureCount: 0,
+    error: null,
+  })
+  const manifestRef = useRef<TextureManifest | null>(null)
+  // Tears down whatever an in-flight start() attached: the service worker
+  // message listener, its stall watchdog, and the promise start() awaits.
+  // Held in a ref so unmount can run it even mid-download.
+  const teardownRef = useRef<(() => void) | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      teardownRef.current?.()
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(MANIFEST_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json() as Promise<TextureManifest>
+      })
+      .then((manifest) => {
+        if (cancelled) return
+        manifestRef.current = manifest
+        setState((prev) => ({ ...prev, totalBytes: manifest.totalBytes + NARRATION_AUDIO_BYTES }))
+      })
+      .catch(() => {
+        // Preview-only fetch failure: the button just won't show a size
+        // yet. start() retries and surfaces the real error there.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const start = useCallback(async () => {
     if (!('serviceWorker' in navigator)) {
-      setState({ ...INITIAL_STATE, status: 'error', error: ERROR_SW_UNSUPPORTED })
+      setState((prev) => ({ ...prev, status: 'error', error: ERROR_SW_UNSUPPORTED }))
       return
     }
+
+    setState((prev) => ({ ...prev, status: 'loading-manifest', error: null }))
+
+    let manifest = manifestRef.current
+    if (!manifest) {
+      try {
+        const res = await fetch(MANIFEST_URL)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        manifest = await res.json()
+        manifestRef.current = manifest
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          status: 'error',
+          error: error instanceof Error ? error.message : String(error),
+        }))
+        return
+      }
+    }
+    // TS narrowing only: the catch above always returns before this point,
+    // so `manifest` is never actually null here.
+    if (!manifest) return
 
     const registration = await navigator.serviceWorker.ready
-    if (!registration.active) {
-      setState({ ...INITIAL_STATE, status: 'error', error: ERROR_SW_NOT_ACTIVE })
+    const controller = registration.active
+    if (!controller) {
+      setState((prev) => ({ ...prev, status: 'error', error: ERROR_SW_NOT_ACTIVE }))
       return
     }
 
-    setState({ ...INITIAL_STATE, status: 'done' })
+    const textureUrls = manifest.files.map((f) => `${import.meta.env.BASE_URL}textures/${f.file}`)
+    const urls = [...textureUrls, ...NARRATION_AUDIO_URLS]
+    const totalBytes = manifest.totalBytes + NARRATION_AUDIO_BYTES
+    setState({ status: 'downloading', done: 0, total: urls.length, totalBytes, failureCount: 0, error: null })
+
+    await new Promise<void>((resolve) => {
+      let stallTimer: ReturnType<typeof setTimeout>
+
+      const teardown = () => {
+        clearTimeout(stallTimer)
+        navigator.serviceWorker.removeEventListener('message', onMessage)
+        teardownRef.current = null
+        resolve()
+      }
+
+      const armStallTimer = () => {
+        clearTimeout(stallTimer)
+        stallTimer = setTimeout(() => {
+          if (mountedRef.current) {
+            setState((prev) => ({ ...prev, status: 'error', error: ERROR_STALLED }))
+          }
+          teardown()
+        }, PROGRESS_STALL_TIMEOUT_MS)
+      }
+
+      const onMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'PREPARE_OFFLINE_PROGRESS') {
+          armStallTimer()
+          if (mountedRef.current) {
+            setState((prev) => ({ ...prev, done: event.data.done, total: event.data.total }))
+          }
+        } else if (event.data?.type === 'PREPARE_OFFLINE_COMPLETE') {
+          if (mountedRef.current) {
+            setState((prev) => ({
+              ...prev,
+              status: event.data.failureCount > 0 ? 'error' : 'done',
+              done: event.data.done,
+              total: event.data.total,
+              failureCount: event.data.failureCount ?? 0,
+              error: event.data.failureCount > 0 ? `offline-download-failed:${event.data.failureCount}` : null,
+            }))
+          }
+          teardown()
+        }
+      }
+
+      teardownRef.current = teardown
+      navigator.serviceWorker.addEventListener('message', onMessage)
+      armStallTimer()
+      controller.postMessage({ type: 'PREPARE_OFFLINE_TEXTURES', urls })
+    })
   }, [])
 
   return { state, start }

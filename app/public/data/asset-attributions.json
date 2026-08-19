@@ -1,50 +1,24 @@
 {
-  "schemaVersion": 3,
-  "reviewedAt": "2026-08-13",
-  "assets": [
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-11",
+  "attributions": [
     {
-      "file": "icons/apple-touch-icon-180.png",
-      "publisher": "ASTROBENDER project owner",
-      "providerUrl": "https://github.com/kutluhangil/Astrobender",
-      "sourcePage": "https://github.com/kutluhangil/Astrobender/blob/7495a93/app/scripts/generate-icons.mjs",
-      "usagePolicy": "Copyright ASTROBENDER project owner; deterministic project build output.",
-      "retrievedAt": "2026-08-06",
-      "sha256": "cdf9ce07f93d9e6c602b9e1d8fd33bb6a037d37314d5cb91997f42075c963299",
-      "transformationNotes": "Generated locally by app/scripts/generate-icons.mjs from the project-owned inline favicon motif.",
-      "provenanceStatus": "complete"
+      "scope": "textures/*",
+      "label": "NASA and USGS Astrogeology planetary imagery",
+      "sourceUrl": "https://astrogeology.usgs.gov/",
+      "note": "Surface maps are processed for real-time WebGL rendering; do not treat color, relief, or scale as a scientific product."
     },
     {
-      "file": "icons/icon-192.png",
-      "publisher": "ASTROBENDER project owner",
-      "providerUrl": "https://github.com/kutluhangil/Astrobender",
-      "sourcePage": "https://github.com/kutluhangil/Astrobender/blob/7495a93/app/scripts/generate-icons.mjs",
-      "usagePolicy": "Copyright ASTROBENDER project owner; deterministic project build output.",
-      "retrievedAt": "2026-08-06",
-      "sha256": "93c7c6d8de52c17cc6b5c2263b1c9c8fdd334076dc9248f9591ae960dfe5d10a",
-      "transformationNotes": "Generated locally by app/scripts/generate-icons.mjs from the project-owned inline favicon motif.",
-      "provenanceStatus": "complete"
+      "scope": "audio/*",
+      "label": "Project-owner supplied cinematic narration",
+      "sourceUrl": "https://elevenlabs.io/",
+      "note": "Narration files are supplied by the project owner; distribution rights are managed by the project owner."
     },
     {
-      "file": "icons/icon-512-maskable.png",
-      "publisher": "ASTROBENDER project owner",
-      "providerUrl": "https://github.com/kutluhangil/Astrobender",
-      "sourcePage": "https://github.com/kutluhangil/Astrobender/blob/7495a93/app/scripts/generate-icons.mjs",
-      "usagePolicy": "Copyright ASTROBENDER project owner; deterministic project build output.",
-      "retrievedAt": "2026-08-06",
-      "sha256": "0efb4ce5e9ce319fb073e8d39c3f17247752aaa94f419f8b445028cca27bd55e",
-      "transformationNotes": "Generated locally by app/scripts/generate-icons.mjs from the project-owned inline favicon motif.",
-      "provenanceStatus": "complete"
-    },
-    {
-      "file": "icons/icon-512.png",
-      "publisher": "ASTROBENDER project owner",
-      "providerUrl": "https://github.com/kutluhangil/Astrobender",
-      "sourcePage": "https://github.com/kutluhangil/Astrobender/blob/7495a93/app/scripts/generate-icons.mjs",
-      "usagePolicy": "Copyright ASTROBENDER project owner; deterministic project build output.",
-      "retrievedAt": "2026-08-06",
-      "sha256": "426fff40117e8ecd612237a72c837db16179fb0d9fa4f6e86afbe587f2d169a7",
-      "transformationNotes": "Generated locally by app/scripts/generate-icons.mjs from the project-owned inline favicon motif.",
-      "provenanceStatus": "complete"
+      "scope": "icons/*",
+      "label": "ASTROBENDER generated application icons",
+      "sourceUrl": "https://astrobender.vercel.app/",
+      "note": "Generated locally from the project icon source."
     }
   ]
 }

@@ -12,7 +12,6 @@ import {
   type EarthEvent,
   type EarthSourceId,
 } from '@/lib/earth-observatory'
-import { reduceEarthRefreshUpdatedAt } from '@/lib/tle-snapshot-metadata'
 
 export interface EarthObservatoryState {
   status: 'idle' | 'loading' | 'ready' | 'partial' | 'error'
@@ -154,9 +153,6 @@ export function useEarthObservatory(enabled: boolean) {
           nextCache.sources[source]?.fetchedAt,
         ]),
       )
-      const cachedUpdatedAt = cachedSources.length
-        ? Math.max(...cachedSources.map((source) => cache.sources[source]?.fetchedAt ?? 0))
-        : null
       setState({
         status:
           sourceFailureCount === 0
@@ -167,11 +163,7 @@ export function useEarthObservatory(enabled: boolean) {
         events: [...earthquakes, ...eonetEvents],
         aurora,
         errors,
-        updatedAt: reduceEarthRefreshUpdatedAt(
-          cachedUpdatedAt,
-          [eonetResult, usgsResult, auroraResult],
-          now,
-        ),
+        updatedAt: now,
         cachedSources: usedCachedSources,
         sourceUpdatedAt,
       })

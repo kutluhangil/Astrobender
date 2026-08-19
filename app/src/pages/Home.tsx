@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
-import { DEFAULT_SCHEMATIC_SURFACES_VISIBLE } from '@/lib/schematic-surfaces'
 import { formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
 import type { SatInfo } from '@/lib/satellites'
 import type { CelestialBodyId } from '@/lib/planets'
@@ -30,7 +29,6 @@ import LandingSiteModal from '@/components/hud/LandingSiteModal'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
 import SkywatchPanel from '@/components/hud/SkywatchPanel'
-import SceneTruthBanner from '@/components/hud/SceneTruthBanner'
 import MeteorFlowOverlay from '@/components/hud/MeteorFlowOverlay'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
@@ -46,14 +44,12 @@ import { useSmallBodies } from '@/hooks/useSmallBodies'
 import { useSkywatchLocation } from '@/hooks/useSkywatchLocation'
 import type { UnifiedSearchResult } from '@/lib/unified-search'
 import { getSkyEvents, type SkyEvent } from '@/lib/sky-events'
-import { getPerseidWatch, type PerseidWatch } from '@/lib/perseid-watch'
+import type { PerseidWatch } from '@/lib/perseid-watch'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
-  createTlePropagationEvidence,
-  getActiveSceneEvidenceClasses,
-} from '@/lib/scientific-evidence'
-import {
-  CINEMATIC_TOUR_SCRIPT_DURATION_S,
+  CINEMATIC_TOUR_AUDIO_PATHS,
+  type CinematicTourLanguage,
 } from '@/lib/cinematic-tour'
 import FallbackTable from '@/components/FallbackTable'
 
@@ -65,6 +61,16 @@ interface HoverState {
   index: number
   x: number
   y: number
+}
+
+interface CinematicAudioStatus {
+  ready: boolean
+  error: string | null
+}
+
+const INITIAL_CINEMATIC_AUDIO_STATUS: Record<CinematicTourLanguage, CinematicAudioStatus> = {
+  tr: { ready: false, error: null },
+  en: { ready: false, error: null },
 }
 
 function detectWebGL(): boolean {
@@ -113,15 +119,15 @@ export default function Home() {
   const [showScaleModal, setShowScaleModal] = useState(false)
   const [showAboutModal, setShowAboutModal] = useState(false)
   const [isCinematicTourActive, setIsCinematicTourActive] = useState(false)
+  const [cinematicTourLanguage, setCinematicTourLanguage] = useState<CinematicTourLanguage>('tr')
+  const [cinematicAudioStatus, setCinematicAudioStatus] = useState(INITIAL_CINEMATIC_AUDIO_STATUS)
 
   // Cosmic environment states
+  const [audioPlaying, setAudioPlaying] = useState(false)
   const [planetaryOrbitsVisible, setPlanetaryOrbitsVisible] = useState(false)
   const [probesVisible, setProbesVisible] = useState(false)
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
-  const [schematicSurfacesVisible, setSchematicSurfacesVisible] = useState(
-    DEFAULT_SCHEMATIC_SURFACES_VISIBLE,
-  )
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
   const [earthLayerVisibility, setEarthLayerVisibility] = useState<EarthLayerVisibility>({
     eonet: true,
@@ -159,13 +165,19 @@ export default function Home() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refresh()
     }
-    const interval = window.setInterval(refresh, 60_000)
+    const interval = window.setInterval(refresh, 60 * 60 * 1000)
     document.addEventListener('visibilitychange', handleVisibility)
     return () => {
       window.clearInterval(interval)
       document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [skywatchOpen])
+
+  const audioSynthRef = useRef(new SpaceAudioSynth())
+  const cinematicAudioRefs = useRef<Record<CinematicTourLanguage, HTMLAudioElement | null>>({
+    tr: null,
+    en: null,
+  })
 
   const satsRef = useRef<SatInfo[]>(EMPTY_SATS)
   const noradMapRef = useRef(new Map<number, number>())
@@ -331,21 +343,68 @@ export default function Home() {
     earthObservatoryOpen,
   ])
 
+  const handleToggleAudio = useCallback(() => {
+    const playing = audioSynthRef.current.toggle()
+    setAudioPlaying(playing)
+  }, [])
+
   const stopCinematicTour = useCallback(() => {
+    for (const audio of Object.values(cinematicAudioRefs.current)) {
+      if (!audio) continue
+      audio.pause()
+      audio.currentTime = 0
+    }
     engineRef.current?.stopCinematicTour()
     setIsCinematicTourActive(false)
   }, [])
 
   const startCinematicTour = useCallback(() => {
+    const audio = cinematicAudioRefs.current[cinematicTourLanguage]
     const engine = engineRef.current
-    if (!engine) throw new Error('Cinematic tour cannot start because the 3D scene is not initialized.')
-    if (!schematicSurfacesVisible) {
-      engine.setSchematicSurfacesVisible(true)
-      setSchematicSurfacesVisible(true)
+    if (!audio || !engine) {
+      setCinematicAudioStatus((current) => ({
+        ...current,
+        [cinematicTourLanguage]: {
+          ...current[cinematicTourLanguage],
+          error: 'Sinematik tur başlatılamadı: ses veya 3D sahne hazır değil.',
+        },
+      }))
+      return
     }
-    engine.startCinematicTour(CINEMATIC_TOUR_SCRIPT_DURATION_S)
-    setIsCinematicTourActive(true)
-  }, [schematicSurfacesVisible])
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+      setCinematicAudioStatus((current) => ({
+        ...current,
+        [cinematicTourLanguage]: {
+          ...current[cinematicTourLanguage],
+          error: 'Sinematik sesin süresi okunamadı. Sayfayı yenileyip yeniden deneyin.',
+        },
+      }))
+      return
+    }
+
+    audio.currentTime = 0
+    void audio.play().then(
+      () => {
+        engine.startCinematicTour(audio.duration)
+        setCinematicAudioStatus((current) => ({
+          ...current,
+          [cinematicTourLanguage]: { ...current[cinematicTourLanguage], error: null },
+        }))
+        setIsCinematicTourActive(true)
+      },
+      (error: unknown) => {
+        engine.stopCinematicTour()
+        setIsCinematicTourActive(false)
+        setCinematicAudioStatus((current) => ({
+          ...current,
+          [cinematicTourLanguage]: {
+            ...current[cinematicTourLanguage],
+            error: `Sinematik ses başlatılamadı: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        }))
+      },
+    )
+  }, [cinematicTourLanguage])
 
   const handleTogglePlanetaryOrbits = useCallback(() => {
     setPlanetaryOrbitsVisible((v) => {
@@ -375,14 +434,6 @@ export default function Home() {
     setAsteroidsVisible((v) => {
       const next = !v
       engineRef.current?.setAsteroidsVisible(next)
-      return next
-    })
-  }, [])
-
-  const handleToggleSchematicSurfaces = useCallback(() => {
-    setSchematicSurfacesVisible((current) => {
-      const next = !current
-      engineRef.current?.setSchematicSurfacesVisible(next)
       return next
     })
   }, [])
@@ -442,20 +493,20 @@ export default function Home() {
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 
   const handleStartPerseidSimulation = useCallback((watch: PerseidWatch) => {
-    const maximumWindowStart = Date.parse(watch.maximumStart)
-    if (!Number.isFinite(maximumWindowStart)) {
-      throw new Error(`Perseid maximum window start is invalid: ${watch.maximumStart}`)
+    const peakTime = Date.parse(watch.peakAt)
+    if (!Number.isFinite(peakTime)) {
+      throw new Error(`Perseid peak time is invalid: ${watch.peakAt}`)
     }
     selectSat(null)
-    clock.setTime(maximumWindowStart)
+    clock.setTime(peakTime)
     handleSelectBody('earth')
     setMeteorFlowVisible(true)
     setSkywatchOpen(false)
     setLayersOpen(false)
     setSearchNotice(
       uiLanguage === 'tr'
-        ? 'Perseid şematik akışı maksimum aralığının başlangıcında açıldı; gerçek zamanlı meteor sayısı değildir.'
-        : 'Perseid schematic stream opened at the start of the maximum window; it is not a real-time meteor count.',
+        ? 'Perseid görsel akışı simülasyonda açıldı; akış gerçek zamanlı meteor sayısı değildir.'
+        : 'Perseid visual stream opened in the simulation; it is not a real-time meteor count.',
     )
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 
@@ -543,6 +594,51 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webglOk])
+
+  useEffect(() => {
+    const cleanups = (Object.entries(CINEMATIC_TOUR_AUDIO_PATHS) as Array<[CinematicTourLanguage, string]>).map(
+      ([language, path]) => {
+        const audio = new Audio(`${import.meta.env.BASE_URL}${path}`)
+        audio.preload = 'metadata'
+        const handleMetadata = () => {
+          setCinematicAudioStatus((current) => ({
+            ...current,
+            [language]: Number.isFinite(audio.duration) && audio.duration > 0
+              ? { ready: true, error: null }
+              : { ready: false, error: 'Sinematik ses geçersiz bir süre bildirdi.' },
+          }))
+        }
+        const handleError = () => {
+          setCinematicAudioStatus((current) => ({
+            ...current,
+            [language]: { ready: false, error: `Sinematik ses yüklenemedi: ${audio.currentSrc || path}` },
+          }))
+        }
+        const handleEnded = () => {
+          engineRef.current?.stopCinematicTour()
+          setIsCinematicTourActive(false)
+        }
+
+        audio.addEventListener('loadedmetadata', handleMetadata)
+        audio.addEventListener('error', handleError)
+        audio.addEventListener('ended', handleEnded)
+        cinematicAudioRefs.current[language] = audio
+        audio.load()
+
+        return () => {
+          audio.pause()
+          audio.removeEventListener('loadedmetadata', handleMetadata)
+          audio.removeEventListener('error', handleError)
+          audio.removeEventListener('ended', handleEnded)
+          if (cinematicAudioRefs.current[language] === audio) cinematicAudioRefs.current[language] = null
+        }
+      },
+    )
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup())
+    }
+  }, [])
 
   // ---- dataset -> engine (hot swap; preserves UI state) ----
   useEffect(() => {
@@ -781,6 +877,8 @@ export default function Home() {
     visible: groupVisible,
     onToggle: toggleGroup,
     onToggleScaleSandbox: () => { setShowScaleModal(true); setLayersOpen(false) },
+    onToggleAudio: handleToggleAudio,
+    audioPlaying,
     onTogglePlanetaryOrbits: handleTogglePlanetaryOrbits,
     planetaryOrbitsVisible,
     onToggleProbes: handleToggleProbes,
@@ -789,29 +887,13 @@ export default function Home() {
     constellationsVisible,
     onToggleAsteroids: handleToggleAsteroids,
     asteroidsVisible,
-    onToggleSchematicSurfaces: handleToggleSchematicSurfaces,
-    schematicSurfacesVisible,
     onToggleEarthObservatory: handleToggleEarthObservatory,
     earthObservatoryVisible: earthObservatoryOpen,
     onToggleSmallBodies: handleToggleSmallBodies,
     smallBodiesVisible: smallBodiesOpen,
     onToggleSkywatch: handleToggleSkywatch,
     skywatchVisible: skywatchOpen,
-    tleEvidence: dataset ? createTlePropagationEvidence(dataset) : null,
   }
-
-  const activePerseidHeuristic = useMemo(() => {
-    if (!skywatchOpen || !skywatchLocation.observer) return false
-    return Boolean(getPerseidWatch(
-      new Date(skywatchCalculatedAt),
-      skywatchLocation.observer,
-    )?.observer)
-  }, [skywatchCalculatedAt, skywatchLocation.observer, skywatchOpen])
-
-  const activeSceneEvidenceClasses = getActiveSceneEvidenceClasses({
-    schematicActive: schematicSurfacesVisible || asteroidsVisible || meteorFlowVisible,
-    heuristicActive: activePerseidHeuristic,
-  })
 
   if (!webglOk) {
     return (
@@ -848,7 +930,6 @@ export default function Home() {
       )}
 
       <OfflineBanner language={uiLanguage} />
-      <SceneTruthBanner activeClasses={activeSceneEvidenceClasses} language={uiLanguage} />
       {!layersOpen && <PrepareOfflineControl language={uiLanguage} />}
 
       {/* ============ TOP BAR ============ */}
@@ -949,7 +1030,11 @@ export default function Home() {
         <CosmicTourControls
           currentBodyId={focusBody}
           uiLanguage={uiLanguage}
+          language={cinematicTourLanguage}
           isTourActive={isCinematicTourActive}
+          isAudioReady={cinematicAudioStatus[cinematicTourLanguage].ready}
+          audioError={cinematicAudioStatus[cinematicTourLanguage].error}
+          onLanguageChange={setCinematicTourLanguage}
           onStartTour={startCinematicTour}
           onStopTour={stopCinematicTour}
         />
@@ -986,7 +1071,11 @@ export default function Home() {
         <CosmicTourControls
           currentBodyId={focusBody}
           uiLanguage={uiLanguage}
+          language={cinematicTourLanguage}
           isTourActive={isCinematicTourActive}
+          isAudioReady={cinematicAudioStatus[cinematicTourLanguage].ready}
+          audioError={cinematicAudioStatus[cinematicTourLanguage].error}
+          onLanguageChange={setCinematicTourLanguage}
           onStartTour={startCinematicTour}
           onStopTour={stopCinematicTour}
         />
@@ -1157,7 +1246,7 @@ export default function Home() {
 
       {/* ============ FOOTER CREDITS (desktop only) ============ */}
       <div className="pointer-events-none absolute bottom-1.5 left-7 z-10 hidden font-mono text-[10px] tracking-wider text-slate-600 md:block">
-        TLE CelesTrak · SGP4 satellite.js · NASA · USGS · JPL
+        TLE CelesTrak · SGP4 satellite.js · Imagery NASA · USGS Astrogeology · JPL
       </div>
       <div className="pointer-events-none absolute bottom-1.5 right-7 z-10 hidden font-mono text-[10px] tabular-nums tracking-wider text-slate-600 md:block">
         {fps} fps

@@ -1,14 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { SkyEvent, SkyEventKind, SkyEventVisibility, SkyObserver } from '@/lib/sky-events'
 import { directionLabel, getPerseidWatch, type PerseidWatch } from '@/lib/perseid-watch'
-import {
-  createPerseidHeuristicEvidence,
-  type EvidenceRecord,
-} from '@/lib/scientific-evidence'
 import { eventDayKey } from '@/lib/skywatch-calendar'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import SkywatchEventCalendar from './SkywatchEventCalendar'
-import EvidenceMark from './EvidenceMark'
 
 interface SkywatchPanelProps {
   events: SkyEvent[]
@@ -107,7 +102,7 @@ function perseidStatusLabel(status: PerseidWatch['status'], language: UiLanguage
   const labels: Record<PerseidWatch['status'], [string, string]> = {
     upcoming: ['Yaklaşıyor', 'Upcoming'],
     active: ['Aktif', 'Active'],
-    'maximum-window': ['Maksimum aralığında', 'Maximum window'],
+    peak: ['Zirve şimdi', 'Peak now'],
     completed: ['Sezon tamamlandı', 'Season complete'],
   }
   return labels[status][language === 'tr' ? 0 : 1]
@@ -118,19 +113,6 @@ function scoreLabel(score: number, language: UiLanguage): string {
   if (score >= 55) return pickLanguage(language, 'Uygun', 'Favorable')
   if (score >= 25) return pickLanguage(language, 'Sınırlı', 'Limited')
   return pickLanguage(language, 'Şu an uygun değil', 'Not favorable now')
-}
-
-function perseidCalendarEvidence(watch: PerseidWatch): EvidenceRecord {
-  return {
-    evidenceClass: 'sourced-static',
-    publisher: 'International Meteor Organization',
-    sourceUrl: watch.sourceUrl,
-    verifiedAt: '2026-08-13',
-    validFrom: watch.activeStart,
-    validUntil: watch.activeEnd,
-    uncertainty: 'The published maximum is a time window, not an exact instant.',
-    limitation: 'Observed rates depend on sky conditions and observer location.',
-  }
 }
 
 function PerseidWatchCard({ watch, language, onStartSimulation }: {
@@ -162,8 +144,8 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
             <div className="mt-0.5">17 Tem – 24 Ağu</div>
           </div>
           <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
-            <div className="text-amber-100/55">{t('ANA MAKSİMUM ARALIĞI', 'MAIN MAXIMUM WINDOW')}</div>
-            <div className="mt-0.5">{formatUtcRange(watch.maximumStart, watch.maximumEnd, language)}</div>
+            <div className="text-amber-100/55">{t('ZİRVE', 'PEAK')}</div>
+            <div className="mt-0.5">{formatUtcRange(watch.peakStart, watch.peakEnd, language)}</div>
           </div>
           <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
             <div className="text-amber-100/55">{t('AY IŞIĞI', 'MOONLIGHT')}</div>
@@ -179,15 +161,15 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
           <div className="mt-2 rounded-lg border border-amber-100/15 bg-black/20 px-2 py-1.5">
             <div className="flex items-center justify-between gap-2 font-mono text-[8px]">
               <span className="text-amber-100/65">{observer.label} · {t('şimdi', 'now')}</span>
-              <span className="font-semibold text-amber-50">{scoreLabel(observer.productHeuristic, language)} · {observer.productHeuristic}/100</span>
+              <span className="font-semibold text-amber-50">{scoreLabel(observer.astronomicalScore, language)} · {observer.astronomicalScore}/100</span>
             </div>
             <p className="mt-1 text-[9px] leading-relaxed text-slate-200">
               {t('Işınım', 'Radiant')}: {directionLabel(observer.radiantAzimuthDegrees, language)} · {Math.round(observer.radiantAltitudeDegrees)}° · {t('Güneş', 'Sun')}: {Math.round(observer.sunAltitudeDegrees)}°
             </p>
-            <p className="mt-1 font-mono text-[7px] leading-relaxed text-amber-100/60">{t('ÜRÜN SEZGİSİ · Bilimsel ölçüm değildir; bulutluluk ve yerel engeller dahil değildir.', 'PRODUCT HEURISTIC · Not a scientific measurement; cloud cover and local obstructions are excluded.')}</p>
+            <p className="mt-1 font-mono text-[7px] leading-relaxed text-amber-100/60">{t('Astronomik skor; bulutluluk ve yerel engeller dahil değildir.', 'Astronomical score; cloud cover and local obstructions are excluded.')}</p>
           </div>
         ) : (
-          <p className="mt-2 rounded-lg border border-amber-100/15 bg-black/20 px-2 py-1.5 text-[9px] leading-relaxed text-slate-300">{t('Işınımın yönü, yüksekliği ve ürün sezgisi için konum seçin.', 'Choose a location for radiant direction, altitude, and the product heuristic.')}</p>
+          <p className="mt-2 rounded-lg border border-amber-100/15 bg-black/20 px-2 py-1.5 text-[9px] leading-relaxed text-slate-300">{t('Işınımın yönü, yüksekliği ve astronomik gözlem skoru için konum seçin.', 'Choose a location for radiant direction, altitude, and an astronomical viewing score.')}</p>
         )}
 
         <p className="mt-2 text-[8px] leading-relaxed text-slate-300">{watch.parentBody} · {t('Hedef: geniş gökyüzü, karanlık ufuk ve ışınımdan uzağa bakış.', 'Aim for a wide sky, a dark horizon, and a view away from the radiant.')}</p>
@@ -196,22 +178,8 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
           <a href={watch.reportUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">{t('Gözlem bildir', 'Report observation')} ↗</a>
           <a href={watch.fireballUrl} target="_blank" rel="noreferrer" className="text-amber-100 hover:text-amber-50">{t('Ateştopu bildir', 'Report fireball')} ↗</a>
         </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <EvidenceMark
-            evidence={perseidCalendarEvidence(watch)}
-            language={language}
-            contextLabel={t('Perseid takvimi', 'Perseid calendar')}
-          />
-          {observer && (
-            <EvidenceMark
-              evidence={createPerseidHeuristicEvidence(watch.observedAt)}
-              language={language}
-              contextLabel={t('Perseid ürün sezgisi', 'Perseid product heuristic')}
-            />
-          )}
-        </div>
         <button type="button" onClick={() => onStartSimulation(watch)} className="mt-2 w-full rounded-md border border-amber-100/35 bg-amber-200/[0.08] px-2 py-1.5 font-mono text-[9px] font-semibold text-amber-50 transition-colors hover:bg-amber-200/[0.16]">
-          {t('Aralık başlangıcında şematik akışı göster', 'Show schematic stream at window start')}
+          {t('Görsel akışı simülasyonda göster', 'Show visual stream in simulation')}
         </button>
       </div>
     </section>
@@ -317,12 +285,17 @@ export default function SkywatchPanel({
   onClose,
 }: SkywatchPanelProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
-  const now = calculatedAt
+  const [now, setNow] = useState(() => Date.now())
   const perseidWatch = getPerseidWatch(new Date(now), observer ?? undefined)
   const months = useMemo(() => [...new Set(events.map((event) => monthKey(event.startsAt)))], [events])
   const [requestedMonth, setRequestedMonth] = useState(() => months[0] ?? '')
   const [requestedDay, setRequestedDay] = useState<string | null>(null)
   const selectedMonth = months.includes(requestedMonth) ? requestedMonth : (months[0] ?? '')
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   const selectedIndex = months.indexOf(selectedMonth)
   const monthEvents = events.filter((event) => monthKey(event.startsAt) === selectedMonth)
@@ -349,7 +322,7 @@ export default function SkywatchPanel({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="font-mono text-[8px] font-semibold uppercase tracking-[0.22em] text-cyan-200/70">
-              {t('Kaynaklı astronomi rehberi', 'Sourced astronomy guide')}
+              {t('Canlı astronomi rehberi', 'Live astronomy guide')}
             </div>
             <h2 className="mt-0.5 font-mono text-sm font-bold tracking-[0.13em] text-cyan-50">
               {t('GÖKYÜZÜ TAKVİMİ', 'SKYWATCH CALENDAR')}
@@ -418,20 +391,12 @@ export default function SkywatchPanel({
                         <h3 className="text-[10px] font-semibold leading-snug text-slate-100">{event.title}</h3>
                         <span className={`shrink-0 font-mono text-[8px] font-semibold ${style.accent}`}>{formatCountdown(event.startsAt, now, language)}</span>
                       </div>
-                      <p className="mt-1 font-mono text-[8px] text-slate-400">
-                        {event.endsAt
-                          ? formatUtcRange(event.startsAt, event.endsAt, language)
-                          : formatEventTime(event.startsAt, language)}
-                      </p>
+                      <p className="mt-1 font-mono text-[8px] text-slate-400">{formatEventTime(event.startsAt, language)}</p>
                       <p className="mt-1.5 text-[9px] leading-relaxed text-slate-300">{event.summary}</p>
                       <p className="mt-1 text-[8px] leading-relaxed text-slate-500">{event.guidance}</p>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="font-mono text-[7px] uppercase tracking-[0.08em] text-slate-500">{visibilityLabel(event.visibility, language)}</span>
-                        <EvidenceMark
-                          evidence={event.evidence}
-                          language={language}
-                          contextLabel={event.title}
-                        />
+                        <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="font-mono text-[8px] text-cyan-200 hover:text-cyan-100">{t('Kaynak', 'Source')} ↗</a>
                       </div>
                       <button type="button" onClick={() => onSelectEvent(event)} className="mt-2 w-full rounded-md border border-cyan-300/25 bg-cyan-300/[0.06] px-2 py-1.5 font-mono text-[9px] font-semibold text-cyan-100 transition-colors hover:bg-cyan-300/[0.13]">
                         {t('Simülasyonda göster', 'Show in simulation')}

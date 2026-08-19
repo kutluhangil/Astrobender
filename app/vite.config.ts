@@ -22,9 +22,13 @@ export default defineConfig({
       filename: 'sw.ts',
       injectManifest: {
         // js/css/html for the app shell, json/txt for the small
-        // catalog/TLE snapshot files under public/data. Celestial surface
-        // aids are generated in code, so there are no texture or narration
-        // media paths to cache at runtime. See sw.ts.
+        // catalog/TLE snapshot files under public/data. Textures
+        // (jpg/webp/png) and the cinematic-tour narration MP3s are
+        // deliberately excluded from precache — both are large,
+        // rarely-needed-on-first-visit assets that would otherwise compete
+        // for bandwidth with the initial render, so they're runtime-cached
+        // (textures) or runtime-cached-plus-explicit-prepare (audio)
+        // instead. See sw.ts.
         globPatterns: ['**/*.{js,css,html,json,txt}'],
         // vite-plugin-pwa's default precache limit is 2 MiB. The TLE
         // snapshot (~2.7 MB) is intentionally precached as part of the app

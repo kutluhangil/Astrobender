@@ -3,7 +3,6 @@ import test from 'node:test'
 import {
   J2000_MS,
   PLANETARY_ELEMENTS,
-  SCHEMATIC_PLANETARY_BODY_IDS,
   SATELLITE_ELEMENTS,
   compressDistanceAu,
   getGeocentricScenePositions,
@@ -32,7 +31,7 @@ test('planetary elements preserve the real Solar System ordering', () => {
   assert.equal(PLANETARY_ELEMENTS.neptune.semiMajorAxisAu.base, 30.06992276)
 })
 
-test('Kepler solver returns finite heliocentric positions at J2000', () => {
+test('JPL Kepler solver returns finite heliocentric positions at J2000', () => {
   for (const id of Object.keys(PLANETARY_ELEMENTS) as Array<keyof typeof PLANETARY_ELEMENTS>) {
     const position = heliocentricPositionAu(id, J2000_MS)
     const distance = Math.hypot(position.x, position.y, position.z)
@@ -47,7 +46,6 @@ test('Kepler solver returns finite heliocentric positions at J2000', () => {
 })
 
 test('modeled dwarf planets have finite distinct heliocentric positions', () => {
-  assert.deepEqual(SCHEMATIC_PLANETARY_BODY_IDS, ['pluto', 'ceres', 'haumea', 'makemake', 'eris'])
   const positions = ['ceres', 'haumea', 'makemake', 'eris'].map((bodyId) =>
     heliocentricPositionAu(bodyId as PlanetaryBodyId, J2000_MS),
   )

@@ -56,7 +56,9 @@ export interface PlanetDef {
   radius: number
   /** Sphere geometry segments (detail) */
   segments: number
-  /** Conservative color correction applied to the schematic surface */
+  /** Texture file name (in /textures/) */
+  texture?: string
+  /** Conservative color correction applied to the surface texture */
   surfaceTint?: [number, number, number]
   /** Non-spherical body proportions */
   shapeScale?: [number, number, number]
@@ -88,6 +90,7 @@ export interface PlanetDef {
     outerRadius: number
     color: number
     opacity: number
+    texture?: string
   }
   /** Current confirmed moon count; unmodeled moons render as low-cost points. */
   knownMoonCount?: number
@@ -136,6 +139,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '🪨',
     radius: 0.38,
     segments: 64,
+    texture: 'mercury-4k.jpg',
     semiMajorAxisAu: 0.38709927,
     orbitPeriodDays: 87.97,
     rotationPeriodHours: 1407.6, // 58.6 days
@@ -152,6 +156,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '♀️',
     radius: 0.95,
     segments: 96,
+    texture: 'venus-surface-8k.jpg',
     semiMajorAxisAu: 0.72333566,
     orbitPeriodDays: 224.7,
     rotationPeriodHours: 5832.5, // 243 days, retrograde
@@ -169,6 +174,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '♂️',
     radius: 0.53,
     segments: 96,
+    texture: 'mars-8k.jpg',
     semiMajorAxisAu: 1.52371034,
     orbitPeriodDays: 687.0,
     rotationPeriodHours: 24.6,
@@ -185,6 +191,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.04,
         segments: 32,
+        texture: 'phobos-4k.jpg',
         surfaceTint: [0.82, 0.72, 0.62],
         shapeScale: [1.23, 1.0, 0.82],
         semiMajorAxisKm: 9375,
@@ -204,6 +211,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.025,
         segments: 32,
+        texture: 'deimos-4k.jpg',
         surfaceTint: [0.86, 0.78, 0.68],
         shapeScale: [1.22, 1.0, 0.90],
         semiMajorAxisKm: 23457,
@@ -225,6 +233,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '🪐',
     radius: 1.8,
     segments: 128,
+    texture: 'jupiter-8k.jpg',
     semiMajorAxisAu: 5.202887,
     orbitPeriodDays: 4333,
     rotationPeriodHours: 9.93,
@@ -248,6 +257,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🟡',
         radius: 0.12,
         segments: 48,
+        texture: 'io-4k.jpg',
         semiMajorAxisKm: 421800,
         orbitPeriodDays: 1.762732,
         rotationPeriodHours: 42.5,
@@ -265,6 +275,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🧊',
         radius: 0.10,
         segments: 48,
+        texture: 'europa-4k.jpg',
         surfaceTint: [1.08, 1.02, 0.90],
         semiMajorAxisKm: 671100,
         orbitPeriodDays: 3.525463,
@@ -283,6 +294,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.14,
         segments: 48,
+        texture: 'ganymede-4k.jpg',
         surfaceTint: [0.95, 0.91, 0.84],
         semiMajorAxisKm: 1070400,
         orbitPeriodDays: 7.155588,
@@ -301,6 +313,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.13,
         segments: 48,
+        texture: 'callisto-4k.jpg',
         surfaceTint: [0.88, 0.80, 0.70],
         semiMajorAxisKm: 1882700,
         orbitPeriodDays: 16.69044,
@@ -341,6 +354,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '🪐',
     radius: 1.5,
     segments: 128,
+    texture: 'saturn-8k.jpg',
     semiMajorAxisAu: 9.53667594,
     orbitPeriodDays: 10759,
     rotationPeriodHours: 10.7,
@@ -354,6 +368,7 @@ export const PLANETS: PlanetDef[] = [
       outerRadius: 2.45,
       color: 0xd8c69b,
       opacity: 0.92,
+      texture: 'saturn-ring-alpha.png',
     },
     uiColor: 'border-yellow-600/60 bg-yellow-600/20 text-yellow-200',
     uiGlow: 'shadow-[0_0_10px_rgba(202,138,4,0.3)]',
@@ -364,6 +379,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🟡',
         radius: 0.16,
         segments: 48,
+        texture: 'titan-4k.jpg',
         surfaceTint: [1.18, 0.78, 0.38],
         semiMajorAxisKm: 1221900,
         orbitPeriodDays: 15.945448,
@@ -382,6 +398,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🧊',
         radius: 0.04,
         segments: 32,
+        texture: 'enceladus-4k.jpg',
         surfaceTint: [0.90, 0.97, 1.08],
         semiMajorAxisKm: 238400,
         orbitPeriodDays: 1.370218,
@@ -472,6 +489,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '🔵',
     radius: 0.65,
     segments: 64,
+    texture: 'uranus-2k.jpg',
     semiMajorAxisAu: 19.18916464,
     orbitPeriodDays: 30687,
     rotationPeriodHours: 17.24,
@@ -480,9 +498,7 @@ export const PLANETS: PlanetDef[] = [
     atmosphereColor: [0.55, 0.85, 0.90],
     atmosphereIntensity: 1.3,
     retrograde: true,
-    // NASA Webb's S/2025 U1 discovery brought Uranus to 29 known moons.
-    // https://science.nasa.gov/blogs/webb/2025/08/19/new-moon-discovered-orbiting-uranus-using-nasas-webb-telescope/
-    knownMoonCount: 29,
+    knownMoonCount: 28,
     ring: {
       innerRadius: 1.55,
       outerRadius: 2.02,
@@ -528,6 +544,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.06,
         segments: 32,
+        texture: 'titania-4k.jpg',
         surfaceTint: [0.80, 0.90, 0.96],
         semiMajorAxisKm: 436298,
         orbitPeriodDays: 8.705869,
@@ -546,6 +563,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.055,
         segments: 32,
+        texture: 'oberon-4k.jpg',
         surfaceTint: [0.78, 0.83, 0.88],
         semiMajorAxisKm: 583511,
         orbitPeriodDays: 13.463237,
@@ -566,6 +584,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '🔵',
     radius: 0.62,
     segments: 64,
+    texture: 'neptune-2k.jpg',
     semiMajorAxisAu: 30.06992276,
     orbitPeriodDays: 60190,
     rotationPeriodHours: 16.11,
@@ -619,6 +638,7 @@ export const PLANETS: PlanetDef[] = [
         emoji: '🌑',
         radius: 0.08,
         segments: 32,
+        texture: 'triton-4k.jpg',
         surfaceTint: [1.02, 0.84, 0.88],
         semiMajorAxisKm: 354800,
         orbitPeriodDays: 5.876994,
@@ -640,6 +660,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '⚪',
     radius: 0.18,
     segments: 32,
+    texture: 'pluto-2k.jpg',
     semiMajorAxisAu: 39.482,
     orbitPeriodDays: 90560,
     rotationPeriodHours: 153.3,
@@ -709,6 +730,7 @@ export const PLANETS: PlanetDef[] = [
     emoji: '⚪',
     radius: 0.074,
     segments: 48,
+    texture: 'ceres-dawn-2k.webp',
     semiMajorAxisAu: 2.7675,
     orbitPeriodDays: 1681.63,
     rotationPeriodHours: 9.074,

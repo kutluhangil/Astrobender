@@ -1,5 +1,3 @@
-import { validateEvidenceRecord, type EvidenceRecord } from './scientific-evidence.ts'
-
 export interface CloseApproach {
   designation: string
   fullName: string
@@ -19,7 +17,6 @@ export interface NamedSmallBody {
   kind: 'dwarf-planet' | 'asteroid' | 'comet'
   summaryTr: string
   sourceUrl: string
-  evidence: EvidenceRecord
 }
 
 // No query string: the proxy hardcodes the upstream query and rejects
@@ -27,22 +24,7 @@ export interface NamedSmallBody {
 export const JPL_CAD_API_URL = '/api/jpl-cad'
 export const JPL_CAD_SOURCE_URL = 'https://ssd-api.jpl.nasa.gov/cad.api'
 
-export function getJplCadEvidence(retrievedAt: number): EvidenceRecord {
-  if (!Number.isFinite(retrievedAt) || retrievedAt <= 0) {
-    throw new Error(`JPL CAD evidence requires a valid retrieval timestamp; received ${retrievedAt}`)
-  }
-  return validateEvidenceRecord({
-    evidenceClass: 'live',
-    publisher: 'NASA/JPL',
-    sourceUrl: JPL_CAD_SOURCE_URL,
-    retrievedAt: new Date(retrievedAt).toISOString(),
-    verifiedAt: '2026-07-26',
-    uncertainty: 'Minimum and maximum distances are shown only when JPL publishes them.',
-    limitation: 'A failed refresh retains the last valid payload with this original retrieval time.',
-  })
-}
-
-const NAMED_SMALL_BODY_DATA: Omit<NamedSmallBody, 'evidence'>[] = [
+export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
   {
     id: 'ceres',
     name: 'Ceres',
@@ -100,18 +82,6 @@ const NAMED_SMALL_BODY_DATA: Omit<NamedSmallBody, 'evidence'>[] = [
     sourceUrl: 'https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr=67P',
   },
 ]
-
-export const NAMED_SMALL_BODIES: NamedSmallBody[] = NAMED_SMALL_BODY_DATA.map((body) => ({
-  ...body,
-  evidence: {
-    evidenceClass: 'sourced-static',
-    publisher: 'NASA/JPL',
-    sourceUrl: body.sourceUrl,
-    verifiedAt: '2026-07-26',
-    uncertainty: 'Unknown where the JPL catalog record does not publish an uncertainty.',
-    limitation: 'The panel summary is a reviewed, localized synopsis of the linked catalog record.',
-  },
-}))
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

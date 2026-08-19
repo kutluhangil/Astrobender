@@ -1,5 +1,3 @@
-import { validateEvidenceRecord, type EvidenceRecord } from './scientific-evidence.ts'
-
 export type EarthEventKind = 'natural-event' | 'earthquake'
 
 export interface EarthEvent {
@@ -55,28 +53,6 @@ export const EARTH_DATA_URLS = {
     'https://worldview.earthdata.nasa.gov/?l=VIIRS_SNPP_CorrectedReflectance_TrueColor,Coastlines_15m&lg=true',
   gibs: 'https://data.nasa.gov/dataset/gibs-api-for-developers',
 } as const
-
-const EARTH_SOURCE_METADATA: Record<EarthSourceId, { publisher: string; sourceUrl: string }> = {
-  eonet: { publisher: 'NASA EONET', sourceUrl: EARTH_DATA_URLS.eonet },
-  usgs: { publisher: 'USGS', sourceUrl: EARTH_DATA_URLS.usgs },
-  aurora: { publisher: 'NOAA SWPC', sourceUrl: EARTH_DATA_URLS.aurora },
-}
-
-export function getEarthSourceEvidence(source: EarthSourceId, retrievedAt: number): EvidenceRecord {
-  if (!Number.isFinite(retrievedAt) || retrievedAt <= 0) {
-    throw new Error(`Earth source evidence requires a valid retrieval timestamp; received ${retrievedAt}`)
-  }
-  const metadata = EARTH_SOURCE_METADATA[source]
-  return validateEvidenceRecord({
-    evidenceClass: 'live',
-    publisher: metadata.publisher,
-    sourceUrl: metadata.sourceUrl,
-    retrievedAt: new Date(retrievedAt).toISOString(),
-    verifiedAt: '2026-07-26',
-    uncertainty: 'Unknown where the upstream payload does not publish an uncertainty.',
-    limitation: 'A failed refresh retains the last valid payload with this original retrieval time.',
-  })
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

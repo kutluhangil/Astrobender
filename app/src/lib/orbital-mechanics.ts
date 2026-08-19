@@ -33,14 +33,6 @@ export type PlanetaryBodyId =
   | 'makemake'
   | 'eris'
 
-export const SCHEMATIC_PLANETARY_BODY_IDS = [
-  'pluto',
-  'ceres',
-  'haumea',
-  'makemake',
-  'eris',
-] as const satisfies readonly PlanetaryBodyId[]
-
 export type SatelliteBodyId =
   | 'moon'
   | 'phobos'
@@ -100,9 +92,8 @@ const element = (base: number, ratePerCentury: number): ElementWithRate => ({
 })
 
 /**
- * JPL approximate major-planet elements are valid from 1800 through 2050.
- * Pluto and the other dwarf planets below use schematic mean elements for scene
- * navigation only; they are not JPL Horizons ephemerides or measured positions.
+ * JPL approximate planetary elements, valid from 1800 through 2050.
+ * Pluto uses a J2000 approximation because JPL's major-planet table excludes it.
  */
 export const PLANETARY_ELEMENTS: Record<PlanetaryBodyId, PlanetaryElements> = {
   mercury: {

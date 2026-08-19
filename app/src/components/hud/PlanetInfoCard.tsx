@@ -7,12 +7,14 @@ import {
 } from '@/lib/celestial-facts'
 import {
   CELESTIAL_PHYSICAL_PROFILES,
+  JPL_PHYSICAL_PARAMETERS_URL,
+  JPL_SATELLITE_PARAMETERS_URL,
   physicalProfileValue,
   type CelestialPhysicalProfile,
 } from '@/lib/celestial-physical-profiles'
 import type { CelestialBodyId } from '@/lib/planets'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
-import EvidenceMark from './EvidenceMark'
+import { formatSourceReviewStatus, getSourceFreshness } from '@/lib/source-governance'
 
 interface PlanetInfoCardProps {
   bodyId: CelestialBodyId
@@ -30,35 +32,26 @@ interface ScienceProfileProps {
 
 function ScienceProfile({ profile, language, compact = false }: ScienceProfileProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
-  const temperature = profile.temperature
-    ? (language === 'tr' ? profile.temperature.replace(' to ', ' ile ') : profile.temperature)
-    : physicalProfileValue(null, language)
+  const temperature = language === 'tr'
+    ? profile.temperature.replace(' to ', ' ile ')
+    : profile.temperature
   const metrics = [
-    { label: t('Kütle', 'Mass'), value: physicalProfileValue(profile.mass, language), evidence: profile.evidence.mass },
-    { label: t('Yoğunluk', 'Density'), value: physicalProfileValue(profile.density, language), evidence: profile.evidence.density },
-    { label: t('Yerçekimi', 'Surface Gravity'), value: physicalProfileValue(profile.gravity, language), evidence: profile.evidence.gravity },
-    { label: t('Sıcaklık', 'Temperature'), value: temperature, evidence: null },
+    { label: t('Kütle', 'Mass'), value: physicalProfileValue(profile.mass, language) },
+    { label: t('Yoğunluk', 'Density'), value: physicalProfileValue(profile.density, language) },
+    { label: t('Yerçekimi', 'Surface Gravity'), value: physicalProfileValue(profile.gravity, language) },
+    { label: t('Sıcaklık', 'Temperature'), value: temperature },
   ]
 
   return (
     <section className={compact ? 'mt-2' : 'mt-2.5'} aria-label={t('Fiziksel profil', 'Physical profile')}>
-      <div className="mb-1.5 flex items-center justify-between gap-2 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80">
+      <div className="mb-1.5 flex items-center justify-between font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80">
         <span>{t('Fiziksel Profil', 'Physical Profile')}</span>
-        <span className="text-slate-500">{t('Alan bazlı kaynak', 'Field-scoped sources')}</span>
+        <span className="text-slate-500">JPL SSD</span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
         {metrics.map((metric) => (
           <div key={metric.label} className="rounded-lg border border-white/5 bg-white/[0.03] p-1.5">
-            <div className="mb-0.5 flex items-center justify-between gap-1 text-[8px] uppercase tracking-wider text-slate-500">
-              <span>{metric.label}</span>
-              {metric.evidence && (
-                <EvidenceMark
-                  evidence={metric.evidence}
-                  language={language}
-                  contextLabel={metric.label}
-                />
-              )}
-            </div>
+            <div className="mb-0.5 text-[8px] uppercase tracking-wider text-slate-500">{metric.label}</div>
             <div className="font-medium leading-snug text-slate-200">{metric.value}</div>
           </div>
         ))}
@@ -66,7 +59,7 @@ function ScienceProfile({ profile, language, compact = false }: ScienceProfilePr
       <div className="mt-1.5 rounded-lg border border-white/5 bg-white/[0.03] p-2">
         <div className="mb-1 font-mono text-[8px] uppercase tracking-wider text-slate-500">{t('Kimya ve Yüzey', 'Chemistry & Surface')}</div>
         <p className="font-sans text-[10px] leading-relaxed text-slate-200">
-          {language === 'tr' ? profile.evidence.limitation.tr : profile.evidence.limitation.en}
+          {language === 'tr' ? profile.chemistry.tr : profile.chemistry.en}
         </p>
       </div>
     </section>
@@ -89,6 +82,10 @@ export default function PlanetInfoCard({
   const value = (text: string) => language === 'tr' ? text : celestialValueEn(text)
   const funFact = language === 'tr' ? fact.funFactTr : CELESTIAL_FUN_FACTS_EN[bodyId]
   const physicalProfile = CELESTIAL_PHYSICAL_PROFILES[bodyId]
+  const physicalSourceUrl = bodyType.includes('Planet') || bodyType.includes('Gezegen') || bodyId === 'sun'
+    ? JPL_PHYSICAL_PARAMETERS_URL
+    : JPL_SATELLITE_PARAMETERS_URL
+  const sourceFreshness = getSourceFreshness(entry.verifiedAt)
 
   return (
     <>
@@ -149,8 +146,26 @@ export default function PlanetInfoCard({
               <div className="mb-1 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80">{t('Bilim Notu', 'Science Note')}</div>
               💡 <span className="font-medium text-cyan-100">{funFact}</span>
             </div>
-            <div className="mt-2">
-              <EvidenceMark evidence={entry.evidence} language={language} contextLabel={t('Bilim notları', 'Science notes')} />
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+              <a
+                href={entry.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70 transition-colors hover:text-cyan-300"
+              >
+                {t('NASA kaynağı', 'NASA source')} · {entry.verifiedAt}
+              </a>
+              <span className={sourceFreshness.state === 'current' ? 'font-mono text-[8px] uppercase tracking-[0.12em] text-emerald-300/70' : 'font-mono text-[8px] uppercase tracking-[0.12em] text-amber-300/80'}>
+                {formatSourceReviewStatus(sourceFreshness, language)}
+              </span>
+              <a
+                href={physicalSourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70 transition-colors hover:text-cyan-300"
+              >
+                {t('JPL fiziksel veri', 'JPL physical data')}
+              </a>
             </div>
           </>
         )}
@@ -207,8 +222,26 @@ export default function PlanetInfoCard({
             <div className="mb-1 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80">{t('Bilim Notu', 'Science Note')}</div>
             💡 <span className="font-medium text-cyan-100">{funFact}</span>
           </div>
-          <div className="mt-2">
-            <EvidenceMark evidence={entry.evidence} language={language} contextLabel={t('Bilim notları', 'Science notes')} />
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            <a
+              href={entry.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70"
+            >
+              {t('NASA kaynağı', 'NASA source')} · {entry.verifiedAt}
+            </a>
+            <span className={sourceFreshness.state === 'current' ? 'font-mono text-[8px] uppercase tracking-[0.12em] text-emerald-300/70' : 'font-mono text-[8px] uppercase tracking-[0.12em] text-amber-300/80'}>
+              {formatSourceReviewStatus(sourceFreshness, language)}
+            </span>
+            <a
+              href={physicalSourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70"
+            >
+              {t('JPL fiziksel veri', 'JPL physical data')}
+            </a>
           </div>
         </div>
       )}

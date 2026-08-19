@@ -13,8 +13,7 @@ import {
   SearchRelativeLongitude,
 } from 'astronomy-engine'
 import type { CelestialBodyId } from './planets.ts'
-import { METEOR_CALENDAR_BY_YEAR } from './meteor-calendar.ts'
-import type { EvidenceRecord } from './scientific-evidence.ts'
+import { PERSEID_2026 } from './perseid-watch.ts'
 import type { UiLanguage } from './ui-language.ts'
 
 export type SkyEventKind =
@@ -48,7 +47,6 @@ export interface SkyEvent {
   sourceUrl: string
   targetBody: CelestialBodyId
   visibility: SkyEventVisibility
-  evidence: EvidenceRecord
 }
 
 interface SkyEventInput {
@@ -58,22 +56,30 @@ interface SkyEventInput {
   language: UiLanguage
 }
 
-const NASA_ECLIPSE_URL = 'https://science.nasa.gov/eclipses/future-eclipses/'
-const JPL_PLANETS_URL = 'https://ssd.jpl.nasa.gov/planets/'
-const ASTRONOMY_ENGINE_URL = 'https://github.com/cosinekitty/astronomy'
-
-function calculatedEvidence(epoch: string, limitation: string): EvidenceRecord {
-  return {
-    evidenceClass: 'calculated',
-    publisher: 'CosineKitty',
-    sourceUrl: ASTRONOMY_ENGINE_URL,
-    verifiedAt: '2026-08-13',
-    method: 'Astronomy Engine 2.1.19',
-    epoch,
-    uncertainty: 'Unknown; values are rounded for display.',
-    limitation,
-  }
+interface MeteorStream {
+  id: string
+  month: number
+  day: number
+  hour?: number
+  body: string
+  northernHemisphere: boolean
+  sourceUrl: string
 }
+
+const NASA_ECLIPSE_URL = 'https://science.nasa.gov/eclipses/future-eclipses/'
+const NASA_METEOR_URL = 'https://science.nasa.gov/solar-system/meteors-meteorites/facts/'
+const JPL_PLANETS_URL = 'https://ssd.jpl.nasa.gov/planets/'
+
+const METEOR_STREAMS: readonly MeteorStream[] = [
+  { id: 'quadrantids', month: 1, day: 3, body: '(196256) 2003 EH1', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
+  { id: 'lyrids', month: 4, day: 22, body: 'C/1861 G1 Thatcher', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
+  { id: 'eta-aquariids', month: 5, day: 5, body: '1P/Halley', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
+  { id: 'southern-delta-aquariids', month: 7, day: 30, body: '96P/Machholz', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
+  { id: 'perseids', month: 8, day: 12, body: PERSEID_2026.parentBody, northernHemisphere: true, sourceUrl: PERSEID_2026.sourceUrl },
+  { id: 'orionids', month: 10, day: 21, body: '1P/Halley', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
+  { id: 'leonids', month: 11, day: 17, body: '55P/Tempel-Tuttle', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
+  { id: 'geminids', month: 12, day: 14, body: '(3200) Phaethon', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
+]
 
 const BODY_INFO: Record<Body.Mercury | Body.Venus | Body.Mars | Body.Jupiter | Body.Saturn, {
   id: CelestialBodyId
@@ -150,7 +156,6 @@ function addSolarEclipses(input: SkyEventInput, events: SkyEvent[]) {
       sourceUrl: NASA_ECLIPSE_URL,
       targetBody: 'sun',
       visibility: solarVisibility(peak, input.observer),
-      evidence: calculatedEvidence(toIso(peak), 'Global eclipse geometry is calculated; local visibility depends on observer coordinates.'),
     })
     eclipse = NextGlobalSolarEclipse(eclipse.peak)
   }
@@ -161,16 +166,12 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
   while (containsDate(input.start, input.end, eclipse.peak.date)) {
     const peak = eclipse.peak.date
     const type = eclipseLabel(eclipse.kind, input.language)
-    const phaseSemiDurationMs = eclipse.sd_penum * 60 * 1000
+    const phaseDurationMs = eclipse.sd_penum * 2 * 60 * 1000
     events.push({
       id: `lunar-eclipse-${peak.toISOString().slice(0, 10)}`,
       kind: 'lunar-eclipse',
-      startsAt: phaseSemiDurationMs > 0
-        ? toIso(new Date(peak.getTime() - phaseSemiDurationMs))
-        : toIso(peak),
-      endsAt: phaseSemiDurationMs > 0
-        ? toIso(new Date(peak.getTime() + phaseSemiDurationMs))
-        : null,
+      startsAt: toIso(peak),
+      endsAt: phaseDurationMs > 0 ? toIso(new Date(peak.getTime() + phaseDurationMs)) : null,
       title: t(input.language, `${type} Ay Tutulması`, `${type} Lunar Eclipse`),
       summary: t(
         input.language,
@@ -185,7 +186,6 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
       sourceUrl: NASA_ECLIPSE_URL,
       targetBody: 'moon',
       visibility: lunarVisibility(peak, input.observer),
-      evidence: calculatedEvidence(toIso(peak), 'Eclipse contacts are calculated; local visibility depends on observer coordinates.'),
     })
     eclipse = NextLunarEclipse(eclipse.peak)
   }
@@ -193,25 +193,29 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
 
 function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
   for (let year = input.start.getUTCFullYear() - 1; year <= input.end.getUTCFullYear() + 1; year += 1) {
-    for (const stream of METEOR_CALENDAR_BY_YEAR[year] ?? []) {
-      const maximumStartMs = Date.parse(stream.maximumStart)
-      const maximumEndMs = Date.parse(stream.maximumEnd)
-      if (!Number.isFinite(maximumStartMs) || !Number.isFinite(maximumEndMs) || maximumStartMs > maximumEndMs) {
-        throw new Error(`Meteor maximum window is invalid for ${stream.id}: ${stream.maximumStart} – ${stream.maximumEnd}`)
-      }
-      const overlapsInput = maximumStartMs <= input.end.getTime() && maximumEndMs >= input.start.getTime()
-      if (!overlapsInput) continue
+    for (const stream of METEOR_STREAMS) {
+      const peak = stream.id === 'perseids' && year === 2026
+        ? new Date(PERSEID_2026.peakAt)
+        : new Date(Date.UTC(year, stream.month - 1, stream.day, stream.hour ?? 2, 0, 0))
+      if (!containsDate(input.start, input.end, peak)) continue
+      const name = stream.id.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ')
       events.push({
         id: `meteor-${stream.id}-${year}`,
         kind: 'meteor-shower',
-        startsAt: stream.maximumStart,
-        endsAt: stream.maximumEnd,
-        title: t(input.language, stream.nameTr, stream.name),
-        summary: t(
-          input.language,
-          `${stream.parentBody} kaynaklı akış 17 Temmuz–24 Ağustos arasında etkindir; IMO ana maksimumu 13 Ağustos 02:00–04:00 UTC olarak verir.`,
-          `The ${stream.parentBody} stream is active July 17–August 24; IMO gives the main maximum as Aug. 13, 02:00–04:00 UTC.`,
-        ),
+        startsAt: toIso(peak),
+        endsAt: null,
+        title: t(input.language, `${name} Meteor Yağmuru`, `${name} Meteor Shower`),
+        summary: stream.id === 'perseids' && year === 2026
+          ? t(
+            input.language,
+            `${stream.body} kaynaklı akış 17 Temmuz–24 Ağustos arasında etkindir; IMO ana maksimumu 13 Ağustos 02:00–04:00 UTC olarak verir.`,
+            `The ${stream.body} stream is active July 17–August 24; IMO gives the main maximum as Aug. 13, 02:00–04:00 UTC.`,
+          )
+          : t(
+            input.language,
+            `${stream.body} kaynaklı toz akışı Dünya atmosferinde yanar.`,
+            `Dust from ${stream.body} burns in Earth’s atmosphere.`,
+          ),
         guidance: t(
           input.language,
           stream.northernHemisphere
@@ -224,16 +228,6 @@ function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: stream.sourceUrl,
         targetBody: 'earth',
         visibility: input.observer ? 'global' : 'location-required',
-        evidence: {
-          evidenceClass: 'sourced-static',
-          publisher: 'International Meteor Organization',
-          sourceUrl: stream.sourceUrl,
-          verifiedAt: '2026-08-13',
-          validFrom: stream.activeStart,
-          validUntil: stream.activeEnd,
-          uncertainty: 'The published maximum is a time window, not an exact instant.',
-          limitation: 'Observed rates depend on sky conditions and observer location.',
-        },
       })
     }
   }
@@ -264,7 +258,6 @@ function addMaximumElongations(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: JPL_PLANETS_URL,
         targetBody: info.id,
         visibility: input.observer ? 'global' : 'location-required',
-        evidence: calculatedEvidence(toIso(event.time.date), 'Geocentric event time; local observing conditions are not included.'),
       })
       event = SearchMaxElongation(body, new Date(event.time.date.getTime() + 24 * 60 * 60 * 1000))
     }
@@ -287,7 +280,6 @@ function addPlanetAlignments(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: JPL_PLANETS_URL,
         targetBody: info.id,
         visibility: input.observer ? 'global' : 'location-required',
-        evidence: calculatedEvidence(toIso(opposition), 'Geocentric alignment; local observing conditions are not included.'),
       })
     }
 
@@ -304,7 +296,6 @@ function addPlanetAlignments(input: SkyEventInput, events: SkyEvent[]) {
         sourceUrl: JPL_PLANETS_URL,
         targetBody: info.id,
         visibility: input.observer ? 'global' : 'location-required',
-        evidence: calculatedEvidence(toIso(conjunction), 'Geocentric alignment; local observing conditions are not included.'),
       })
     }
   }

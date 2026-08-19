@@ -32,7 +32,7 @@
 
 **ASTROBENDER**, Güneş Sistemi'ni ve Dünya çevresindeki yapay uyduları aynı Three.js sahnesinde incelemek için geliştirilmiş etkileşimli bir web uygulamasıdır. Gezegenlere veya uydularına tıklayarak hedefe uçabilir; fiziksel profilini, kimyasını ve bilim notlarını inceleyebilirsin.
 
-Uygulama, ana gezegenlerin astronomik yörünge sırasını korur; ancak milyarlarca kilometrelik uzay mesafelerini tarayıcıda gezilebilir tutmak için görsel olarak sıkıştırır. Arayüzdeki içerik canlı, hesaplanan, kaynaklı statik veya açıkça şematik olabilir; bir küre ya da işaretin sahnedeki konumu tek başına ölçüm değildir.
+Uygulama, astronomik yörünge sırasını ve görece yapıyı korur; ancak milyarlarca kilometrelik uzay mesafelerini tarayıcıda gezilebilir tutmak için görsel olarak sıkıştırır. Bu nedenle sahne ölçeği temsili, gösterilen astronomik değerler ise gerçek kaynak değerleridir.
 
 <div align="center">
   <img src="screenshots/v-desktop.png" alt="ASTROBENDER masaüstü görünümü: Dünya, uydu noktaları ve kontrol panelleri" width="100%" />
@@ -45,13 +45,13 @@ Uygulama, ana gezegenlerin astronomik yörünge sırasını korur; ancak milyarl
 
 | Özellik | Açıklama |
 |---|---|
-| 🌍 **3B Dünya** | Kaynaklı gündüz/gece dokuları, bulut katmanı, yüzey parlaklığı ve SGP4 ile hesaplanan yapay uydu noktaları. |
+| 🌍 **Canlı 3B Dünya** | Gündüz/gece dokuları, bulut katmanı, yüzey parlaklığı ve yapay uydu noktalarıyla Dünya görünümü. |
 | 🪐 **Gezegen ve uydu sistemleri** | Güneş, sekiz gezegen, cüce gezegenler ve seçilebilir büyük uydular; halkalı dev gezegen sistemleri. |
 | 🧪 **Fiziksel profil** | Seçilen cisim için kütle, yoğunluk, yüzey yerçekimi, sıcaklık, kimya/yüzey özeti ve bilim notu. |
 | 🛰️ **TLE + SGP4** | CelesTrak TLE paketleri, `satellite.js` ile tarayıcıda yörünge yayılımı ve IndexedDB önbelleği. |
 | 🔭 **Dünya Gözlemevi** | NASA EONET olayları, USGS depremleri ve NOAA aurora öngörüsünü kaynak bağlantılarıyla katman olarak açar. |
-| ☄️ **Küçük cisimler** | JPL Close Approach Data üzerinden yakın geçişler ve kaynaklı katalog kartları; sentetik asteroit/Kuiper kuşakları varsayılan kapalı şematik yardımcıdır. |
-| ✨ **Takımyıldızlar ve görevler** | 88 IAU takımyıldız adını aramada ve kaynaklı görev kartlarında sunar; IAU çizgi şekli ve efemerissiz sonda konumu çizmez. |
+| ☄️ **Küçük cisimler** | JPL Close Approach Data üzerinden yakın geçişler; asteroit, kuyrukluyıldız ve kuşak katmanları. |
+| ✨ **Takımyıldızlar ve sondalar** | 88 IAU takımyıldızı ile derin uzay görevlerini aynı gözlem akışında sunar. |
 | 🎬 **Sinematik uzay turu** | Türkçe ve İngilizce anlatım dosyalarıyla zaman kodlu kamera rotası. |
 | 🔎 **Tek arama kutusu** | Gök cismi, uydu, görev, yüzey konumu veya NORAD numarasını tek yerden bulur. |
 | 🌐 **TR / EN** | Arayüz, hedef bilgileri ve sinematik tur için iki dil desteği. |
@@ -60,37 +60,36 @@ Uygulama, ana gezegenlerin astronomik yörünge sırasını korur; ancak milyarl
 
 ## 🧭 Gezegen Konumu ve Ölçek Modeli
 
-Sekiz ana gezegenin konumu, JPL Solar System Dynamics'in 1800–2050 için yayımladığı yaklaşık Kepler elemanlarından hesaplanır. Büyük doğal uydular ortalama elemanlarla görselleştirilir; kararlı bir salınımlı faz bulunmayan kayıtlarda başlangıç fazı deterministik bir sahne seçimidir. Plüton ve diğer cüce gezegenlerin konumları Horizons efemerisi değildir ve şematik gezinme modeli olarak değerlendirilmelidir.
+Gezegenlerin konumu, JPL Solar System Dynamics'in yaklaşık Kepler elemanlarından hesaplanır. Büyük doğal uydular için JPL J2000 ortalama elemanları kullanılır. Böylece sistemdeki yörünge sırası, göreli yön ve dönem mantığı korunur.
 
 Gerçek Güneş Sistemi ölçeği bir tarayıcı sahnesi için aşırı büyüktür. ASTROBENDER bunun yerine tekdüze bir mesafe sıkıştırması kullanır:
 
 ```text
-JPL ana-gezegen elemanları ──▶ hesaplanan konum ──▶ görsel mesafe sıkıştırması ──▶ WebGL sahnesi
+JPL yörünge elemanları ──▶ heliosentrik konum ──▶ görsel mesafe sıkıştırması ──▶ WebGL sahnesi
                                       │
                                       └── AU etiketi gerçek yarı-büyük eksen değerini gösterir
 ```
 
 - Sahnedeki uzaklıklar **navigasyon için sıkıştırılmıştır**.
-- Ana gezegenlerin yörünge sırası **korunur**; cüce gezegen modeli şematiktir.
-- Arayüzdeki AU etiketi, sahnedeki çizim yarıçapı değil; katalogdaki yarı-büyük eksen değeridir.
-- Uydu sistemleri ayrı bir görsel ölçek kullanır; sahne fazı her kayıt için gözlemsel efemeris değildir.
+- Yörünge sırası ve gezegenler arası göreli yapı **korunur**.
+- Arayüzdeki AU değeri, sahnedeki çizim yarıçapı değil; cismin gerçek yarı-büyük eksenidir.
+- Uydu sistemleri kendi içlerinde gerçek uzaklık oranlarını koruyan ayrı bir görsel ölçek kullanır.
 
 ---
 
 ## 🗂️ Veri Kaynakları ve Gerçeklik Notu
 
-| Kaynak | Uygulamada kullanımı | Sınıf |
+| Kaynak | Uygulamada kullanımı | Durum |
 |---|---|:---:|
-| [JPL SSD — gezegen konumları](https://ssd.jpl.nasa.gov/planets/approx_pos.html) | Sekiz ana gezegenin yaklaşık Kepler elemanları | Hesaplanan |
-| [JPL SSD — doğal uydu elemanları](https://ssd.jpl.nasa.gov/sats/elem/sep.html) | Büyük uyduların ortalama yörünge modeli | Hesaplanan / sınırlı |
-| [JPL fiziksel parametreleri](https://ssd.jpl.nasa.gov/planets/phys_par.html) | Gezegen fiziksel profilleri | Kaynaklı statik |
-| [JPL uydu fiziksel parametreleri](https://ssd.jpl.nasa.gov/sats/phys_par/) | Doğal uydu fiziksel profilleri | Kaynaklı statik |
-| [CelesTrak](https://celestrak.org/NORAD/elements/) | Kaynak-zamanlı TLE paketi ve erişilebildiğinde güncel uydu verisi | Kaynaklı statik / canlı |
-| [IMO 2026 Takvimi](https://www.imo.net/files/meteor-shower/cal2026.pdf) | Desteklenen 2026 Perseid etkinlik ve maksimum penceresi | Kaynaklı statik |
-| [NASA Solar System Exploration](https://science.nasa.gov/solar-system/) | Bilim notları ve gök cismi açıklamaları | Kaynaklı statik |
-| [NASA EONET](https://eonet.gsfc.nasa.gov/) | Doğal olay katmanı | Canlı |
-| [USGS Earthquake Hazards](https://earthquake.usgs.gov/) | Deprem katmanı | Canlı |
-| [NOAA SWPC](https://www.swpc.noaa.gov/) | Aurora öngörü katmanı | Canlı |
+| [JPL SSD — gezegen konumları](https://ssd.jpl.nasa.gov/planets/approx_pos.html) | Gezegenlerin yaklaşık Kepler elemanları ve heliosentrik konumları | ✅ |
+| [JPL SSD — doğal uydu elemanları](https://ssd.jpl.nasa.gov/sats/elem/sep.html) | Büyük uyduların yörünge modeli | ✅ |
+| [JPL fiziksel parametreleri](https://ssd.jpl.nasa.gov/planets/phys_par.html) | Gezegen ve cüce gezegen fiziksel profilleri | ✅ |
+| [JPL uydu fiziksel parametreleri](https://ssd.jpl.nasa.gov/sats/phys_par/) | Doğal uydu fiziksel profilleri | ✅ |
+| [CelesTrak](https://celestrak.org/NORAD/elements/) | TLE katalogları ve canlı uydu güncellemesi | ✅ |
+| [NASA Solar System Exploration](https://science.nasa.gov/solar-system/) | Bilim notları ve gök cismi açıklamaları | ✅ |
+| [NASA EONET](https://eonet.gsfc.nasa.gov/) | Doğal olay katmanı | ✅ |
+| [USGS Earthquake Hazards](https://earthquake.usgs.gov/) | Deprem katmanı | ✅ |
+| [NOAA SWPC](https://www.swpc.noaa.gov/) | Aurora öngörü katmanı | ✅ |
 
 Fiziksel değerler, panelde okunabilir kalmaları için yuvarlanır. Küçük ve düzensiz bir uydunun kütlesi, yoğunluğu veya yüzey yerçekimi güvenilir biçimde yayımlanmamışsa uygulama değer icat etmez; **“Güvenilir ölçüm yok”** yazar.
 
@@ -103,18 +102,17 @@ Fiziksel değerler, panelde okunabilir kalmaları için yuvarlanır. Küçük ve
 ```text
 CelesTrak TLE ──▶ IndexedDB önbelleği ──▶ satellite.js / SGP4 ──▶ yapay uydu noktaları
 
-JPL ana-gezegen + ortalama uydu elemanları ──▶ orbital-mechanics ──▶ sıkıştırılmış 3B konumlar
+JPL gezegen + uydu elemanları ──▶ orbital-mechanics ──▶ sıkıştırılmış 3B konumlar
                                                          │
-Kullanıcı opt-in'i ──▶ kod-üretimli şematik yüzey yardımları (varsayılan kapalı) ──┼──▶ Three.js / WebGL sahnesi
+NASA / USGS Astrogeology dokuları ──────────────────────┼──▶ Three.js / WebGL sahnesi
                                                          │
 NASA EONET · USGS · NOAA ──▶ Dünya Gözlemevi katmanları ─┘
 ```
 
-- **Gök cisimlerinin yüzeyleri:** paketli görsel veya ses varlığı kullanılmaz. Kod-üretimli şematik yüzey yardımları varsayılan olarak kapalıdır; kullanıcı açtığında sahne bunların ölçüm olmadığını açıkça bildirir.
-- **Dünya Gözlemevi:** NASA EONET, USGS ve NOAA kaynaklı canlı katmanlar yüzey yardımından ayrıdır; başarısız yenilemede son geçerli kaynak zamanı korunur.
-- **Europa, Titania, Oberon, Triton ve Plüton:** kaynaklı fiziksel/katalog bilgileri gösterilir; uygulama bunlar için gözlemsel küresel görüntü veya tam yüzey ölçümü iddia etmez.
-- **Yapay uydular:** gerçek edinim zamanını koruyan paketli TLE ile açılır; kaynak erişilebildiğinde CelesTrak verisiyle güncellenir.
-- **Derin uzay görevleri:** kaynaklı görev kartları gösterilir; Task 4'te Horizons kaydı gelene kadar 3B konum çizilmez.
+- **Dünya:** yüksek çözünürlüklü gün/gece, bulut, specular ve kabartı dokuları.
+- **Gezegenler ve uydular:** doğrulanmış gözlem mozaikleri ile korumacı yüzey gölgelendirmesi.
+- **Europa, Titania, Oberon, Triton ve Plüton:** tamamlanmamış mozaik görünümünü engelleyen kesintisiz küre dokuları.
+- **Yapay uydular:** TLE başlangıç görüntüsüyle hemen açılır; daha sonra uygun olduğunda canlı CelesTrak verisiyle güncellenir.
 
 ---
 
@@ -130,9 +128,10 @@ Earthbender/
 │   │   ├── lib/celestial-catalog.ts      # kaynaklı gök cismi kataloğu
 │   │   ├── lib/celestial-physical-profiles.ts # kütle, yoğunluk, yerçekimi, kimya
 │   │   ├── lib/earth-observatory.ts      # NASA / USGS / NOAA veri ayrıştırması
-│   │   ├── lib/schematic-surfaces.ts      # varsayılan-kapalı yüzey yardımı görünürlüğü
 │   │   ├── hooks/useTleData.ts            # TLE önbellek ve canlı güncelleme
 │   │   ├── components/hud/                # bilgi kartları, arama ve katman kontrolleri
+│   │   ├── public/textures/               # gezegen, uydu ve Dünya dokuları
+│   │   └── public/audio/                  # TR / EN sinematik tur anlatımları
 │   ├── api/jpl-cad.ts                     # JPL CAD aynı-köken proxy'si
 │   ├── tests/                             # birim, katalog ve bütünlük testleri
 │   ├── e2e/                               # Playwright kullanıcı akışları
@@ -184,6 +183,7 @@ npm run lint             # ESLint
 npm run build            # TypeScript + Vite production build
 npm run test:e2e         # Playwright kullanıcı akışları
 npm run verify           # yukarıdaki doğrulama zinciri
+npm run verify:textures  # uydu dokusu kontrolleri
 ```
 
 > Ortam değişkeni, gizli anahtar veya veritabanı kurulumu gerekmiyor. Canlı veri kaynakları erişilemezse uygulama bunu görünür biçimde bildirir.

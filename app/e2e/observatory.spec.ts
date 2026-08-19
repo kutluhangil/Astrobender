@@ -17,7 +17,7 @@ test('unified search prioritizes exact astronomy catalog matches', async ({ page
   await expect(results.getByRole('option').first()).toContainText('Orion')
   await search.press('Enter')
   await expect(page.getByRole('status').filter({ hasText: 'Orion' })).toContainText(
-    'resmî çizgi şekli yok',
+    'temsili yıldız çizgisi görünür',
   )
 })
 
@@ -48,10 +48,7 @@ test('celestial tray still navigates to Europa without changing the Earth defaul
   await page.getByRole('button', { name: 'Europa uydusunu seç' }).click()
   await expect(page.getByRole('heading', { name: 'Europa (Europa)' })).toBeVisible()
   await expect(page.getByText('Fiziksel Profil').first()).toBeVisible()
-  await expect(
-    page.getByRole('region', { name: 'Fiziksel profil' })
-      .getByText(/gövdeye özgü birincil kaynak kaydedilene kadar kullanılabilir değildir/),
-  ).toBeVisible()
+  await expect(page.getByText(/olası küresel tuzlu okyanus/).first()).toBeVisible()
   const callout = page.getByText('HEDEF KİLİDİ / EUROPA')
   await expect(callout).toBeVisible()
   await expect(callout).toHaveCount(0, { timeout: 7_000 })
@@ -100,160 +97,6 @@ test('mobile light theme and English mode remain operable', async ({ page }) => 
   await expect(page.getByText('Cosmic Environments').last()).toBeVisible()
 })
 
-test('evidence disclosure manages keyboard focus and schematic truth remains persistent', async ({ page }) => {
-  const evidenceMark = page.getByRole('button', { name: 'Bilim notları için kaynak kanıtını aç' })
-  await expect(evidenceMark).toBeVisible()
-  await evidenceMark.focus()
-  await evidenceMark.press('Enter')
-
-  const dialog = page.getByRole('dialog', { name: 'Kaynak ve yöntem ayrıntıları' })
-  await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('Kaynaklı statik')
-  await expect(dialog).toContainText('NASA')
-  await expect(dialog.getByRole('link', { name: 'Doğrudan kaynağı aç' })).toHaveAttribute(
-    'href',
-    /^https:\/\/science\.nasa\.gov\//,
-  )
-  await page.keyboard.press('Escape')
-  await expect(dialog).toBeHidden()
-  await expect(evidenceMark).toBeFocused()
-
-  await page.getByRole('button', { name: '☄️ Şematik Asteroit ve Kuiper Kuşakları' }).click()
-  const truthBanner = page.getByRole('status', { name: 'Sahne doğruluk bildirimi' })
-  await expect(truthBanner).toBeVisible()
-  await expect(truthBanner).toContainText('SCHEMATIC')
-  await expect(truthBanner).toContainText('bilimsel ölçüm değildir')
-
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(390)
-  await page.getByRole('button', { name: 'Gezegen bilgisini aç veya kapat' }).click()
-  const mobileEvidenceMark = page.getByRole('button', { name: 'Bilim notları için kaynak kanıtını aç' })
-  await mobileEvidenceMark.click()
-  const mobileDialog = page.getByRole('dialog', { name: 'Kaynak ve yöntem ayrıntıları' })
-  await expect(mobileDialog).toBeVisible()
-  await expect(mobileDialog).toHaveAttribute('data-source-disclosure-sheet', 'true')
-  const mobileBox = await mobileDialog.boundingBox()
-  const mobileStyles = await mobileDialog.evaluate((element) => {
-    return {
-      width: getComputedStyle(element).width,
-      maxWidth: getComputedStyle(element).maxWidth,
-      parentWidth: getComputedStyle(element.parentElement!).width,
-    }
-  })
-  expect(mobileStyles).toEqual({
-    width: '390px',
-    maxWidth: 'none',
-    parentWidth: '390px',
-  })
-  expect(mobileBox).not.toBeNull()
-  expect(mobileBox?.x).toBeLessThanOrEqual(1)
-  expect(mobileBox?.width).toBeGreaterThanOrEqual(388)
-  expect(mobileBox?.y + mobileBox?.height).toBeGreaterThanOrEqual(843)
-  await expect(mobileDialog).toHaveCSS('overflow-y', 'auto')
-
-  const closeButton = mobileDialog.getByRole('button', { name: 'Kaynak ayrıntılarını kapat' })
-  const sourceLink = mobileDialog.getByRole('link', { name: 'Doğrudan kaynağı aç' })
-  await closeButton.focus()
-  await page.keyboard.press('Shift+Tab')
-  await expect(sourceLink).toBeFocused()
-  await page.keyboard.press('Tab')
-  await expect(closeButton).toBeFocused()
-})
-
-test('procedural surface visuals require an explicit opt-in before their schematic notice appears', async ({ page }) => {
-  const truthBanner = page.getByRole('status', { name: 'Sahne doğruluk bildirimi' })
-  const surfaceToggle = page.getByRole('button', { name: 'Şematik yüzey görsellerini aç' })
-
-  await expect(surfaceToggle).toHaveAttribute('aria-pressed', 'false')
-  await expect(truthBanner).toHaveCount(0)
-
-  await surfaceToggle.click()
-  const activeSurfaceToggle = page.getByRole('button', { name: 'Şematik yüzey görsellerini kapat' })
-  await expect(activeSurfaceToggle).toHaveAttribute('aria-pressed', 'true')
-  await expect(truthBanner).toContainText('SCHEMATIC')
-  await expect(truthBanner).toContainText('Şematik görsel yardım açık')
-
-  await activeSurfaceToggle.click()
-  await expect(page.getByRole('button', { name: 'Şematik yüzey görsellerini aç' })).toHaveAttribute('aria-pressed', 'false')
-  await expect(truthBanner).toHaveCount(0)
-})
-
-test('scene truth does not report a missing Perseid heuristic merely because an observer is saved', async ({ page }) => {
-  await page.addInitScript(`
-    (() => {
-      const RealDate = Date
-      const fixedNow = new RealDate('2027-01-15T12:00:00.000Z').getTime()
-      class FixedDate extends RealDate {
-        constructor(...args) {
-          super(args.length === 0 ? fixedNow : args[0])
-        }
-        static now() {
-          return fixedNow
-        }
-      }
-      window.Date = FixedDate
-    })()
-  `)
-  await page.reload()
-  await expect(page.locator('canvas')).toBeVisible()
-
-  await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
-  const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
-  await panel.getByText('Koordinatları elle gir').click()
-  await panel.getByLabel('Enlem').fill('41.0082')
-  await panel.getByLabel('Boylam').fill('28.9784')
-  await panel.getByLabel('Konum etiketi').fill('İstanbul')
-  await panel.getByRole('button', { name: 'Konumu kaydet' }).click()
-
-  await expect(panel.getByRole('region', { name: 'Perseid Watch' })).toHaveCount(0)
-  const truthBanner = page.getByRole('status', { name: 'Sahne doğruluk bildirimi' })
-  await expect(truthBanner).toHaveCount(0)
-})
-
-test('Skywatch panel and scene truth share one clock across the 2026-to-2027 boundary', async ({ page }) => {
-  await page.addInitScript(`
-    (() => {
-      const RealDate = Date
-      let now = new RealDate('2026-12-31T23:59:00.000Z').getTime()
-      Object.defineProperty(window, '__setSkywatchNow', {
-        value: (value) => { now = new RealDate(value).getTime() },
-      })
-      class ControlledDate extends RealDate {
-        constructor(...args) {
-          super(args.length === 0 ? now : args[0])
-        }
-        static now() {
-          return now
-        }
-      }
-      window.Date = ControlledDate
-    })()
-  `)
-  await page.reload()
-  await expect(page.locator('canvas')).toBeVisible()
-
-  await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
-  const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
-  await panel.getByText('Koordinatları elle gir').click()
-  await panel.getByLabel('Enlem').fill('41.0082')
-  await panel.getByLabel('Boylam').fill('28.9784')
-  await panel.getByLabel('Konum etiketi').fill('İstanbul')
-  await panel.getByRole('button', { name: 'Konumu kaydet' }).click()
-
-  await expect(panel.getByRole('region', { name: 'Perseid Watch' })).toBeVisible()
-  const truthBanner = page.getByRole('status', { name: 'Sahne doğruluk bildirimi' })
-  await expect(truthBanner).not.toContainText('SCHEMATIC')
-  await expect(truthBanner).toContainText('HEURISTIC')
-
-  await page.evaluate(() => {
-    window.__setSkywatchNow('2027-01-01T00:00:00.000Z')
-    document.dispatchEvent(new Event('visibilitychange'))
-  })
-
-  await expect(panel.getByRole('region', { name: 'Perseid Watch' })).toHaveCount(0)
-  await expect(truthBanner).toHaveCount(0)
-})
-
 test('reduced-motion preference suppresses decorative CSS motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload()
@@ -281,14 +124,11 @@ test('desktop tour-start button is clickable over the layer panel', async ({ pag
   // clicks on the tour-start button, even though the button was visible and
   // enabled — only a real click (not just a visibility check) catches this.
   const startTourButton = page.getByRole('button', {
-    name: /GÖRSEL UZAY TURUNU BAŞLAT|START VISUAL SPACE TOUR/,
+    name: /SİNEMATİK UZAY TURUNU BAŞLAT|START CINEMATIC SPACE TOUR/,
   })
-  const truthBanner = page.getByRole('status', { name: 'Sahne doğruluk bildirimi' })
-  await expect(truthBanner).toHaveCount(0)
   await expect(startTourButton).toBeEnabled({ timeout: 15_000 })
   await startTourButton.click()
   await expect(page.getByRole('button', { name: /DURDUR|STOP/ })).toBeVisible()
-  await expect(truthBanner).toContainText('SCHEMATIC')
 })
 
 test('Skywatch calculates events, accepts a manual observer, and moves the simulation', async ({ page }) => {
@@ -300,11 +140,11 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   const eventCalendar = panel.getByRole('group', { name: 'Olay takvimi' })
   await expect(eventCalendar).toBeVisible()
   await expect(eventCalendar.getByRole('button', { name: /15 Ağustos.*Venüs/ })).toBeVisible()
-  await expect(panel.getByRole('region', { name: 'Perseid Watch' })).toContainText(/ZHR\s*100/)
-  await expect(panel.getByRole('link', { name: 'IMO takvimi ↗' })).toHaveAttribute(
-    'href',
-    'https://www.imo.net/files/meteor-shower/cal2026.pdf',
-  )
+  await panel.getByRole('button', { name: 'Sonraki ay' }).click()
+  await expect(eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ })).toBeVisible()
+  await eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ }).click()
+  await expect(panel.getByText('Orionids Meteor Yağmuru')).toBeVisible()
+  await panel.getByRole('button', { name: 'Önceki ay' }).click()
 
   await panel.getByText('Koordinatları elle gir').click()
   await panel.getByLabel('Enlem').fill('41.0082')
@@ -314,12 +154,10 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   await expect(panel.getByRole('region', { name: 'Gözlem konumu' }).getByText('İstanbul')).toBeVisible()
   const perseidWatch = panel.getByRole('region', { name: 'Perseid Watch' })
   await expect(perseidWatch).toContainText('PERSEİD AKIŞI')
-  await expect(panel.getByText(/ÜRÜN SEZGİSİ.*Bilimsel ölçüm değildir/)).toBeVisible()
-  await perseidWatch.getByRole('button', { name: 'Aralık başlangıcında şematik akışı göster' }).click()
+  await expect(panel.getByText(/Astronomik skor; bulutluluk/)).toBeVisible()
+  await perseidWatch.getByRole('button', { name: 'Görsel akışı simülasyonda göster' }).click()
   await expect(panel).toBeHidden()
-  await expect(page.getByText(/maksimum aralığının başlangıcında açıldı/)).toBeVisible()
   await expect(page.getByText('Perseid · görsel simülasyon')).toBeVisible()
-  await expect(page.getByRole('status', { name: 'Sahne doğruluk bildirimi' })).toContainText('SCHEMATIC')
 
   await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
   const reopenedPanel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })

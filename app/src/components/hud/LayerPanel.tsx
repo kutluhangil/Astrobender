@@ -26,6 +26,8 @@ interface LayerPanelProps {
   cometsVisible?: boolean
   onToggleLagrange?: () => void
   lagrangeVisible?: boolean
+  onToggleMissionTimeline?: () => void
+  missionTimelineVisible?: boolean
   onToggleEarthObservatory?: () => void
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
@@ -54,6 +56,8 @@ export default function LayerPanel({
   cometsVisible = false,
   onToggleLagrange,
   lagrangeVisible = false,
+  onToggleMissionTimeline,
+  missionTimelineVisible = false,
   onToggleEarthObservatory,
   earthObservatoryVisible = false,
   onToggleSmallBodies,
@@ -155,6 +159,14 @@ export default function LayerPanel({
             }`}
           >
             ☄️ {t('JPL Cisimleri', 'JPL Objects')}
+          </button>
+          <button
+            onClick={onToggleMissionTimeline}
+            className={`py-1 rounded border transition-all ${
+              missionTimelineVisible ? 'border-emerald-300/50 bg-emerald-300/15 text-emerald-100 font-semibold shadow-[0_0_8px_rgba(110,231,183,0.22)]' : 'border-white/5 bg-white/5 text-white/60'
+            }`}
+          >
+            🕰️ {t('Görev Zaman Tüneli', 'Mission Timeline')}
           </button>
           <button
             onClick={onToggleSkywatch}

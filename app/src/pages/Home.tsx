@@ -3,6 +3,8 @@ import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
 import { formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
 import type { SatInfo } from '@/lib/satellites'
+import { LANDING_SITES } from '@/lib/landing-sites'
+import { missionEventTimeMs, type MissionEvent } from '@/lib/mission-timeline'
 import type { CloseApproachHighlight } from '@/lib/jpl-small-bodies'
 import type { CelestialBodyId } from '@/lib/planets'
 import { useSimClock } from '@/hooks/useSimClock'
@@ -27,6 +29,7 @@ import CosmicTourControls from '@/components/hud/CosmicTourControls'
 import OpeningWordmark from '@/components/OpeningWordmark'
 import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
 import LandingSiteModal from '@/components/hud/LandingSiteModal'
+import MissionTimelinePanel from '@/components/hud/MissionTimelinePanel'
 import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
 import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
 import SkywatchPanel from '@/components/hud/SkywatchPanel'
@@ -131,6 +134,7 @@ export default function Home() {
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [cometsVisible, setCometsVisible] = useState(false)
   const [lagrangeVisible, setLagrangeVisible] = useState(false)
+  const [missionTimelineOpen, setMissionTimelineOpen] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
   const [earthLayerVisibility, setEarthLayerVisibility] = useState<EarthLayerVisibility>({
@@ -536,6 +540,45 @@ export default function Home() {
     )
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 
+  const handleSelectMissionEvent = useCallback((event: MissionEvent) => {
+    selectSat(null)
+    clock.setTime(missionEventTimeMs(event))
+    handleSelectBody(event.targetBody)
+    const site = event.landingSiteId
+      ? LANDING_SITES.find((candidate) => candidate.id === event.landingSiteId)
+      : undefined
+    if (site) {
+      window.requestAnimationFrame(() => {
+        engineRef.current?.showBodyCoordinate(site.bodyId, site.lat, site.lon)
+        setSelectedPin({
+          lat: site.lat,
+          lon: site.lon,
+          text: uiLanguage === 'tr' ? site.nameTr : site.name,
+          landingSite: site,
+        })
+      })
+    }
+    setLayersOpen(false)
+    setSearchNotice(
+      uiLanguage === 'tr'
+        ? `${event.missionTr} · ${event.titleTr} simülasyon saatine alındı.`
+        : `${event.missionEn} · ${event.titleEn} loaded into the simulation clock.`,
+    )
+  }, [clock, handleSelectBody, selectSat, uiLanguage])
+
+  const handleToggleMissionTimeline = useCallback(() => {
+    setMissionTimelineOpen((open) => {
+      const next = !open
+      if (next) {
+        setSmallBodiesOpen(false)
+        setEarthObservatoryOpen(false)
+        setSkywatchOpen(false)
+      }
+      return next
+    })
+    setLayersOpen(false)
+  }, [])
+
   const handleFocusSmallBody = useCallback((bodyId: CelestialBodyId) => {
     selectSat(null)
     handleSelectBody(bodyId)
@@ -825,7 +868,7 @@ export default function Home() {
     focusBody,
     engineRef,
     planetInfoRef,
-    !selSat && !skywatchOpen && !smallBodiesOpen && !earthObservatoryOpen,
+    !selSat && !skywatchOpen && !smallBodiesOpen && !earthObservatoryOpen && !missionTimelineOpen,
   )
 
   // tooltip stays inside the viewport
@@ -960,6 +1003,8 @@ export default function Home() {
     cometsVisible,
     onToggleLagrange: handleToggleLagrange,
     lagrangeVisible,
+    onToggleMissionTimeline: handleToggleMissionTimeline,
+    missionTimelineVisible: missionTimelineOpen,
     onToggleConstellations: handleToggleConstellations,
     constellationsVisible,
     onToggleAsteroids: handleToggleAsteroids,
@@ -1389,6 +1434,16 @@ export default function Home() {
         theme={theme}
         language={uiLanguage}
       />
+
+      {missionTimelineOpen && (
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
+          <MissionTimelinePanel
+            language={uiLanguage}
+            onSelectEvent={handleSelectMissionEvent}
+            onClose={() => setMissionTimelineOpen(false)}
+          />
+        </div>
+      )}
 
       {/* ============ LANDING SITE MODAL ============ */}
       {selectedPin?.landingSite && (

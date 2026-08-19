@@ -157,6 +157,20 @@ test('deep-space missions read their positions from the baked Horizons table', a
   await expect(panel.getByText(/Kapsam: 2024-\d\d → 20\d\d-\d\d/).first()).toBeVisible()
 })
 
+test('mission timeline moves the clock and pins the surface site it names', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.getByRole('button', { name: /Görev Zaman Tüneli/ }).first().click()
+  const panel = page.getByRole('region', { name: 'Görev Zaman Tüneli' })
+  await expect(panel).toBeVisible()
+  await expect(panel.getByText('1960s')).toBeVisible()
+  await expect(panel.getByText('2020s')).toBeVisible()
+
+  await panel.getByRole('button', { name: /Sakinlik Denizi’ne iniş/ }).click()
+  await expect(page.getByText(/Apollo 11 · Sakinlik Denizi’ne iniş simülasyon saatine alındı/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ay (Moon)' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Apollo 11' })).toBeVisible()
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

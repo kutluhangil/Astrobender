@@ -40,6 +40,9 @@ export type PlanetaryBodyId =
   | 'quaoar'
   | 'gonggong'
   | 'sedna'
+  | 'halley'
+  | 'churyumov-gerasimenko'
+  | 'pons-brooks'
 
 export type SatelliteBodyId =
   | 'moon'
@@ -282,6 +285,34 @@ export const PLANETARY_ELEMENTS: Record<PlanetaryBodyId, PlanetaryElements> = {
     meanLongitudeDeg: element(93.45002, 2.83943),
     longitudePerihelionDeg: element(95.60494, 0),
     longitudeAscendingNodeDeg: element(144.50617, 0),
+  },
+  // Comets. Their SBDB solutions are fitted to a single apparition, so the
+  // two-body extrapolation below drifts further from Horizons than the
+  // asteroid entries do; comets.ts records the measured drift and the panel
+  // states it rather than presenting the track as an ephemeris.
+  halley: {
+    semiMajorAxisAu: element(17.92863505, 0),
+    eccentricity: element(0.967936, 0),
+    inclinationDeg: element(162.19053, 0),
+    meanLongitudeDeg: element(237.23069, 474.213),
+    longitudePerihelionDeg: element(171.34038, 0),
+    longitudeAscendingNodeDeg: element(59.09895, 0),
+  },
+  'churyumov-gerasimenko': {
+    semiMajorAxisAu: element(3.46224949, 0),
+    eccentricity: element(0.64090813, 0),
+    inclinationDeg: element(7.04029, 0),
+    meanLongitudeDeg: element(270.48778, 5588.00465),
+    longitudePerihelionDeg: element(62.93382, 0),
+    longitudeAscendingNodeDeg: element(50.13557, 0),
+  },
+  'pons-brooks': {
+    semiMajorAxisAu: element(17.18491452, 0),
+    eccentricity: element(0.95456124, 0),
+    inclinationDeg: element(74.19091, 0),
+    meanLongitudeDeg: element(332.03407, 505.32785),
+    longitudePerihelionDeg: element(94.84335, 0),
+    longitudeAscendingNodeDeg: element(255.85535, 0),
   },
 }
 

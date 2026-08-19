@@ -118,6 +118,21 @@ test('scale honesty and terminator readouts open from the body panel', async ({ 
   await expect(page.getByText(/gerçek uzaklığının %2\d'inde çiziliyor/).first()).toBeVisible()
 })
 
+test('comet layer draws sourced eccentric orbits and states its ephemeris drift', async ({ page }) => {
+  await page.getByRole('button', { name: /Kuyruklu Yıldızlar 3/ }).first().click()
+  await expect(
+    page.getByText(/kuyruklu yıldız çekirdekleri ölçeğe göre çizilemeyecek/).first(),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: '☄️ JPL Cisimleri' }).first().click()
+  const panel = page.getByRole('region', { name: 'JPL Küçük Cisim Gözlemevi' })
+  await expect(panel).toBeVisible()
+  await panel.getByRole('button', { name: /Kuyruklu 3/ }).click()
+  await expect(panel.getByText('1P/Halley')).toBeVisible()
+  await expect(panel.getByText('12P/Pons-Brooks')).toBeVisible()
+  await expect(panel.getByText(/JPL Horizons'tan 0\.276 AU sapıyor/)).toBeVisible()
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

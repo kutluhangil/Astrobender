@@ -7,6 +7,7 @@ import {
   type CloseApproach,
   type CloseApproachHighlight,
 } from '@/lib/jpl-small-bodies'
+import { COMETS, COMET_DRIFT_REFERENCE_DATE } from '@/lib/comets'
 import type { CelestialBodyId } from '@/lib/planets'
 import { DEEP_SPACE_PROBES } from '@/lib/probes'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
@@ -23,7 +24,7 @@ interface SmallBodiesPanelProps {
   language?: UiLanguage
 }
 
-type PanelTab = 'approaches' | 'catalog' | 'missions'
+type PanelTab = 'approaches' | 'catalog' | 'comets' | 'missions'
 
 function distanceLabel(distanceAu: number): string {
   return `${distanceAu.toFixed(4)} AU`
@@ -91,11 +92,12 @@ export default function SmallBodiesPanel({
         </div>
       </header>
 
-      <div className="grid grid-cols-3 border-b border-white/10 p-1">
+      <div className="grid grid-cols-4 border-b border-white/10 p-1">
         {([
-          ['approaches', `${t('Yakın Geçiş', 'Approaches')} ${upcoming.length}`],
+          ['approaches', `${t('Geçiş', 'Passes')} ${upcoming.length}`],
           ['catalog', `${t('Katalog', 'Catalog')} ${NAMED_SMALL_BODIES.length}`],
-          ['missions', `${t('Görevler', 'Missions')} ${DEEP_SPACE_PROBES.length}`],
+          ['comets', `${t('Kuyruklu', 'Comets')} ${COMETS.length}`],
+          ['missions', `${t('Görev', 'Missions')} ${DEEP_SPACE_PROBES.length}`],
         ] as const).map(([id, label]) => (
           <button
             type="button"
@@ -232,6 +234,46 @@ export default function SmallBodiesPanel({
                     </button>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'comets' && (
+          <div className="space-y-1.5">
+            {COMETS.map((comet) => (
+              <div key={comet.id} className="rounded-lg border border-white/7 bg-white/[0.03] p-2.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[10px] font-semibold text-sky-100">
+                    {comet.designation}
+                  </span>
+                  <span className="font-mono text-[8px] text-slate-500">
+                    {comet.periodYears.toFixed(2)} {t('yıl', 'yr')}
+                  </span>
+                </div>
+                <p className="mt-1 text-[9px] leading-relaxed text-slate-400">
+                  {language === 'tr' ? comet.summaryTr : comet.summaryEn}
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-1 font-mono text-[8px] text-slate-400">
+                  <span>{t('Günberi', 'Perihelion')}: {comet.perihelionAu.toFixed(3)} AU</span>
+                  <span>{t('Günöte', 'Aphelion')}: {comet.aphelionAu.toFixed(2)} AU</span>
+                  <span>{t('Dışmerkezlik', 'Eccentricity')}: {comet.eccentricity.toFixed(3)}</span>
+                  <span>{t('Eğiklik', 'Inclination')}: {comet.inclinationDeg.toFixed(1)}°</span>
+                </div>
+                <p className="mt-1.5 rounded-md border border-amber-400/20 bg-amber-400/5 px-1.5 py-1 font-mono text-[8px] leading-relaxed text-amber-200/85">
+                  {t(
+                    `${comet.solutionEpoch} çözümünden iki-cisim uzatması; ${COMET_DRIFT_REFERENCE_DATE} tarihinde JPL Horizons'tan ${comet.horizonsDriftAu.toFixed(3)} AU sapıyor.`,
+                    `Two-body extension of the ${comet.solutionEpoch} solution; it deviates ${comet.horizonsDriftAu.toFixed(3)} au from JPL Horizons on ${COMET_DRIFT_REFERENCE_DATE}.`,
+                  )}
+                </p>
+                <a
+                  href={comet.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1.5 inline-flex font-mono text-[8px] uppercase tracking-[0.14em] text-sky-300/85 hover:text-sky-200"
+                >
+                  {t('JPL SBDB', 'JPL SBDB')} ↗
+                </a>
               </div>
             ))}
           </div>

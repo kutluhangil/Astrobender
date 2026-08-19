@@ -38,6 +38,7 @@ import {
   type PlanetaryBodyId,
   type SatelliteBodyId,
 } from './orbital-mechanics'
+import { COMETS, COMET_MARKER_RADIUS, type CometDefinition } from './comets'
 import { DEEP_SPACE_PROBES, probeDistanceAuAt, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
@@ -493,6 +494,7 @@ export class GlobeEngine {
   private focusTarget: CelestialBodyId = 'earth'
   private planetRuntimes: PlanetRuntime[] = []
   private probeGroup: THREE.Group | null = null
+  private cometGroup: THREE.Group | null = null
   private constellationGroup: THREE.Group | null = null
   private asteroidSwarm: AsteroidSwarm | null = null
   private lastAsteroidUpdateReal = 0
@@ -879,6 +881,9 @@ export class GlobeEngine {
     // COSMIC ENVIRONMENTS — Deep Space Probes, Constellations
     // ═══════════════════════════════════════════════════════════════════════
     this.probeGroup = this.makeProbes()
+    this.cometGroup = this.makeComets()
+    this.cometGroup.visible = false
+    this.scene.add(this.cometGroup)
     this.constellationGroup = this.makeConstellations()
 
     // --- 3D Asteroid & Kuiper Belts (Instanced Swarm) ---
@@ -1873,6 +1878,7 @@ export class GlobeEngine {
     ;(this.sunCorona.material as THREE.ShaderMaterial).uniforms.uTime.value = performance.now() * 0.001
     const planetPositions = getGeocentricScenePositions(simMs)
     this.updateSun(simMs, planetPositions.sun)
+    this.updateComets(planetPositions)
     if (this.probeGroup?.visible) {
       for (const probe of this.probeGroup.children) {
         const offset = probe.userData.offset
@@ -2476,6 +2482,67 @@ export class GlobeEngine {
       group.add(mesh)
     }
     return group
+  }
+
+  /**
+   * Comets are drawn as an orbit outline plus a position marker. A few-kilometre
+   * nucleus cannot be resolved at Solar-System scale, so the marker is a fixed
+   * size for every comet rather than a scaled sphere pretending to be one.
+   */
+  private makeComets(): THREE.Group {
+    const group = new THREE.Group()
+    for (const comet of COMETS) {
+      const cometNode = new THREE.Group()
+      cometNode.name = comet.designation
+      cometNode.userData.comet = comet
+
+      const points = samplePlanetOrbitScene(comet.id, this.cb.getSimTime(), 320).map(
+        ({ x, y, z }) => new THREE.Vector3(x, y, z),
+      )
+      const orbit = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineBasicMaterial({
+          color: 0x8fd6ff,
+          transparent: true,
+          opacity: 0.32,
+          blending: THREE.AdditiveBlending,
+        }),
+      )
+      orbit.name = 'orbit'
+      cometNode.add(orbit)
+
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(COMET_MARKER_RADIUS, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xd8f4ff }),
+      )
+      marker.name = 'marker'
+      cometNode.add(marker)
+
+      group.add(cometNode)
+    }
+    return group
+  }
+
+  setCometsVisible(v: boolean) {
+    if (this.cometGroup) this.cometGroup.visible = v
+  }
+
+  private updateComets(planetPositions: ReturnType<typeof getGeocentricScenePositions>) {
+    if (!this.cometGroup?.visible) return
+    for (const cometNode of this.cometGroup.children) {
+      const comet = cometNode.userData.comet as CometDefinition | undefined
+      if (!comet) throw new Error(`Comet scene node is missing its definition: ${cometNode.name}`)
+      const position = planetPositions[comet.id]
+      const marker = cometNode.getObjectByName('marker')
+      const orbit = cometNode.getObjectByName('orbit')
+      if (!position || !marker || !orbit) {
+        throw new Error(`Incomplete comet scene node for ${comet.designation}`)
+      }
+      marker.position.set(position.x, position.y, position.z)
+      // The sampled orbit is heliocentric while the scene is Earth-centred, so
+      // it rides with the Sun instead of staying pinned to the origin.
+      orbit.position.copy(this.sun.position)
+    }
   }
 
   private makeConstellations(): THREE.Group {

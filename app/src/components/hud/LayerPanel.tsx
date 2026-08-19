@@ -1,3 +1,4 @@
+import { COMETS } from '@/lib/comets'
 import { UI_GROUPS } from '@/lib/satellites'
 import {
   IAU_CONSTELLATIONS,
@@ -20,6 +21,8 @@ interface LayerPanelProps {
   constellationsVisible?: boolean
   onToggleAsteroids?: () => void
   asteroidsVisible?: boolean
+  onToggleComets?: () => void
+  cometsVisible?: boolean
   onToggleEarthObservatory?: () => void
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
@@ -44,6 +47,8 @@ export default function LayerPanel({
   constellationsVisible = false,
   onToggleAsteroids,
   asteroidsVisible = false,
+  onToggleComets,
+  cometsVisible = false,
   onToggleEarthObservatory,
   earthObservatoryVisible = false,
   onToggleSmallBodies,
@@ -115,6 +120,14 @@ export default function LayerPanel({
             ☄️ {t('Şematik Kuşaklar', 'Schematic Belts')}
           </button>
           <button
+            onClick={onToggleComets}
+            className={`py-1 rounded border transition-all ${
+              cometsVisible ? 'border-sky-400/50 bg-sky-400/15 text-sky-100 font-semibold shadow-[0_0_8px_rgba(56,189,248,0.25)]' : 'border-white/5 bg-white/5 text-white/60'
+            }`}
+          >
+            🌠 {t(`Kuyruklu Yıldızlar ${COMETS.length}`, `Comets ${COMETS.length}`)}
+          </button>
+          <button
             onClick={onToggleEarthObservatory}
             className={`py-1 rounded border transition-all ${
               earthObservatoryVisible ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-semibold shadow-[0_0_8px_rgba(52,211,153,0.25)]' : 'border-white/5 bg-white/5 text-white/60'
@@ -139,6 +152,14 @@ export default function LayerPanel({
             🌠 {t('Gökyüzü Takvimi', 'Skywatch')}
           </button>
         </div>
+        {cometsVisible && (
+          <p className="mt-1.5 rounded-md border border-sky-400/20 bg-sky-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-sky-200/80">
+            {t(
+              'Yörünge şekli JPL SBDB elemanlarından; kuyruklu yıldız çekirdekleri ölçeğe göre çizilemeyecek kadar küçük olduğu için sabit boyutlu işaretle gösteriliyor.',
+              'Orbit shapes come from JPL SBDB elements; comet nuclei are far too small to draw to scale, so each is shown with a fixed-size marker.',
+            )}
+          </p>
+        )}
         {constellationsVisible && (
           <a
             href={IAU_CONSTELLATIONS_SOURCE_URL}

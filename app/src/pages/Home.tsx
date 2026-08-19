@@ -129,6 +129,7 @@ export default function Home() {
   const [planetaryOrbitsVisible, setPlanetaryOrbitsVisible] = useState(false)
   const [probesVisible, setProbesVisible] = useState(false)
   const [constellationsVisible, setConstellationsVisible] = useState(false)
+  const [cometsVisible, setCometsVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
   const [earthLayerVisibility, setEarthLayerVisibility] = useState<EarthLayerVisibility>({
@@ -423,6 +424,14 @@ export default function Home() {
     setPlanetaryOrbitsVisible((v) => {
       const next = !v
       engineRef.current?.setPlanetaryOrbitsVisible(next)
+      return next
+    })
+  }, [])
+
+  const handleToggleComets = useCallback(() => {
+    setCometsVisible((v) => {
+      const next = !v
+      engineRef.current?.setCometsVisible(next)
       return next
     })
   }, [])
@@ -801,11 +810,13 @@ export default function Home() {
 
   // The desktop body panel follows the focused body instead of a fixed corner
   const planetInfoRef = useRef<HTMLDivElement>(null)
+  // The body panel follows its body only while it owns the right-hand space;
+  // an explicitly opened panel takes that space back.
   const planetInfoPlacement = useBodyPanelPlacement(
     focusBody,
     engineRef,
     planetInfoRef,
-    !selSat && !skywatchOpen,
+    !selSat && !skywatchOpen && !smallBodiesOpen && !earthObservatoryOpen,
   )
 
   // tooltip stays inside the viewport
@@ -936,6 +947,8 @@ export default function Home() {
     planetaryOrbitsVisible,
     onToggleProbes: handleToggleProbes,
     probesVisible,
+    onToggleComets: handleToggleComets,
+    cometsVisible,
     onToggleConstellations: handleToggleConstellations,
     constellationsVisible,
     onToggleAsteroids: handleToggleAsteroids,
@@ -1195,7 +1208,7 @@ export default function Home() {
       </div>
 
       {earthObservatoryOpen && (
-        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
           <EarthObservatoryPanel
             {...earthObservatory}
             language={uiLanguage}
@@ -1209,7 +1222,7 @@ export default function Home() {
       )}
 
       {smallBodiesOpen && (
-        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-20">
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
           <SmallBodiesPanel
             {...smallBodies}
             language={uiLanguage}

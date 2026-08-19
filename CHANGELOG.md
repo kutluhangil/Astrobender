@@ -2,6 +2,8 @@
 
 ## 2026-08-19
 
+- Added a comet layer: 1P/Halley, 67P/Churyumov-Gerasimenko, and 12P/Pons-Brooks draw their real eccentric orbits from JPL SBDB elements, with fixed-size markers because a few-kilometre nucleus cannot be drawn to scale, and each entry states how far its two-body track drifts from JPL Horizons.
+- Explicitly opened right-hand panels now outrank the ambient body panel, which had been intercepting clicks on the small-body and Earth Observatory panels beneath it.
 - Added a compressed-AU scale-honesty ruler to the body panel: two bars on one axis compare the true orbit with the drawn one and state the percentage the scene is squeezing.
 - Added a terminator and local-time readout for Earth — apparent solar time, Sun altitude, day/night side, and the subsolar point — cited to the NOAA solar calculator.
 - Thinned the satellite shell to 28% of its records as the camera closes on a body so the surface stays readable, and reported the reduction in the LIVE status port instead of dropping records silently.

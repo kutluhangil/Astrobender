@@ -2,6 +2,8 @@
 
 ## 2026-08-19
 
+- Drew Jupiter's, Uranus's, and Neptune's ring systems as their real named bands from the NASA PDS Ring-Moon Systems tables, with the ten sub-pixel Uranian rings widened to stay visible and labelled as such in the body panel.
+- Added the seven missing modelled moons — Metis, Thebe, Elara, Pasiphae, Janus, Epimetheus, and Phoebe — with the distant irregulars referenced to the solar plane instead of their planet's equator.
 - Added eight JPL-sourced bodies — Vesta, Pallas, Hygiea, Juno, Psyche, Quaoar, Gonggong, and Sedna — with Keplerian elements re-anchored to J2000 and pinned against JPL Horizons vectors to within 0.001 au.
 - Replaced the Kepler solver's Newton iteration with a Halley step and a Danby starter so near-parabolic orbits (Sedna at e = 0.86, comets above e = 0.95) converge instead of stalling.
 - Orbit lines now sample by eccentric anomaly, which keeps eccentric orbits from losing their perihelion arc to aphelion-bunched samples.

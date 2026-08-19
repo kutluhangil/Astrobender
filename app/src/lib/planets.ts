@@ -15,8 +15,15 @@ export type CelestialBodyId =
   | 'callisto'
   | 'amalthea'
   | 'himalia'
+  | 'metis'
+  | 'thebe'
+  | 'elara'
+  | 'pasiphae'
   | 'saturn'
   | 'pan'
+  | 'janus'
+  | 'epimetheus'
+  | 'phoebe'
   | 'titan'
   | 'enceladus'
   | 'mimas'
@@ -54,6 +61,37 @@ export type CelestialBodyId =
   | 'quaoar'
   | 'gonggong'
   | 'sedna'
+
+/**
+ * One named band of a ring system. Radii are ratios of the body's equatorial
+ * radius, taken from the NASA PDS Ring-Moon Systems node tables. The dense
+ * Uranian rings are only a few kilometres wide, so the engine widens any band
+ * below `RING_BAND_MIN_WIDTH_RATIO` to keep it visible; `narrow` marks the
+ * bands whose drawn width is therefore larger than the measured width.
+ */
+export interface RingBand {
+  name: string
+  innerRadius: number
+  outerRadius: number
+  opacity: number
+  narrow?: boolean
+}
+
+export interface RingSystem {
+  innerRadius: number
+  outerRadius: number
+  color: number
+  opacity: number
+  texture?: string
+  /** Named bands drawn individually; without them the whole span is one annulus. */
+  bands?: RingBand[]
+  sourceUrl: string
+}
+
+/** Below this ratio of the body radius a band would be thinner than one pixel. */
+export const RING_BAND_MIN_WIDTH_RATIO = 0.012
+
+export const PDS_RING_MOON_SYSTEMS_URL = 'https://pds-rings.seti.org/'
 
 /** Planet definition used by the UI and engine */
 export interface PlanetDef {
@@ -93,13 +131,7 @@ export interface PlanetDef {
   /** Active shadow glow for UI (tailwind class fragment) */
   uiGlow: string
   /** Visible ring system; distances are ratios of the body's scene radius. */
-  ring?: {
-    innerRadius: number
-    outerRadius: number
-    color: number
-    opacity: number
-    texture?: string
-  }
+  ring?: RingSystem
   /** Current confirmed moon count; unmodeled moons render as low-cost points. */
   knownMoonCount?: number
   /** Child moons (orbit around this planet, not Sun) */
@@ -252,11 +284,20 @@ export const PLANETS: PlanetDef[] = [
     uiColor: 'border-amber-600/60 bg-amber-600/20 text-amber-200',
     uiGlow: 'shadow-[0_0_10px_rgba(217,119,6,0.3)]',
     knownMoonCount: 101,
+    // Ratios are the PDS Ring-Moon Systems boundaries divided by Jupiter's
+    // 71,492 km equatorial radius.
     ring: {
-      innerRadius: 1.72,
-      outerRadius: 1.92,
+      innerRadius: 1.399,
+      outerRadius: 3.104,
       color: 0x8b735f,
       opacity: 0.11,
+      sourceUrl: 'https://pds-rings.seti.org/jupiter/jupiter_rings_table.html',
+      bands: [
+        { name: 'Halo', innerRadius: 1.399, outerRadius: 1.712, opacity: 0.05 },
+        { name: 'Main Ring', innerRadius: 1.712, outerRadius: 1.806, opacity: 0.16 },
+        { name: 'Amalthea Gossamer', innerRadius: 1.712, outerRadius: 2.537, opacity: 0.035 },
+        { name: 'Thebe Gossamer', innerRadius: 1.712, outerRadius: 3.104, opacity: 0.02 },
+      ],
     },
     moons: [
       {
@@ -354,6 +395,46 @@ export const PLANETS: PlanetDef[] = [
         parent: 'jupiter',
         color: [0.58, 0.54, 0.49],
       }),
+      majorMoon({
+        id: 'metis',
+        name: 'Metis',
+        radius: 0.0034,
+        semiMajorAxisKm: 128900,
+        orbitPeriodDays: 0.29893,
+        inclination: 0.006,
+        parent: 'jupiter',
+        color: [0.46, 0.42, 0.38],
+      }),
+      majorMoon({
+        id: 'thebe',
+        name: 'Thebe',
+        radius: 0.0077,
+        semiMajorAxisKm: 222000,
+        orbitPeriodDays: 0.6776,
+        inclination: 1.1,
+        parent: 'jupiter',
+        color: [0.52, 0.44, 0.38],
+      }),
+      majorMoon({
+        id: 'elara',
+        name: 'Elara',
+        radius: 0.0063,
+        semiMajorAxisKm: 11737000,
+        orbitPeriodDays: 259.6528,
+        inclination: 28,
+        parent: 'jupiter',
+        color: [0.44, 0.42, 0.40],
+      }),
+      majorMoon({
+        id: 'pasiphae',
+        name: 'Pasiphae',
+        radius: 0.0028,
+        semiMajorAxisKm: 23500000,
+        orbitPeriodDays: 735,
+        inclination: 148,
+        parent: 'jupiter',
+        color: [0.40, 0.38, 0.37],
+      }),
     ],
   },
   {
@@ -377,6 +458,7 @@ export const PLANETS: PlanetDef[] = [
       color: 0xd8c69b,
       opacity: 0.92,
       texture: 'saturn-ring-alpha.png',
+      sourceUrl: 'https://pds-rings.seti.org/saturn/saturn_rings_table.html',
     },
     uiColor: 'border-yellow-600/60 bg-yellow-600/20 text-yellow-200',
     uiGlow: 'shadow-[0_0_10px_rgba(202,138,4,0.3)]',
@@ -489,6 +571,36 @@ export const PLANETS: PlanetDef[] = [
         parent: 'saturn',
         color: [0.55, 0.49, 0.40],
       }),
+      majorMoon({
+        id: 'janus',
+        name: 'Janus',
+        radius: 0.014,
+        semiMajorAxisKm: 151472,
+        orbitPeriodDays: 0.69459,
+        inclination: 0.14,
+        parent: 'saturn',
+        color: [0.72, 0.70, 0.66],
+      }),
+      majorMoon({
+        id: 'epimetheus',
+        name: 'Epimetheus',
+        radius: 0.0091,
+        semiMajorAxisKm: 151422,
+        orbitPeriodDays: 0.69459,
+        inclination: 0.34,
+        parent: 'saturn',
+        color: [0.70, 0.68, 0.64],
+      }),
+      majorMoon({
+        id: 'phoebe',
+        name: 'Phoebe',
+        radius: 0.0167,
+        semiMajorAxisKm: 12947780,
+        orbitPeriodDays: 550.31,
+        inclination: 175.986,
+        parent: 'saturn',
+        color: [0.30, 0.29, 0.28],
+      }),
     ],
   },
   {
@@ -507,11 +619,30 @@ export const PLANETS: PlanetDef[] = [
     atmosphereIntensity: 1.3,
     retrograde: true,
     knownMoonCount: 28,
+    // Ratios are the PDS Ring-Moon Systems middle boundaries divided by
+    // Uranus's 25,559 km equatorial radius. The ten dense rings are 1.5 to
+    // 58 km wide, far below one drawn pixel, so they carry `narrow: true`.
     ring: {
-      innerRadius: 1.55,
-      outerRadius: 2.02,
+      innerRadius: 1.4809,
+      outerRadius: 4.1551,
       color: 0x91bbc2,
       opacity: 0.18,
+      sourceUrl: 'https://pds-rings.seti.org/uranus/uranus_rings_table.html',
+      bands: [
+        { name: 'Zeta', innerRadius: 1.4809, outerRadius: 1.6178, opacity: 0.05 },
+        { name: 'Six', innerRadius: 1.6369, outerRadius: 1.6369, opacity: 0.22, narrow: true },
+        { name: 'Five', innerRadius: 1.6524, outerRadius: 1.6525, opacity: 0.26, narrow: true },
+        { name: 'Four', innerRadius: 1.6656, outerRadius: 1.6656, opacity: 0.22, narrow: true },
+        { name: 'Alpha', innerRadius: 1.7494, outerRadius: 1.7498, opacity: 0.3, narrow: true },
+        { name: 'Beta', innerRadius: 1.7863, outerRadius: 1.7867, opacity: 0.26, narrow: true },
+        { name: 'Eta', innerRadius: 1.8457, outerRadius: 1.8458, opacity: 0.3, narrow: true },
+        { name: 'Gamma', innerRadius: 1.8634, outerRadius: 1.8635, opacity: 0.24, narrow: true },
+        { name: 'Delta', innerRadius: 1.8897, outerRadius: 1.8898, opacity: 0.34, narrow: true },
+        { name: 'Lambda', innerRadius: 1.9572, outerRadius: 1.9572, opacity: 0.1, narrow: true },
+        { name: 'Epsilon', innerRadius: 2.0001, outerRadius: 2.0023, opacity: 0.5, narrow: true },
+        { name: 'Nu', innerRadius: 2.5588, outerRadius: 2.7075, opacity: 0.025 },
+        { name: 'Mu', innerRadius: 3.4900, outerRadius: 4.1551, opacity: 0.02 },
+      ],
     },
     uiColor: 'border-teal-400/60 bg-teal-400/20 text-teal-200',
     uiGlow: 'shadow-[0_0_10px_rgba(45,212,191,0.3)]',
@@ -601,11 +732,22 @@ export const PLANETS: PlanetDef[] = [
     atmosphereColor: [0.30, 0.45, 0.95],
     atmosphereIntensity: 1.5,
     knownMoonCount: 16,
+    // Ratios are the PDS Ring-Moon Systems boundaries divided by Neptune's
+    // 24,764 km equatorial radius. Adams carries the five bright arcs, which
+    // this scene draws as the full ring rather than as separate longitudes.
     ring: {
-      innerRadius: 1.58,
-      outerRadius: 2.12,
+      innerRadius: 1.6556,
+      outerRadius: 2.5416,
       color: 0x7084a8,
       opacity: 0.14,
+      sourceUrl: 'https://pds-rings.seti.org/neptune/neptune_rings_table.html',
+      bands: [
+        { name: 'Galle', innerRadius: 1.6556, outerRadius: 1.7364, opacity: 0.05 },
+        { name: 'Le Verrier', innerRadius: 2.1463, outerRadius: 2.1503, opacity: 0.3, narrow: true },
+        { name: 'Lassell', innerRadius: 2.1483, outerRadius: 2.3098, opacity: 0.045 },
+        { name: 'Arago', innerRadius: 2.3098, outerRadius: 2.3098, opacity: 0.16, narrow: true },
+        { name: 'Adams', innerRadius: 2.5410, outerRadius: 2.5416, opacity: 0.36, narrow: true },
+      ],
     },
     uiColor: 'border-blue-500/60 bg-blue-500/20 text-blue-200',
     uiGlow: 'shadow-[0_0_10px_rgba(59,130,246,0.3)]',

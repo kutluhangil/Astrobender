@@ -78,6 +78,20 @@ test('small-body drawer reaches the newly catalogued dwarf planets and asteroids
   await expect(page.getByText('Güvenilir ölçüm yok').first()).toBeVisible()
 })
 
+test('ring systems list their sourced named bands with a width disclosure', async ({ page }) => {
+  const tray = page.getByRole('navigation', { name: 'Gök cismi seçici' })
+  await tray.getByRole('button', { name: 'Uranüs' }).click()
+  await expect(page.getByRole('heading', { name: 'Uranüs (Uranus)' })).toBeVisible()
+  const ringDisclosure = page.getByText('Halka Sistemi').first()
+  await ringDisclosure.click()
+  await expect(page.getByText('Epsilon').first()).toBeVisible()
+  await expect(page.getByText(/10 dar halka ölçülen genişliğinden/).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'PDS Halka-Uydu Sistemleri' }).first()).toHaveAttribute(
+    'href',
+    'https://pds-rings.seti.org/uranus/uranus_rings_table.html',
+  )
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

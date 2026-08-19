@@ -201,6 +201,34 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−230 °C',
     chemistry: { tr: 'Su buzu zengini küçük düzensiz gövde; atmosfer saptanmadı.', en: 'Water-ice-rich small irregular body; no detected atmosphere.' },
   },
+  metis: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
+    chemistry: { tr: 'Koyu, kırmızımsı düzensiz kaya; ana halkaya toz besler. JPL’in GM belirsizliği kütlesinden büyük.', en: 'Dark, reddish irregular rock feeding dust into the main ring. JPL’s GM uncertainty exceeds its own value.' },
+  },
+  thebe: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
+    chemistry: { tr: 'Koyu düzensiz kaya; büyük Zethus krateri bulunur. JPL’in GM belirsizliği kütlesinden büyük.', en: 'Dark irregular rock carrying the large Zethus crater. JPL’s GM uncertainty exceeds its own value.' },
+  },
+  elara: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
+    chemistry: { tr: 'Albedosu 0.03 olan çok koyu yüzey; muhtemelen C tipi yakalanmış cisim.', en: 'Very dark surface with an albedo of 0.03; probably a captured C-type body.' },
+  },
+  pasiphae: {
+    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
+    chemistry: { tr: 'Ters yörüngeli koyu düzensiz cisim; yüzey bileşimi sınırlı ölçüldü.', en: 'Retrograde dark irregular body; its surface composition is only sparsely measured.' },
+  },
+  janus: {
+    mass: '1.98 × 10¹⁸ kg', density: '0.65 g/cm³', gravity: '0.0146 m/s²', temperature: '~−193 °C',
+    chemistry: { tr: 'Su buzu ağırlıklı, oldukça gözenekli moloz yığını; atmosfer saptanmadı.', en: 'Water-ice-dominated, highly porous rubble pile; no detected atmosphere.' },
+  },
+  epimetheus: {
+    mass: '5.5 × 10¹⁷ kg', density: '0.63 g/cm³', gravity: '0.0064 m/s²', temperature: '~−193 °C',
+    chemistry: { tr: 'Janus ile aynı yapıda su buzu moloz yığını; yüzeyi kraterlerle örtülü.', en: 'Water-ice rubble pile like Janus, with a heavily cratered surface.' },
+  },
+  phoebe: {
+    mass: '8.289 × 10¹⁸ kg', density: '1.633 g/cm³', gravity: '0.0488 m/s²', temperature: '~−198 °C',
+    chemistry: { tr: 'Su buzu üzerinde koyu karbonlu örtü; Kuiper Kuşağı kökenli olduğu düşünülür.', en: 'Dark carbonaceous coating over water ice; thought to originate in the Kuiper Belt.' },
+  },
   ceres: {
     mass: '9.3835 × 10²⁰ kg', density: '2.162 g/cm³', gravity: '0.284 m/s²', temperature: '~−106 °C',
     chemistry: { tr: 'Su buzu, hidratlı mineraller ve karbonat tuzları; geçici su buharı izleri.', en: 'Water ice, hydrated minerals, and carbonate salts; transient water-vapor traces.' },

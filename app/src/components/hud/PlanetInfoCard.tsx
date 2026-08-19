@@ -12,7 +12,11 @@ import {
   physicalProfileValue,
   type CelestialPhysicalProfile,
 } from '@/lib/celestial-physical-profiles'
-import type { CelestialBodyId } from '@/lib/planets'
+import {
+  findPlanetDef,
+  type CelestialBodyId,
+  type RingSystem,
+} from '@/lib/planets'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { formatSourceReviewStatus, getSourceFreshness } from '@/lib/source-governance'
 
@@ -66,6 +70,57 @@ function ScienceProfile({ profile, language, compact = false }: ScienceProfilePr
   )
 }
 
+function RingSystemPanel({ ring, language }: { ring: RingSystem; language: UiLanguage }) {
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const bands = ring.bands ?? []
+  const narrowCount = bands.filter((band) => band.narrow).length
+
+  return (
+    <details className="mt-2 rounded-xl border border-white/5 bg-white/[0.03] p-2">
+      <summary className="cursor-pointer font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80">
+        {t('Halka Sistemi', 'Ring System')}
+        {bands.length > 0 && <span className="ml-1 text-slate-500">· {bands.length}</span>}
+      </summary>
+      {bands.length > 0 ? (
+        <ul className="mt-1.5 flex flex-wrap gap-1">
+          {bands.map((band) => (
+            <li
+              key={band.name}
+              className="rounded-md border border-white/5 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] text-slate-200"
+            >
+              {band.name}
+              {band.narrow && <span className="ml-1 text-amber-300/80">*</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1.5 font-sans text-[10px] leading-relaxed text-slate-300">
+          {t(
+            'Bantlar tek bir dokulu halka olarak çiziliyor.',
+            'The bands are drawn as a single textured ring.',
+          )}
+        </p>
+      )}
+      {narrowCount > 0 && (
+        <p className="mt-1.5 font-sans text-[9px] leading-relaxed text-amber-200/80">
+          {t(
+            `* ${narrowCount} dar halka ölçülen genişliğinden daha kalın çiziliyor; gerçek genişlikleri bir pikselden ince.`,
+            `* ${narrowCount} narrow rings are drawn wider than measured; their true widths are thinner than one pixel.`,
+          )}
+        </p>
+      )}
+      <a
+        href={ring.sourceUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-1.5 inline-flex font-mono text-[8px] uppercase tracking-[0.16em] text-cyan-400/70 transition-colors hover:text-cyan-300"
+      >
+        {t('PDS Halka-Uydu Sistemleri', 'PDS Ring-Moon Systems')}
+      </a>
+    </details>
+  )
+}
+
 export default function PlanetInfoCard({
   bodyId,
   mobileExpanded = false,
@@ -86,6 +141,7 @@ export default function PlanetInfoCard({
     ? JPL_PHYSICAL_PARAMETERS_URL
     : JPL_SATELLITE_PARAMETERS_URL
   const sourceFreshness = getSourceFreshness(entry.verifiedAt)
+  const ringSystem = findPlanetDef(bodyId)?.ring
 
   return (
     <>
@@ -142,6 +198,7 @@ export default function PlanetInfoCard({
               </div>
             </div>
             <ScienceProfile profile={physicalProfile} language={language} />
+            {ringSystem && <RingSystemPanel ring={ringSystem} language={language} />}
             <div className="mt-2.5 rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 text-[10px] leading-relaxed text-cyan-200/90 font-sans">
               <div className="mb-1 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80">{t('Bilim Notu', 'Science Note')}</div>
               💡 <span className="font-medium text-cyan-100">{funFact}</span>
@@ -218,6 +275,7 @@ export default function PlanetInfoCard({
             <span className="text-slate-200 truncate max-w-[160px] text-right">{value(fact.atmosphere)}</span>
           </div>
           <ScienceProfile profile={physicalProfile} language={language} compact />
+          {ringSystem && <RingSystemPanel ring={ringSystem} language={language} />}
           <div className="mt-2 rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 text-[9.5px] leading-relaxed text-cyan-200/90 font-sans">
             <div className="mb-1 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-400/80">{t('Bilim Notu', 'Science Note')}</div>
             💡 <span className="font-medium text-cyan-100">{funFact}</span>

@@ -51,6 +51,10 @@ export type SatelliteBodyId =
   | 'callisto'
   | 'amalthea'
   | 'himalia'
+  | 'metis'
+  | 'thebe'
+  | 'elara'
+  | 'pasiphae'
   | 'enceladus'
   | 'titan'
   | 'pan'
@@ -60,6 +64,9 @@ export type SatelliteBodyId =
   | 'rhea'
   | 'iapetus'
   | 'hyperion'
+  | 'janus'
+  | 'epimetheus'
+  | 'phoebe'
   | 'miranda'
   | 'ariel'
   | 'umbriel'
@@ -384,6 +391,53 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     referencePlaneTiltDeg: 3.13,
     kmPerSceneUnit: 188270,
   },
+  metis: {
+    semiMajorAxisKm: 128900,
+    eccentricity: 0.006,
+    argumentPeriapsisDeg: 0,
+    meanAnomalyAtEpochDeg: 75,
+    inclinationDeg: 0.006,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 0.29893,
+    referencePlaneTiltDeg: 3.13,
+    kmPerSceneUnit: 188270,
+  },
+  thebe: {
+    semiMajorAxisKm: 222000,
+    eccentricity: 0.015,
+    argumentPeriapsisDeg: 234,
+    meanAnomalyAtEpochDeg: 198,
+    inclinationDeg: 1.1,
+    longitudeAscendingNodeDeg: 12,
+    periodDays: 0.6776,
+    referencePlaneTiltDeg: 3.13,
+    kmPerSceneUnit: 188270,
+  },
+  // Jupiter's distant irregulars orbit under solar rather than equatorial
+  // control, so Horizons publishes them against the Sun's invariable plane;
+  // tilting them into Jupiter's equator would be the wrong reference.
+  elara: {
+    semiMajorAxisKm: 11737000,
+    eccentricity: 0.207,
+    argumentPeriapsisDeg: 143,
+    meanAnomalyAtEpochDeg: 20,
+    inclinationDeg: 28,
+    longitudeAscendingNodeDeg: 108,
+    periodDays: 259.6528,
+    referencePlaneTiltDeg: 0,
+    kmPerSceneUnit: 188270,
+  },
+  pasiphae: {
+    semiMajorAxisKm: 23500000,
+    eccentricity: 0.378,
+    argumentPeriapsisDeg: 170,
+    meanAnomalyAtEpochDeg: 292,
+    inclinationDeg: 148,
+    longitudeAscendingNodeDeg: 313,
+    periodDays: 735,
+    referencePlaneTiltDeg: 0,
+    kmPerSceneUnit: 188270,
+  },
   enceladus: {
     semiMajorAxisKm: 238400,
     eccentricity: 0.005,
@@ -470,6 +524,41 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 0.57505,
     referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  // Janus and Epimetheus share one orbit 50 km apart and swap places every four
+  // years; the epoch phases below keep the two apart instead of overlapping.
+  janus: {
+    semiMajorAxisKm: 151472,
+    eccentricity: 0.007,
+    argumentPeriapsisDeg: 46,
+    meanAnomalyAtEpochDeg: 30,
+    inclinationDeg: 0.14,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 0.69459,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  epimetheus: {
+    semiMajorAxisKm: 151422,
+    eccentricity: 0.009,
+    argumentPeriapsisDeg: 84,
+    meanAnomalyAtEpochDeg: 210,
+    inclinationDeg: 0.34,
+    longitudeAscendingNodeDeg: 0,
+    periodDays: 0.69459,
+    referencePlaneTiltDeg: 26.73,
+    kmPerSceneUnit: 60000,
+  },
+  phoebe: {
+    semiMajorAxisKm: 12947780,
+    eccentricity: 0.1635,
+    argumentPeriapsisDeg: 342,
+    meanAnomalyAtEpochDeg: 138,
+    inclinationDeg: 175.986,
+    longitudeAscendingNodeDeg: 245,
+    periodDays: 550.31,
+    referencePlaneTiltDeg: 0,
     kmPerSceneUnit: 60000,
   },
   hyperion: {

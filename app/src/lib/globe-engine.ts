@@ -16,7 +16,12 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
-import { PLANETS, type CelestialBodyId, type PlanetDef } from './planets'
+import {
+  PLANETS,
+  RING_BAND_MIN_WIDTH_RATIO,
+  type CelestialBodyId,
+  type PlanetDef,
+} from './planets'
 import {
   getCinematicTourCueIndex,
   getCinematicTourCueWindow,
@@ -54,7 +59,7 @@ interface PlanetRuntime {
   mat: THREE.ShaderMaterial
   atmo?: THREE.Mesh
   orbitLine?: THREE.Line
-  ring?: THREE.Mesh
+  ring?: THREE.Mesh | THREE.Group
   minorMoonPoints?: THREE.Points
   moons: PlanetRuntime[]
   ensureLoaded?: () => void
@@ -1141,8 +1146,40 @@ export class GlobeEngine {
 
     // Planetary ring systems. Saturn uses the detailed texture; the fainter
     // giant-planet rings use a deliberately subtle procedural material.
-    let ring: THREE.Mesh | undefined
-    if (def.ring) {
+    let ring: THREE.Mesh | THREE.Group | undefined
+    if (def.ring?.bands) {
+      const bandGroup = new THREE.Group()
+      for (const band of def.ring.bands) {
+        // A measured 2 km ring is a millionth of the body radius, so anything
+        // under the minimum width is widened around its own centre line and
+        // flagged in the data as drawn wider than measured.
+        const centre = (band.innerRadius + band.outerRadius) / 2
+        const halfWidth = Math.max(
+          (band.outerRadius - band.innerRadius) / 2,
+          RING_BAND_MIN_WIDTH_RATIO / 2,
+        )
+        const bandGeo = new THREE.RingGeometry(
+          def.radius * (centre - halfWidth),
+          def.radius * (centre + halfWidth),
+          96,
+        )
+        const bandMesh = new THREE.Mesh(
+          bandGeo,
+          new THREE.MeshBasicMaterial({
+            color: def.ring.color,
+            opacity: band.opacity,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          }),
+        )
+        bandMesh.name = band.name
+        bandGroup.add(bandMesh)
+      }
+      bandGroup.rotation.x = Math.PI / 2
+      mesh.add(bandGroup)
+      ring = bandGroup
+    } else if (def.ring) {
       const innerR = def.radius * def.ring.innerRadius
       const outerR = def.radius * def.ring.outerRadius
       const ringGeo = new THREE.RingGeometry(innerR, outerR, 128)

@@ -8,12 +8,12 @@ import {
   JPL_SATELLITE_PARAMETERS_URL,
 } from '../src/lib/celestial-physical-profiles.ts'
 import { SATELLITE_ELEMENTS } from '../src/lib/orbital-mechanics.ts'
-import { PLANETS, getAllBodyIds } from '../src/lib/planets.ts'
+import { PLANETS, RING_BAND_MIN_WIDTH_RATIO, getAllBodyIds } from '../src/lib/planets.ts'
 
 test('catalog covers every selectable rendered body with a dated primary source', () => {
   const bodyIds = getAllBodyIds()
   assert.equal(new Set(bodyIds).size, bodyIds.length)
-  assert.equal(bodyIds.length, 54)
+  assert.equal(bodyIds.length, 61)
 
   for (const bodyId of bodyIds) {
     const entry = CELESTIAL_CATALOG[bodyId]
@@ -55,6 +55,13 @@ test('major satellite models have orbital elements and complete systems retain m
     'miranda',
     'ariel',
     'nereid',
+    'metis',
+    'thebe',
+    'elara',
+    'pasiphae',
+    'janus',
+    'epimetheus',
+    'phoebe',
   ]) {
     assert.ok(modeledMoonIds.includes(moonId as (typeof modeledMoonIds)[number]), moonId)
     assert.ok(moonId in SATELLITE_ELEMENTS, moonId)
@@ -90,4 +97,31 @@ test('major satellite models have orbital elements and complete systems retain m
 test('all four giant planets expose their observed ring systems', () => {
   const ringed = PLANETS.filter((planet) => planet.ring).map((planet) => planet.id)
   assert.deepEqual(ringed, ['jupiter', 'saturn', 'uranus', 'neptune'])
+})
+
+test('ring bands stay ordered, cited, and outside the body they orbit', () => {
+  const bandCounts: Record<string, number> = {}
+  for (const planet of PLANETS) {
+    const ring = planet.ring
+    if (!ring) continue
+    assert.match(ring.sourceUrl, /^https:\/\/pds-rings\.seti\.org\//, `${planet.id} ring source`)
+    if (!ring.bands) continue
+    bandCounts[planet.id] = ring.bands.length
+    for (const band of ring.bands) {
+      assert.ok(band.innerRadius > 1, `${planet.id} ${band.name} starts inside the body`)
+      assert.ok(band.outerRadius >= band.innerRadius, `${planet.id} ${band.name} is inverted`)
+      assert.ok(band.innerRadius >= ring.innerRadius - 1e-6, `${planet.id} ${band.name} below ring span`)
+      assert.ok(band.outerRadius <= ring.outerRadius + 1e-6, `${planet.id} ${band.name} above ring span`)
+      assert.ok(band.opacity > 0 && band.opacity <= 1, `${planet.id} ${band.name} opacity`)
+      const measuredWidth = band.outerRadius - band.innerRadius
+      assert.equal(
+        band.narrow === true,
+        measuredWidth < RING_BAND_MIN_WIDTH_RATIO,
+        `${planet.id} ${band.name} narrow flag must match its measured width`,
+      )
+    }
+    const inners = ring.bands.map((band) => band.innerRadius)
+    assert.deepEqual(inners, [...inners].sort((a, b) => a - b), `${planet.id} band order`)
+  }
+  assert.deepEqual(bandCounts, { jupiter: 4, uranus: 13, neptune: 5 })
 })

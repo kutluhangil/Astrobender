@@ -19,7 +19,7 @@ test('IAU catalog contains every official constellation exactly once', () => {
   assert.equal(IAU_CONSTELLATIONS.length, 88)
   assert.equal(new Set(IAU_CONSTELLATIONS.map((entry) => entry.name)).size, 88)
   assert.equal(new Set(IAU_CONSTELLATIONS.map((entry) => entry.abbreviation)).size, 88)
-  assert.equal(IAU_CONSTELLATIONS.filter((entry) => entry.renderedFigure).length, 5)
+  assert.equal(IAU_CONSTELLATIONS.filter((entry) => entry.renderedFigure).length, 88)
 })
 
 test('Earth surface catalog includes launch, observatory, and deep-space-network sites', () => {

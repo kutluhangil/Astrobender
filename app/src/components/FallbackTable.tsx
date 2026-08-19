@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as satellite from 'satellite.js'
 import type { Dataset } from '@/lib/satellites'
-import { UI_GROUPS, formatUtc } from '@/lib/satellites'
+import { createSgp4Record, UI_GROUPS, formatUtc } from '@/lib/satellites'
 
 interface Row {
   name: string
@@ -22,9 +22,9 @@ export default function FallbackTable({ dataset }: { dataset: Dataset | null }) 
     const recs = stations
       .map((s) => {
         try {
-          return { s, rec: satellite.twoline2satrec(s.l1, s.l2) }
+          return { s, rec: createSgp4Record(s) }
         } catch (error) {
-          console.error(`Failed to parse TLE for NORAD ${s.norad} (${s.name})`, error)
+          console.error(`Failed to parse SGP4 source record for NORAD ${s.norad} (${s.name})`, error)
           return null
         }
       })

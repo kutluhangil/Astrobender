@@ -2,6 +2,7 @@
 
 ## 2026-08-13
 
+- Added reviewed CelesTrak OMM/SGP4, JPL Horizons mission, and IMO 2026 meteor adapters with explicit source epochs, frames, limitations, validation-only refresh checks, and unplotted unavailable missions.
 - Made code-generated celestial surface visuals default-off, with an explicit localized opt-in and active scene-truth disclosure.
 - Removed untraceable texture and narration media; all celestial surfaces are now explicitly schematic, deterministic in-code visuals with complete provenance enforcement for the retained project-generated PWA icons.
 - Corrected evidence-review boundaries: JPL physical records now cover only mass/density/gravity, historical asset provenance explicitly records unavailable upstream facts, evidence validation rejects malformed HTTPS/timestamps, and scene/mobile disclosures reflect active states.

@@ -111,8 +111,14 @@ export default function DetailPanel({
       )}
 
       <div className="mt-2 px-4 font-mono text-[10px] tracking-wider text-slate-600">
-        TLE {sat.epochMs ? formatUtc(sat.epochMs) : t('bilinmiyor', 'unknown')}
+        {sat.omm ? 'OMM' : 'TLE'} {t('epoch', 'epoch')} {sat.epochMs ? formatUtc(sat.epochMs) : t('bilinmiyor', 'unknown')} · TEME · SGP4
       </div>
+      <p className="mt-1 px-4 font-mono text-[8px] leading-relaxed text-slate-600">
+        {t(
+          'Bu ortalama eleman kaydı SGP4 ile yayılır; anlık ölçüm veya hassas konum değildir.',
+          'This mean-elements record is propagated with SGP4; it is not a live measurement or precise position.',
+        )}
+      </p>
 
       <div className="mt-3 flex gap-1.5 px-4 pb-4">
         {(

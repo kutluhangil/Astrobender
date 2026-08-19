@@ -3,11 +3,13 @@ import {
   buildDataset,
   isValidTleText,
   MIN_VALID_SATS,
+  mergeOmmFeeds,
   mergeFeeds,
 } from '@/lib/satellites'
-import type { Dataset, FeedTexts } from '@/lib/satellites'
+import type { Dataset, FeedOmmRecords, FeedTexts, SatInfo } from '@/lib/satellites'
 import { cacheGet, cacheSet } from '@/lib/tle-cache'
 import { TLE_SNAPSHOT_DOWNLOADED_AT } from '@/lib/tle-snapshot-metadata'
+import { getCelestrakFeedMetadata, parseCelestrakOmmCsv } from '@/lib/celestrak-omm'
 
 const SNAP = `${import.meta.env.BASE_URL}data`
 const TLE_API = '/api/tle'
@@ -21,33 +23,33 @@ interface FeedDef {
 const FEEDS: FeedDef[] = [
   {
     key: 'active',
-    liveUrl: `${TLE_API}?feed=active`,
+    liveUrl: `${TLE_API}?feed=active&format=csv`,
     snapUrl: `${SNAP}/tle-snapshot.txt`,
   },
   {
     key: 'visual',
-    liveUrl: `${TLE_API}?feed=visual`,
+    liveUrl: `${TLE_API}?feed=visual&format=csv`,
     snapUrl: `${SNAP}/tle-visual.txt`,
   },
   {
     key: 'cosmos2251',
-    liveUrl: `${TLE_API}?feed=cosmos2251`,
+    liveUrl: `${TLE_API}?feed=cosmos2251&format=csv`,
     snapUrl: `${SNAP}/tle-cosmos-2251-debris.txt`,
   },
   {
     key: 'iridium33',
-    liveUrl: `${TLE_API}?feed=iridium33`,
+    liveUrl: `${TLE_API}?feed=iridium33&format=csv`,
     snapUrl: `${SNAP}/tle-iridium-33-debris.txt`,
   },
   {
     key: 'fengyun1c',
-    liveUrl: `${TLE_API}?feed=fengyun1c`,
+    liveUrl: `${TLE_API}?feed=fengyun1c&format=csv`,
     snapUrl: `${SNAP}/tle-fengyun-1c-debris.txt`,
   },
 ]
 
 export const TLE_TTL_MS = 2 * 3600 * 1000
-const CACHE_KEY = 'bundle-v2'
+const CACHE_KEY = 'omm-bundle-v1'
 
 export interface TleDataState {
   /** 'loading' only until the first usable dataset exists. */
@@ -79,7 +81,7 @@ async function fetchText(url: string, timeoutMs: number): Promise<string> {
   }
 }
 
-function validate(feeds: FeedTexts) {
+function validateSnapshots(feeds: FeedTexts) {
   if (!isValidTleText(feeds.active)) throw new Error('invalid TLE structure')
   const sats = mergeFeeds(feeds)
   const activeCount = sats.filter((s) => s.group !== 8 && s.group !== 9 && s.group !== 10).length
@@ -89,11 +91,31 @@ function validate(feeds: FeedTexts) {
   return sats
 }
 
+function validateLiveOmm(inputFeeds: FeedTexts): SatInfo[] {
+  const active = parseCelestrakOmmCsv(inputFeeds.active, getCelestrakFeedMetadata('active'))
+  if (active.length < MIN_VALID_SATS) {
+    throw new Error(`too few OMM satellites (${active.length})`)
+  }
+  const ommFeeds: FeedOmmRecords = {
+    active,
+    visual: parseCelestrakOmmCsv(requireLiveOmmFeed(inputFeeds.visual, 'visual'), getCelestrakFeedMetadata('visual')),
+    cosmos2251: parseCelestrakOmmCsv(requireLiveOmmFeed(inputFeeds.cosmos2251, 'cosmos2251'), getCelestrakFeedMetadata('cosmos2251')),
+    iridium33: parseCelestrakOmmCsv(requireLiveOmmFeed(inputFeeds.iridium33, 'iridium33'), getCelestrakFeedMetadata('iridium33')),
+    fengyun1c: parseCelestrakOmmCsv(requireLiveOmmFeed(inputFeeds.fengyun1c, 'fengyun1c'), getCelestrakFeedMetadata('fengyun1c')),
+  }
+  return mergeOmmFeeds(ommFeeds)
+}
+
+function requireLiveOmmFeed(text: string | null, feed: Exclude<keyof FeedTexts, 'active'>): string {
+  if (text === null) throw new Error(`OMM ${feed} feed is missing from the complete live refresh`)
+  return text
+}
+
 /**
  * Data pipeline:
  *  1. bundled snapshots (5 feeds in parallel) -> immediate first render
  *  2. IndexedDB cache (fresh < 2h) -> upgrade to CACHED
- *  3. same-origin CelesTrak proxy refresh in background -> upgrade to LIVE + re-cache
+ *  3. complete five-feed same-origin CelesTrak OMM refresh -> LIVE + re-cache
  * Generation ids ignore stale responses; the old dataset stays active until
  * a complete validated replacement is ready.
  */
@@ -113,12 +135,11 @@ export function useTleData() {
 
   const apply = useCallback(
     (
-      feeds: FeedTexts,
+      sats: SatInfo[],
       source: Dataset['source'],
       fetchedAt: number,
       warning: string | null = null,
     ) => {
-      const sats = validate(feeds)
       setState({
         status: 'ready',
         dataset: buildDataset(sats, source, fetchedAt),
@@ -139,60 +160,40 @@ export function useTleData() {
     return feeds
   }, [])
 
-  /** Background live refresh; keeps the last dataset and surfaces failures. */
+  /** Background OMM refresh; a failed source never replaces the last valid dataset. */
   const refreshLive = useCallback(async () => {
     if (busyRef.current) return
     busyRef.current = true
     const myGen = genRef.current
     try {
-      const results = await Promise.allSettled(
-        FEEDS.map((f) => fetchText(f.liveUrl, 20000)),
-      )
+      const texts = await Promise.all(FEEDS.map((feed) => fetchText(feed.liveUrl, 20000)))
       if (genRef.current !== myGen) return
-      const base = snapTextsRef.current ?? (await loadSnapshots())
-      const feeds = { ...base }
-      const failures: string[] = []
-      results.forEach((r, i) => {
-        if (r.status === 'fulfilled' && isValidTleText(r.value)) {
-          feeds[FEEDS[i].key] = r.value
-        } else if (r.status === 'fulfilled') {
-          failures.push(`${FEEDS[i].key}: invalid TLE structure`)
-        } else {
-          failures.push(
-            `${FEEDS[i].key}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
-          )
-        }
-      })
-      const activeLive =
-        results[0].status === 'fulfilled' && isValidTleText(results[0].value)
-      if (!activeLive) {
-        throw new Error(failures[0] ?? 'active feed did not return valid TLE data')
-      }
+      const feeds = Object.fromEntries(FEEDS.map((feed, index) => [feed.key, texts[index]])) as unknown as FeedTexts
+      const sats = validateLiveOmm(feeds)
       const fetchedAt = Date.now()
-      const warning =
-        failures.length > 0
-          ? `Bazı canlı TLE akışları güncellenemedi; son geçerli veri korunuyor. ${failures.join(' | ')}`
-          : null
-      apply(feeds, 'live', fetchedAt, warning)
-      if (failures.length === 0) {
-        try {
-          await cacheSet({ key: CACHE_KEY, texts: feeds, fetchedAt })
-        } catch (error) {
-          setState((current) => ({
-            ...current,
-            warning: `Canlı veri yüklendi ancak yerel TLE önbelleği güncellenemedi: ${error instanceof Error ? error.message : String(error)}`,
-          }))
-        }
+      apply(sats, 'live', fetchedAt)
+      try {
+        await cacheSet({
+          key: CACHE_KEY,
+          texts: feeds,
+          format: 'omm-bundle-csv-v1',
+          fetchedAt,
+        })
+      } catch (error) {
+        setState((current) => ({
+          ...current,
+          warning: `Canlı OMM verisi yüklendi ancak yerel önbellek güncellenemedi: ${error instanceof Error ? error.message : String(error)}`,
+        }))
       }
     } catch (error) {
       setState((current) => ({
         ...current,
-        warning: `Canlı TLE güncellemesi başarısız; son geçerli veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+        warning: `Canlı OMM güncellemesi başarısız; son geçerli veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
       }))
     } finally {
       busyRef.current = false
     }
-  }, [apply, loadSnapshots])
+  }, [apply])
 
   const initialLoad = useCallback(async () => {
     const gen = ++genRef.current
@@ -202,7 +203,7 @@ export function useTleData() {
     try {
       const feeds = await loadSnapshots()
       if (isStale()) return
-      apply(feeds, 'snapshot', TLE_SNAPSHOT_DOWNLOADED_AT)
+      apply(validateSnapshots(feeds), 'snapshot', TLE_SNAPSHOT_DOWNLOADED_AT)
     } catch (err) {
       if (isStale()) return
       setState({
@@ -217,14 +218,14 @@ export function useTleData() {
     // 2. fresh cache from a previous session -> CACHED
     try {
       const cached = await cacheGet(CACHE_KEY)
-      if (cached && Date.now() - cached.fetchedAt < TLE_TTL_MS) {
+      if (cached?.format === 'omm-bundle-csv-v1' && Date.now() - cached.fetchedAt < TLE_TTL_MS) {
         if (isStale()) return
-        apply(cached.texts, 'cached', cached.fetchedAt)
+        apply(validateLiveOmm(cached.texts), 'cached', cached.fetchedAt)
       }
     } catch (error) {
       setState((current) => ({
         ...current,
-        warning: `Yerel TLE önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+        warning: `Yerel OMM önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
       }))
     }
 

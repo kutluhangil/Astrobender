@@ -7,12 +7,19 @@
 // Every message carries a generation id so stale workers are ignored.
 
 import * as satellite from 'satellite.js'
+import type { OMMJsonObject } from 'satellite.js'
 
 const INV_RE = 1 / 6371 // km -> Earth radii
 
 export type PropagatorRequest =
-  | { type: 'init'; gen: number; l1: string[]; l2: string[] }
+  | { type: 'init'; gen: number; records: Sgp4SourceRecord[] }
   | { type: 'propagate'; gen: number; t0: number; t1: number }
+
+export interface Sgp4SourceRecord {
+  l1: string
+  l2: string
+  omm?: OMMJsonObject
+}
 
 export type PropagatorResponse =
   | { type: 'ready'; gen: number; count: number; invalidCount: number }
@@ -93,7 +100,7 @@ self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
   try {
     if (msg.type === 'init') {
       gen = msg.gen
-      const n = msg.l1.length
+      const n = msg.records.length
       recs = new Array(n)
       let invalidCount = 0
       lastP0 = new Float32Array(n * 3)
@@ -102,7 +109,10 @@ self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
       lastV1 = new Float32Array(n * 3)
       for (let i = 0; i < n; i++) {
         try {
-          const record = satellite.twoline2satrec(msg.l1[i], msg.l2[i])
+          const source = msg.records[i]
+          const record = source.omm
+            ? satellite.json2satrec(source.omm)
+            : satellite.twoline2satrec(source.l1, source.l2)
           if (record.error !== satellite.SatRecError.None) {
             invalidCount += 1
             recs[i] = null

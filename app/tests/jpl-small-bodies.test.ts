@@ -43,16 +43,15 @@ test('named small-body catalog covers requested asteroids, comets, and Ceres', (
   }
 })
 
-test('deep-space missions without sourced ephemerides stay unplotted', () => {
+test('deep-space missions expose reviewed Horizons records without plotting unsupported missions', () => {
   const voyager = DEEP_SPACE_PROBES.find((probe) => probe.id === 'voyager1')
   const clipper = DEEP_SPACE_PROBES.find((probe) => probe.id === 'europa-clipper')
   assert.ok(voyager)
   assert.ok(clipper)
-  assert.equal(voyager.rendered, false)
-  assert.throws(
-    () => probeDistanceAuAt(voyager, voyager.referenceEpochMs + 86_400_000),
-    /no source-backed ephemeris/i,
-  )
+  assert.equal(voyager.rendered, true)
+  assert.ok(probeDistanceAuAt(voyager, voyager.referenceEpochMs + 86_400_000) > 0)
+  assert.equal(voyager.ephemeris?.frame, 'ICRF')
   assert.equal(clipper.rendered, false)
-  assert.match(clipper.ephemerisNoteTr, /3D konum gösterilmiyor/)
+  assert.equal(clipper.ephemeris, null)
+  assert.match(clipper.ephemerisNoteTr, /kullanılamıyor/)
 })

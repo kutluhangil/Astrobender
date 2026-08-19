@@ -24,6 +24,9 @@ export interface PerseidWatch {
   zhr: number
   moonIlluminationPercent: number
   sourceUrl: string
+  retrievedAt: string
+  reviewedAt: string
+  limitation: string
   reportUrl: string
   fireballUrl: string
   observer: {

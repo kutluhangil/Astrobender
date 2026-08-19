@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-19
+
+- Reverted the source-truth batch that removed the celestial surface textures and narration audio and hid every body mesh behind a default-off schematic flag, which had left the scene showing only stars on first load.
+
 ## 2026-08-13
 
 - Stabilized CI browser checks by probing the actual reduced-motion stylesheet and allowing measured 60-second budgets for the complete Skywatch and sourced surface-detail flows.

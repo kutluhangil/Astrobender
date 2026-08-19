@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+/**
+ * Fixed instant used by the Skywatch calendar test. Skywatch builds its event
+ * list from `Date.now()` forward, so a real clock makes the calendar contents
+ * drift out from under the assertions once the window moves past them.
+ */
+const SKYWATCH_FIXED_NOW = new Date('2026-08-13T09:00:00Z')
+
 test.beforeEach(async ({ page }) => {
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
@@ -133,6 +140,11 @@ test('desktop tour-start button is clickable over the layer panel', async ({ pag
 
 test('Skywatch calculates events, accepts a manual observer, and moves the simulation', async ({ page }) => {
   test.setTimeout(60_000)
+  // Skywatch derives its 90-day window from the wall clock, so the calendar
+  // assertions below are pinned to a fixed instant instead of "today".
+  await page.clock.setFixedTime(SKYWATCH_FIXED_NOW)
+  await page.reload()
+  await expect(page.locator('canvas')).toBeVisible()
   await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
   const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
   await expect(panel).toBeVisible()

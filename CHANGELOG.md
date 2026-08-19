@@ -2,6 +2,8 @@
 
 ## 2026-08-19
 
+- Recorded the project design direction (`high-end-visual-design`) and working rules in a root `CLAUDE.md`.
+- Pinned the Skywatch calendar end-to-end test to a fixed clock so its event assertions no longer break as the real 90-day window drifts past them.
 - Fixed the celestial tray moon popover closing while the pointer crossed the gap toward it, gave Earth its Moon entry in that popover, moved the desktop body panel next to the focused body instead of a fixed corner, and stopped the starfield from bleeding through planet surfaces.
 - Reverted the source-truth batch that removed the celestial surface textures and narration audio and hid every body mesh behind a default-off schematic flag, which had left the scene showing only stars on first load.
 

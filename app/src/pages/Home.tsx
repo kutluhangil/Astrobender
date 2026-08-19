@@ -33,6 +33,7 @@ import MeteorFlowOverlay from '@/components/hud/MeteorFlowOverlay'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
 import AboutAstrobenderModal from '@/components/hud/AboutAstrobenderModal'
+import { useBodyPanelPlacement } from '@/hooks/useBodyPanelPlacement'
 import type { LandingSite } from '@/lib/landing-sites'
 import type {
   EarthEvent,
@@ -766,6 +767,15 @@ export default function Home() {
   const selSat =
     selectedIndex !== null && selectedIndex < sats.length ? sats[selectedIndex] : null
 
+  // The desktop body panel follows the focused body instead of a fixed corner
+  const planetInfoRef = useRef<HTMLDivElement>(null)
+  const planetInfoPlacement = useBodyPanelPlacement(
+    focusBody,
+    engineRef,
+    planetInfoRef,
+    !selSat && !skywatchOpen,
+  )
+
   // tooltip stays inside the viewport
   const tooltipPos = hover
     ? {
@@ -1271,8 +1281,16 @@ export default function Home() {
       {/* ============ PLANET INFO CARD ============ */}
       {!selSat && !skywatchOpen && (
         <>
-          {/* Desktop only: top-right panel */}
-          <div className="hidden md:block absolute top-4 right-4 z-20">
+          {/* Desktop only: panel tracks the focused body, top-right until it is on screen */}
+          <div
+            ref={planetInfoRef}
+            className="hidden md:block fixed z-20"
+            style={
+              planetInfoPlacement
+                ? { left: planetInfoPlacement.left, top: planetInfoPlacement.top }
+                : { right: 16, top: 16 }
+            }
+          >
             <PlanetInfoCard bodyId={focusBody} language={uiLanguage} />
           </div>
           {/* Mobile only: slide-up sheet controlled by 🪐 icon */}

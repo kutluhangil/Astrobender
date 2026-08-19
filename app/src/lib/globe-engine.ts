@@ -98,6 +98,8 @@ interface GroupRuntime {
 }
 
 const SAT_VERT = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
 attribute vec3 aV0;
 attribute vec3 aP1;
 attribute vec3 aV1;
@@ -121,6 +123,7 @@ void main() {
   vColor = aColor;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   gl_Position = projectionMatrix * mv;
+  #include <logdepthbuf_vertex>
   float dist = -mv.z;
   // Fade satellite opacity & size smoothly when camera zooms out past Earth orbit (dist > 15.0)
   float distFade = smoothstep(120.0, 15.0, dist);
@@ -131,10 +134,12 @@ void main() {
 `
 
 const SAT_FRAG = /* glsl */ `
+#include <logdepthbuf_pars_fragment>
 varying vec3 vColor;
 varying float vAlpha;
 uniform float uIntensity;
 void main() {
+#include <logdepthbuf_fragment>
   if (vAlpha < 0.01) discard;
   vec2 c = gl_PointCoord - 0.5;
   float d = length(c);
@@ -148,6 +153,8 @@ void main() {
 `
 
 const EARTH_VERT = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vPosW;
@@ -157,10 +164,12 @@ void main() {
   vPosW = wp.xyz;
   vNormalW = normalize(mat3(modelMatrix) * normal);
   gl_Position = projectionMatrix * viewMatrix * wp;
+  #include <logdepthbuf_vertex>
 }
 `
 
 const EARTH_FRAG = /* glsl */ `
+#include <logdepthbuf_pars_fragment>
 uniform sampler2D uDay;
 uniform sampler2D uNight;
 uniform sampler2D uSpec;
@@ -172,6 +181,7 @@ varying vec3 vNormalW;
 varying vec3 vPosW;
 
 void main() {
+#include <logdepthbuf_fragment>
   // Topography Bump normal perturbation
   float bCenter = texture2D(uBump, vUv).r;
   float bRight  = texture2D(uBump, vUv + vec2(0.0003, 0.0)).r;
@@ -210,22 +220,29 @@ void main() {
 `
 
 const ATMO_VERT = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
 varying vec3 vN;
 void main() {
   vN = normalize(normalMatrix * normal);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  #include <logdepthbuf_vertex>
 }
 `
 
 const ATMO_FRAG = /* glsl */ `
+#include <logdepthbuf_pars_fragment>
 varying vec3 vN;
 void main() {
+#include <logdepthbuf_fragment>
   float intensity = pow(max(0.60 - dot(normalize(vN), vec3(0.0, 0.0, 1.0)), 0.0), 4.5);
   gl_FragColor = vec4(0.35, 0.65, 1.15, 1.0) * intensity * 1.1;
 }
 `
 
 const CLOUD_VERT = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vPosW;
@@ -235,16 +252,19 @@ void main() {
   vPosW = wp.xyz;
   vNormalW = normalize(mat3(modelMatrix) * normal);
   gl_Position = projectionMatrix * viewMatrix * wp;
+  #include <logdepthbuf_vertex>
 }
 `
 
 const CLOUD_FRAG = /* glsl */ `
+#include <logdepthbuf_pars_fragment>
 uniform sampler2D uCloudsTex;
 uniform vec3 uSunDir;
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vPosW;
 void main() {
+#include <logdepthbuf_fragment>
   vec3 n = normalize(vNormalW);
   float sd = dot(n, uSunDir);
   float dayMix = smoothstep(-0.08, 0.12, sd);
@@ -262,6 +282,8 @@ void main() {
 `
 
 const MOON_VERT = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vPosW;
@@ -271,10 +293,12 @@ void main() {
   vPosW = wp.xyz;
   vNormalW = normalize(mat3(modelMatrix) * normal);
   gl_Position = projectionMatrix * viewMatrix * wp;
+  #include <logdepthbuf_vertex>
 }
 `
 
 const MOON_FRAG = /* glsl */ `
+#include <logdepthbuf_pars_fragment>
 uniform sampler2D uMoonTex;
 uniform sampler2D uMoonBump;
 uniform sampler2D uMoonSpec;
@@ -285,6 +309,7 @@ varying vec3 vNormalW;
 varying vec3 vPosW;
 
 void main() {
+#include <logdepthbuf_fragment>
   // Crater Bump topography normal perturbation
   float bCenter = texture2D(uMoonBump, vUv).r;
   float bRight  = texture2D(uMoonBump, vUv + vec2(0.0003, 0.0)).r;
@@ -727,6 +752,8 @@ export class GlobeEngine {
         uTime: { value: 0 },
       },
       vertexShader: /* glsl */ `
+          #include <common>
+          #include <logdepthbuf_pars_vertex>
         varying vec2 vUv;
         varying vec3 vNormalW;
         varying vec3 vPosW;
@@ -736,9 +763,11 @@ export class GlobeEngine {
           vPosW = wp.xyz;
           vNormalW = normalize(mat3(modelMatrix) * normal);
           gl_Position = projectionMatrix * viewMatrix * wp;
+          #include <logdepthbuf_vertex>
         }
       `,
       fragmentShader: /* glsl */ `
+        #include <logdepthbuf_pars_fragment>
         uniform sampler2D uSunMap;
         uniform float uTime;
         varying vec2 vUv;
@@ -746,6 +775,7 @@ export class GlobeEngine {
         varying vec3 vPosW;
 
         void main() {
+        #include <logdepthbuf_fragment>
           vec2 uv = vUv;
           uv.x += sin(uv.y * 35.0 + uTime * 0.6) * 0.0018;
           uv.y += cos(uv.x * 35.0 + uTime * 0.6) * 0.0018;
@@ -770,6 +800,8 @@ export class GlobeEngine {
     const coronaMat = new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } },
       vertexShader: /* glsl */ `
+          #include <common>
+          #include <logdepthbuf_pars_vertex>
         varying vec3 vNormalW;
         varying vec3 vPosW;
         void main() {
@@ -777,13 +809,16 @@ export class GlobeEngine {
           vPosW = wp.xyz;
           vNormalW = normalize(mat3(modelMatrix) * normal);
           gl_Position = projectionMatrix * viewMatrix * wp;
+          #include <logdepthbuf_vertex>
         }
       `,
       fragmentShader: /* glsl */ `
+        #include <logdepthbuf_pars_fragment>
         uniform float uTime;
         varying vec3 vNormalW;
         varying vec3 vPosW;
         void main() {
+        #include <logdepthbuf_fragment>
           vec3 v = normalize(cameraPosition - vPosW);
           float intensity = pow(max(0.65 - dot(vNormalW, v), 0.0), 2.8);
           float pulse = sin(uTime * 2.5) * 0.12 + 0.88;
@@ -996,6 +1031,8 @@ export class GlobeEngine {
         uTime: { value: 0 },
       },
       vertexShader: /* glsl */ `
+          #include <common>
+          #include <logdepthbuf_pars_vertex>
         varying vec2 vUv;
         varying vec3 vNormalW;
         varying vec3 vPosW;
@@ -1005,9 +1042,11 @@ export class GlobeEngine {
           vPosW = wp.xyz;
           vNormalW = normalize(mat3(modelMatrix) * normal);
           gl_Position = projectionMatrix * viewMatrix * wp;
+          #include <logdepthbuf_vertex>
         }
       `,
       fragmentShader: /* glsl */ `
+        #include <logdepthbuf_pars_fragment>
         uniform sampler2D uTex;
         uniform vec3 uTint;
         uniform float uAmbient;
@@ -1017,6 +1056,7 @@ export class GlobeEngine {
         varying vec3 vNormalW;
         varying vec3 vPosW;
         void main() {
+        #include <logdepthbuf_fragment>
           vec3 sampled = texture2D(uTex, vUv).rgb;
           vec3 texCol = clamp(sampled * uTint, 0.0, 1.0);
           float lit = dot(vNormalW, uSunDir);
@@ -1041,6 +1081,8 @@ export class GlobeEngine {
           uSunDir: { value: new THREE.Vector3(1, 0, 0) },
         },
         vertexShader: /* glsl */ `
+            #include <common>
+            #include <logdepthbuf_pars_vertex>
           varying vec3 vNormalW;
           varying vec3 vPosW;
           void main() {
@@ -1048,13 +1090,16 @@ export class GlobeEngine {
             vPosW = wp.xyz;
             vNormalW = normalize(mat3(modelMatrix) * normal);
             gl_Position = projectionMatrix * viewMatrix * wp;
+            #include <logdepthbuf_vertex>
           }
         `,
         fragmentShader: /* glsl */ `
+          #include <logdepthbuf_pars_fragment>
           uniform vec3 uSunDir;
           varying vec3 vNormalW;
           varying vec3 vPosW;
           void main() {
+          #include <logdepthbuf_fragment>
             vec3 v = normalize(cameraPosition - vPosW);
             float rim = pow(1.0 - max(dot(vNormalW, v), 0.0), 3.5);
             float sunLit = max(dot(vNormalW, uSunDir) * 0.5 + 0.5, 0.2);
@@ -1114,13 +1159,17 @@ export class GlobeEngine {
               uOpacity: { value: def.ring.opacity },
             },
             vertexShader: /* glsl */ `
+            #include <common>
+            #include <logdepthbuf_pars_vertex>
           varying vec3 vLocalPos;
           void main() {
             vLocalPos = position;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            #include <logdepthbuf_vertex>
           }
         `,
             fragmentShader: /* glsl */ `
+          #include <logdepthbuf_pars_fragment>
           varying vec3 vLocalPos;
           uniform sampler2D uRingTex;
           uniform float uInnerR;
@@ -1128,6 +1177,7 @@ export class GlobeEngine {
           uniform float uOpacity;
 
           void main() {
+          #include <logdepthbuf_fragment>
             float r = length(vLocalPos.xy);
             float t = (r - uInnerR) / (uOuterR - uInnerR);
             t = clamp(t, 0.0, 1.0);

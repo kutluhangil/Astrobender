@@ -1,5 +1,5 @@
 import { CELESTIAL_FACTS } from '@/lib/celestial-facts'
-import { PLANETS, type CelestialBodyId, type PlanetDef } from '@/lib/planets'
+import { PLANETS, type CelestialBodyId } from '@/lib/planets'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import { useState } from 'react'
 
@@ -9,17 +9,28 @@ interface CelestialTrayProps {
   language: UiLanguage
 }
 
+interface TrayMoon {
+  id: CelestialBodyId
+  name: string
+}
+
 interface TrayBody {
   id: CelestialBodyId
   name: string
   nameTr: string
   thumbnail: string | null
-  moons?: PlanetDef[]
+  moons?: TrayMoon[]
 }
 
 const FIXED_BODIES: TrayBody[] = [
   { id: 'sun', name: 'Sun', nameTr: 'Güneş', thumbnail: 'thumb-sun.webp' },
-  { id: 'earth', name: 'Earth', nameTr: 'Dünya', thumbnail: 'thumb-earth.webp' },
+  {
+    id: 'earth',
+    name: 'Earth',
+    nameTr: 'Dünya',
+    thumbnail: 'thumb-earth.webp',
+    moons: [{ id: 'moon', name: 'Moon' }],
+  },
   { id: 'moon', name: 'Moon', nameTr: 'Ay', thumbnail: 'thumb-moon.webp' },
 ]
 
@@ -42,7 +53,7 @@ const TRAY_BODIES: TrayBody[] = [
     name: planet.name,
     nameTr: CELESTIAL_FACTS[planet.id].nameTr,
     thumbnail: THUMBNAILS[planet.id] ?? null,
-    moons: planet.moons,
+    moons: planet.moons?.map((moon) => ({ id: moon.id, name: moon.name })),
   })),
 ]
 
@@ -67,7 +78,7 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
       <span className="sr-only">{t('Gök cisimleri', 'Celestial bodies')}</span>
       <div className="flex max-w-full items-center gap-2 overflow-x-auto px-1 pb-0.5 scrollbar-none">
         {TRAY_BODIES.map((body) => {
-          const moonCount = body.moons?.length ?? (body.id === 'earth' ? 1 : 0)
+          const moonCount = body.moons?.length ?? 0
           const hasMoons = moonCount > 0
           const isCurrentSystem = moonSystemId === body.id
           const isFocused = focusBody === body.id
@@ -133,48 +144,50 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
         })}
       </div>
       {activeMoonSystem?.moons && activeMoonSystem.moons.length > 0 && (
-        <div
-          className="absolute bottom-[calc(100%+16px)] left-1/2 z-30 w-max max-w-[min(88vw,360px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#080c12]/95 px-3 py-2.5 shadow-[0_16px_46px_rgba(0,0,0,0.7)] backdrop-blur-2xl"
-          role="group"
-          aria-label={t(`${bodyLabel(activeMoonSystem, language)} uyduları`, `${bodyLabel(activeMoonSystem, language)} moons`)}
-        >
-          <div className="mb-2 text-center font-mono text-[8px] uppercase tracking-[0.24em] text-slate-500">
-            {t(`${bodyLabel(activeMoonSystem, language)} uyduları`, `${bodyLabel(activeMoonSystem, language)} moons`)}
-          </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            {activeMoonSystem.moons.map((moon) => {
-              const moonLabel = language === 'tr' ? CELESTIAL_FACTS[moon.id].nameTr : moon.name
-              const moonFocused = focusBody === moon.id
+        <div className="absolute bottom-full left-1/2 z-30 -translate-x-1/2 pb-4">
+          <div
+            className="relative w-max max-w-[min(88vw,360px)] rounded-2xl border border-white/10 bg-[#080c12]/95 px-3 py-2.5 shadow-[0_16px_46px_rgba(0,0,0,0.7)] backdrop-blur-2xl"
+            role="group"
+            aria-label={t(`${bodyLabel(activeMoonSystem, language)} uyduları`, `${bodyLabel(activeMoonSystem, language)} moons`)}
+          >
+            <div className="mb-2 text-center font-mono text-[8px] uppercase tracking-[0.24em] text-slate-500">
+              {t(`${bodyLabel(activeMoonSystem, language)} uyduları`, `${bodyLabel(activeMoonSystem, language)} moons`)}
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {activeMoonSystem.moons.map((moon) => {
+                const moonLabel = language === 'tr' ? CELESTIAL_FACTS[moon.id].nameTr : moon.name
+                const moonFocused = focusBody === moon.id
 
-              return (
-                <button
-                  key={moon.id}
-                  type="button"
-                  onClick={() => onSelectBody(moon.id)}
-                  className={`group flex w-12 flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${
-                    moonFocused ? 'bg-cyan-400/15 text-cyan-100' : 'text-white/80 hover:bg-white/8 hover:text-white'
-                  }`}
-                  aria-label={t(`${moonLabel} uydusunu seç`, `Select ${moonLabel} moon`)}
-                  aria-pressed={moonFocused}
-                >
-                  <img
-                    src="/textures/thumb-moon.webp"
-                    alt=""
-                    width="30"
-                    height="30"
-                    className="h-7 w-7 rounded-full object-cover opacity-90 transition-transform group-hover:scale-110"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <span className="max-w-full truncate font-mono text-[8px]">{moonLabel}</span>
-                </button>
-              )
-            })}
+                return (
+                  <button
+                    key={moon.id}
+                    type="button"
+                    onClick={() => onSelectBody(moon.id)}
+                    className={`group flex w-12 flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${
+                      moonFocused ? 'bg-cyan-400/15 text-cyan-100' : 'text-white/80 hover:bg-white/8 hover:text-white'
+                    }`}
+                    aria-label={t(`${moonLabel} uydusunu seç`, `Select ${moonLabel} moon`)}
+                    aria-pressed={moonFocused}
+                  >
+                    <img
+                      src="/textures/thumb-moon.webp"
+                      alt=""
+                      width="30"
+                      height="30"
+                      className="h-7 w-7 rounded-full object-cover opacity-90 transition-transform group-hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span className="max-w-full truncate font-mono text-[8px]">{moonLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-white/10 bg-[#080c12]"
+            />
           </div>
-          <span
-            aria-hidden="true"
-            className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-white/10 bg-[#080c12]"
-          />
         </div>
       )}
     </nav>

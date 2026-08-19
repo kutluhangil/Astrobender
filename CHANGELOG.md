@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Fixed the celestial tray moon popover closing while the pointer crossed the gap toward it, gave Earth its Moon entry in that popover, moved the desktop body panel next to the focused body instead of a fixed corner, and stopped the starfield from bleeding through planet surfaces.
 - Reverted the source-truth batch that removed the celestial surface textures and narration audio and hid every body mesh behind a default-off schematic flag, which had left the scene showing only stars on first load.
 
 ## 2026-08-13

@@ -144,6 +144,19 @@ test('Lagrange layer discloses its exaggerated collinear points and schematic ca
   await expect(page.locator('canvas')).toBeVisible()
 })
 
+test('deep-space missions read their positions from the baked Horizons table', async ({ page }) => {
+  await page.getByRole('button', { name: /🛰️ Sondalar/ }).first().click()
+  await page.getByRole('button', { name: '☄️ JPL Cisimleri' }).first().click()
+  const panel = page.getByRole('region', { name: 'JPL Küçük Cisim Gözlemevi' })
+  await panel.getByRole('button', { name: /Görev 7/ }).click()
+  await expect(panel.getByText(/JPL Horizons vektör tablosundan okunuyor/)).toBeVisible()
+  await expect(panel.getByText('🛰️ Voyager 1')).toBeVisible()
+  await expect(panel.getByText('🛰️ Europa Clipper')).toBeVisible()
+  // Voyager 1 is past 160 au and Juno is at Jupiter; both come from the table.
+  await expect(panel.getByText(/Güneş'e uzaklık: 1[67]\d\.\d\d AU/)).toBeVisible()
+  await expect(panel.getByText(/Kapsam: 2024-\d\d → 20\d\d-\d\d/).first()).toBeVisible()
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

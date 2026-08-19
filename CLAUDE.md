@@ -21,6 +21,8 @@ stays on the platform display face and the installed PWA keeps working offline.
 - UI copy is bilingual through `pickLanguage`; identifiers, comments, and commit messages
   stay in English.
 - Verification before done: `npm run verify` from `app/` (unit tests, lint, build, e2e).
+- `app/src/lib/generated/` is written by scripts, never by hand. Re-run
+  `npm run generate:probe-ephemeris` and commit the result before its coverage window lapses.
 
 ## Layout
 

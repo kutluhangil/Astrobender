@@ -29,7 +29,7 @@ import {
 } from './cinematic-tour'
 import {
   J2000_MS,
-  compressDistanceAu,
+  compressHeliocentricPosition,
   getGeocentricScenePositions,
   getSatelliteScenePosition,
   samplePlanetOrbitScene,
@@ -45,7 +45,8 @@ import {
   sampleTrojanCloud,
   type LagrangeScenePoint,
 } from './lagrange'
-import { DEEP_SPACE_PROBES, probeDistanceAuAt, type DeepSpaceProbe } from './probes'
+import { getProbeHeliocentricAu } from './probe-ephemeris'
+import { DEEP_SPACE_PROBES, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
@@ -1896,20 +1897,18 @@ export class GlobeEngine {
     this.updateLagrangePoints(simMs, performance.now())
     if (this.probeGroup?.visible) {
       for (const probe of this.probeGroup.children) {
-        const offset = probe.userData.offset
-        const anchor = probe.userData.anchor
         const definition = probe.userData.probe as DeepSpaceProbe | undefined
-        if (!(offset instanceof THREE.Vector3) || !definition || (anchor !== 'earth' && anchor !== 'sun')) {
+        if (!definition) {
           throw new Error(`Invalid probe scene metadata: ${probe.name || 'unnamed probe'}`)
         }
-        const distance = compressDistanceAu(probeDistanceAuAt(definition, simMs))
-        offset.set(
-          Math.cos(definition.angleRad) * distance,
-          Math.sin(definition.angleRad) * Math.cos(definition.inclinationRad) * distance,
-          Math.sin(definition.angleRad) * Math.sin(definition.inclinationRad) * distance,
-        )
-        probe.position.copy(offset)
-        if (anchor === 'sun') probe.position.add(this.sun.position)
+        // Spacecraft trajectories are not conic sections, so a simulation time
+        // outside the baked Horizons window hides the marker rather than
+        // extrapolating a position the mission never had.
+        const heliocentric = getProbeHeliocentricAu(definition.id, simMs)
+        probe.visible = heliocentric !== null
+        if (!heliocentric) continue
+        const scene = compressHeliocentricPosition(heliocentric)
+        probe.position.set(scene.x, scene.y, scene.z).add(this.sun.position)
       }
     }
     ;(this.cloudsMat.uniforms.uSunDir.value as THREE.Vector3).copy(
@@ -2479,21 +2478,11 @@ export class GlobeEngine {
     const group = new THREE.Group()
     for (const p of DEEP_SPACE_PROBES) {
       if (!p.rendered) continue
-      const dist = compressDistanceAu(p.distanceAu)
-      const px = Math.cos(p.angleRad) * dist
-      const py = Math.sin(p.angleRad) * Math.cos(p.inclinationRad) * dist
-      const pz = Math.sin(p.angleRad) * Math.sin(p.inclinationRad) * dist
-
-      // Deep space probe 3D marker (Cyan / Silver beacon)
       const geo = new THREE.SphereGeometry(0.08, 16, 16)
       const mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
       const mesh = new THREE.Mesh(geo, mat)
       mesh.name = p.name
-      mesh.userData.offset = new THREE.Vector3(px, py, pz)
-      mesh.userData.anchor = p.id === 'jwst' ? 'earth' : 'sun'
       mesh.userData.probe = p
-      mesh.position.copy(mesh.userData.offset)
-
       group.add(mesh)
     }
     return group

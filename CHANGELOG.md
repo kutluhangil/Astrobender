@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Replaced the linear probe-distance estimate with real JPL Horizons vectors baked at build time by `npm run generate:probe-ephemeris`: all seven deep-space missions now plot from their own solution, Parker Solar Probe and Juno sample densely enough for their tight orbits, and a simulation time outside a mission's window hides its marker instead of extrapolating a path it never flew.
 - Added a Lagrange and Trojan layer: Sun-Earth and Sun-Jupiter L4/L5 sit at their true 60° positions, L1 and L2 use the third-order Hill series (1.4915 and 1.5015 million km) and are drawn at a disclosed exaggeration because the compressed scale would bury them inside the Earth, and the two Jupiter Trojan camps are labelled schematic libration clouds rather than catalogued positions.
 - Added a comet layer: 1P/Halley, 67P/Churyumov-Gerasimenko, and 12P/Pons-Brooks draw their real eccentric orbits from JPL SBDB elements, with fixed-size markers because a few-kilometre nucleus cannot be drawn to scale, and each entry states how far its two-body track drifts from JPL Horizons.
 - Explicitly opened right-hand panels now outrank the ambient body panel, which had been intercepting clicks on the small-body and Earth Observatory panels beneath it.

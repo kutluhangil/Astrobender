@@ -44,7 +44,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/voyager/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: true,
-    ephemerisNoteTr: '2026 referans uzaklığından ölçülen hızla doğrusal uzaklık kestirimi.',
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
   {
     id: 'voyager2',
@@ -62,7 +62,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/voyager/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: true,
-    ephemerisNoteTr: '2026 referans uzaklığından ölçülen hızla doğrusal uzaklık kestirimi.',
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
   {
     id: 'jwst',
@@ -80,7 +80,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/webb/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: true,
-    ephemerisNoteTr: 'Dünya–Güneş L2 çevresindeki halo yörüngesinin şematik işareti.',
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
   {
     id: 'newhorizons',
@@ -98,7 +98,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     sourceUrl: 'https://science.nasa.gov/mission/new-horizons/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
     rendered: true,
-    ephemerisNoteTr: '2026 referans uzaklığından ölçülen hızla doğrusal uzaklık kestirimi.',
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
   {
     id: 'europa-clipper',
@@ -115,8 +115,8 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: 'Europa’nın yaşanabilirlik koşullarını incelemek üzere 2030’da Jüpiter sistemine ulaşması planlanıyor.',
     sourceUrl: 'https://science.nasa.gov/mission/europa-clipper/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: false,
-    ephemerisNoteTr: 'Canlı Horizons efemerisi olmadan 3D konum gösterilmiyor.',
+    rendered: true,
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
   {
     id: 'juno',
@@ -133,8 +133,8 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: 'Jüpiter’in iç yapısını, atmosferini ve manyetik alanını kutupsal yörüngeden inceliyor.',
     sourceUrl: 'https://science.nasa.gov/mission/juno/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: false,
-    ephemerisNoteTr: 'Canlı Horizons efemerisi olmadan 3D konum gösterilmiyor.',
+    rendered: true,
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
   {
     id: 'parker-solar-probe',
@@ -151,7 +151,7 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     descriptionTr: 'Güneş koronasının içinden geçerek güneş rüzgârının kökenini araştırıyor.',
     sourceUrl: 'https://science.nasa.gov/mission/parker-solar-probe/',
     referenceEpochMs: REFERENCE_EPOCH_MS,
-    rendered: false,
-    ephemerisNoteTr: 'Canlı Horizons efemerisi olmadan 3D konum gösterilmiyor.',
+    rendered: true,
+    ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',
   },
 ]

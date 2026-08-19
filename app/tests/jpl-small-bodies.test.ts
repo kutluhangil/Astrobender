@@ -102,12 +102,14 @@ test('close-approach distances convert to lunar distances and reject bad input',
   assert.throws(() => lunarDistances(-1), /finite non-negative AU value/)
 })
 
-test('deep-space estimates react to simulation time and non-ephemeris missions stay unplotted', () => {
+test('every deep-space mission is plotted from its own Horizons table', () => {
   const voyager = DEEP_SPACE_PROBES.find((probe) => probe.id === 'voyager1')
   const clipper = DEEP_SPACE_PROBES.find((probe) => probe.id === 'europa-clipper')
   assert.ok(voyager)
   assert.ok(clipper)
   assert.ok(probeDistanceAuAt(voyager, voyager.referenceEpochMs + 86_400_000) > voyager.distanceAu)
-  assert.equal(clipper.rendered, false)
-  assert.match(clipper.ephemerisNoteTr, /3D konum gösterilmiyor/)
+  for (const probe of DEEP_SPACE_PROBES) {
+    assert.equal(probe.rendered, true, `${probe.id} must be rendered`)
+    assert.match(probe.ephemerisNoteTr, /JPL Horizons vektör tablosundan/, probe.id)
+  }
 })

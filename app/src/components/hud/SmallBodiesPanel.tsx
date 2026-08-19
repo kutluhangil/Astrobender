@@ -9,6 +9,11 @@ import {
 } from '@/lib/jpl-small-bodies'
 import { COMETS, COMET_DRIFT_REFERENCE_DATE } from '@/lib/comets'
 import type { CelestialBodyId } from '@/lib/planets'
+import {
+  PROBE_EPHEMERIS_META,
+  getProbeCoverage,
+  getProbeHeliocentricAu,
+} from '@/lib/probe-ephemeris'
 import { DEEP_SPACE_PROBES } from '@/lib/probes'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
@@ -281,26 +286,51 @@ export default function SmallBodiesPanel({
 
         {tab === 'missions' && (
           <div className="space-y-1.5">
-            {DEEP_SPACE_PROBES.map((probe) => (
-              <a
-                key={probe.id}
-                href={probe.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded-lg border border-white/7 bg-white/[0.03] p-2.5 hover:border-cyan-400/25"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] font-semibold text-cyan-100">
-                    {probe.emoji} {language === 'tr' ? probe.nameTr : probe.name}
-                  </span>
-                  <span className="font-mono text-[7px] text-slate-500">{probe.launchYear}</span>
+            <p className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 p-2 font-mono text-[8px] leading-relaxed text-cyan-100/85">
+              {t(
+                `Konumlar ${PROBE_EPHEMERIS_META.centre} merkezli JPL Horizons vektör tablosundan okunuyor. Simülasyon saati bir görevin çözüm penceresinin dışına çıktığında konum uydurulmaz, işaret gizlenir.`,
+                `Positions are read from a JPL Horizons vector table centred on ${PROBE_EPHEMERIS_META.centre}. When the simulation clock leaves a mission's solution window the marker is hidden rather than extrapolated.`,
+              )}
+            </p>
+            {DEEP_SPACE_PROBES.map((probe) => {
+              const coverage = getProbeCoverage(probe.id)
+              const position = updatedAt === null ? null : getProbeHeliocentricAu(probe.id, updatedAt)
+              const distanceAu = position
+                ? Math.hypot(position.x, position.y, position.z)
+                : null
+
+              return (
+                <div key={probe.id} className="rounded-lg border border-white/7 bg-white/[0.03] p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] font-semibold text-cyan-100">
+                      {probe.emoji} {language === 'tr' ? probe.nameTr : probe.name}
+                    </span>
+                    <span className="font-mono text-[7px] text-slate-500">{probe.launchYear}</span>
+                  </div>
+                  <p className="mt-1 text-[9px] text-slate-300">{probe.statusTr}</p>
+                  <div className="mt-1.5 grid grid-cols-2 gap-1 font-mono text-[8px] text-slate-400">
+                    <span>
+                      {t("Güneş'e uzaklık", 'Distance from Sun')}:{' '}
+                      {distanceAu === null ? '—' : `${distanceAu.toFixed(2)} AU`}
+                    </span>
+                    <span>
+                      {t('Kapsam', 'Coverage')}:{' '}
+                      {coverage
+                        ? `${new Date(coverage.startMs).toISOString().slice(0, 7)} → ${new Date(coverage.endMs).toISOString().slice(0, 7)}`
+                        : '—'}
+                    </span>
+                  </div>
+                  <a
+                    href={probe.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1.5 inline-flex font-mono text-[8px] uppercase tracking-[0.14em] text-cyan-300/85 hover:text-cyan-200"
+                  >
+                    {t('NASA görev sayfası', 'NASA mission page')} ↗
+                  </a>
                 </div>
-                <p className="mt-1 text-[9px] text-slate-300">{probe.statusTr}</p>
-                <p className="mt-1 font-mono text-[7px] leading-relaxed text-slate-500">
-                  {probe.ephemerisNoteTr}
-                </p>
-              </a>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

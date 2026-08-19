@@ -1,4 +1,5 @@
 import { COMETS } from '@/lib/comets'
+import { MPC_TROJAN_URL, NASA_LAGRANGE_URL } from '@/lib/lagrange'
 import { UI_GROUPS } from '@/lib/satellites'
 import {
   IAU_CONSTELLATIONS,
@@ -23,6 +24,8 @@ interface LayerPanelProps {
   asteroidsVisible?: boolean
   onToggleComets?: () => void
   cometsVisible?: boolean
+  onToggleLagrange?: () => void
+  lagrangeVisible?: boolean
   onToggleEarthObservatory?: () => void
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
@@ -49,6 +52,8 @@ export default function LayerPanel({
   asteroidsVisible = false,
   onToggleComets,
   cometsVisible = false,
+  onToggleLagrange,
+  lagrangeVisible = false,
   onToggleEarthObservatory,
   earthObservatoryVisible = false,
   onToggleSmallBodies,
@@ -128,6 +133,14 @@ export default function LayerPanel({
             🌠 {t(`Kuyruklu Yıldızlar ${COMETS.length}`, `Comets ${COMETS.length}`)}
           </button>
           <button
+            onClick={onToggleLagrange}
+            className={`py-1 rounded border transition-all ${
+              lagrangeVisible ? 'border-violet-400/50 bg-violet-400/15 text-violet-100 font-semibold shadow-[0_0_8px_rgba(167,139,250,0.25)]' : 'border-white/5 bg-white/5 text-white/60'
+            }`}
+          >
+            🔺 {t('Lagrange & Trojanlar', 'Lagrange & Trojans')}
+          </button>
+          <button
             onClick={onToggleEarthObservatory}
             className={`py-1 rounded border transition-all ${
               earthObservatoryVisible ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-semibold shadow-[0_0_8px_rgba(52,211,153,0.25)]' : 'border-white/5 bg-white/5 text-white/60'
@@ -152,6 +165,30 @@ export default function LayerPanel({
             🌠 {t('Gökyüzü Takvimi', 'Skywatch')}
           </button>
         </div>
+        {lagrangeVisible && (
+          <div className="mt-1.5 rounded-md border border-violet-400/20 bg-violet-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-violet-200/85">
+            <p>
+              {t(
+                'L4 ve L5 gerçek 60° konumlarında. L1 ve L2 sıkıştırılmış ölçekte Dünya küresinin içinde kalacağı için abartılmış bir uzaklıkta çiziliyor.',
+                'L4 and L5 sit at their true 60° positions. L1 and L2 would fall inside the Earth sphere at the compressed scale, so they are drawn at an exaggerated distance.',
+              )}
+            </p>
+            <p className="mt-1">
+              {t(
+                'Jüpiter Trojan kampları şematiktir: kampın librasyon ve eğiklik yayılımını gösterir, kataloglanmış cisim konumlarını değil.',
+                'The Jupiter Trojan camps are schematic: they show a camp’s libration and inclination spread, not catalogued object positions.',
+              )}
+            </p>
+            <div className="mt-1 flex flex-wrap gap-x-3">
+              <a href={NASA_LAGRANGE_URL} target="_blank" rel="noreferrer" className="text-violet-200 hover:text-violet-100">
+                {t('NASA Lagrange', 'NASA Lagrange')} ↗
+              </a>
+              <a href={MPC_TROJAN_URL} target="_blank" rel="noreferrer" className="text-violet-200 hover:text-violet-100">
+                {t('MPC Trojan listesi', 'MPC Trojan list')} ↗
+              </a>
+            </div>
+          </div>
+        )}
         {cometsVisible && (
           <p className="mt-1.5 rounded-md border border-sky-400/20 bg-sky-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-sky-200/80">
             {t(

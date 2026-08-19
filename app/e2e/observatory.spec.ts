@@ -133,6 +133,17 @@ test('comet layer draws sourced eccentric orbits and states its ephemeris drift'
   await expect(panel.getByText(/JPL Horizons'tan 0\.276 AU sapıyor/)).toBeVisible()
 })
 
+test('Lagrange layer discloses its exaggerated collinear points and schematic camps', async ({ page }) => {
+  await page.getByRole('button', { name: /Lagrange & Trojanlar/ }).first().click()
+  await expect(page.getByText(/L1 ve L2 sıkıştırılmış ölçekte Dünya küresinin içinde/).first()).toBeVisible()
+  await expect(page.getByText(/Jüpiter Trojan kampları şematiktir/).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: /MPC Trojan listesi/ }).first()).toHaveAttribute(
+    'href',
+    'https://www.minorplanetcenter.net/iau/lists/JupiterTrojans.html',
+  )
+  await expect(page.locator('canvas')).toBeVisible()
+})
+
 test('LIVE controller exposes operational status from its information port', async ({ page }) => {
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()

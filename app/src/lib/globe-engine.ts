@@ -39,6 +39,12 @@ import {
   type SatelliteBodyId,
 } from './orbital-mechanics'
 import { COMETS, COMET_MARKER_RADIUS, type CometDefinition } from './comets'
+import {
+  getLagrangePoints,
+  getLagrangeScenePosition,
+  sampleTrojanCloud,
+  type LagrangeScenePoint,
+} from './lagrange'
 import { DEEP_SPACE_PROBES, probeDistanceAuAt, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
@@ -462,6 +468,9 @@ const FLY_TO_FULL_DISTANCE = 240
  * SATELLITE_MIN_KEEP as the camera closes in; the HUD reports the fraction so
  * the reduction is visible rather than silent.
  */
+/** Wall-clock gap between Trojan-cloud rebuilds. */
+const TROJAN_REBUILD_INTERVAL_MS = 500
+
 const SATELLITE_MIN_KEEP = 0.28
 const SATELLITE_THIN_NEAR = 1.8
 const SATELLITE_THIN_FAR = 7
@@ -495,6 +504,8 @@ export class GlobeEngine {
   private planetRuntimes: PlanetRuntime[] = []
   private probeGroup: THREE.Group | null = null
   private cometGroup: THREE.Group | null = null
+  private lagrangeGroup: THREE.Group | null = null
+  private lastTrojanUpdateReal = 0
   private constellationGroup: THREE.Group | null = null
   private asteroidSwarm: AsteroidSwarm | null = null
   private lastAsteroidUpdateReal = 0
@@ -884,6 +895,9 @@ export class GlobeEngine {
     this.cometGroup = this.makeComets()
     this.cometGroup.visible = false
     this.scene.add(this.cometGroup)
+    this.lagrangeGroup = this.makeLagrangePoints()
+    this.lagrangeGroup.visible = false
+    this.scene.add(this.lagrangeGroup)
     this.constellationGroup = this.makeConstellations()
 
     // --- 3D Asteroid & Kuiper Belts (Instanced Swarm) ---
@@ -1879,6 +1893,7 @@ export class GlobeEngine {
     const planetPositions = getGeocentricScenePositions(simMs)
     this.updateSun(simMs, planetPositions.sun)
     this.updateComets(planetPositions)
+    this.updateLagrangePoints(simMs, performance.now())
     if (this.probeGroup?.visible) {
       for (const probe of this.probeGroup.children) {
         const offset = probe.userData.offset
@@ -2543,6 +2558,92 @@ export class GlobeEngine {
       // it rides with the Sun instead of staying pinned to the origin.
       orbit.position.copy(this.sun.position)
     }
+  }
+
+  /**
+   * Lagrange markers plus the two Jupiter Trojan camps. The camps are a
+   * schematic of the libration and inclination spread, not catalogued positions,
+   * and the layer note in the interface says so.
+   */
+  private makeLagrangePoints(): THREE.Group {
+    const group = new THREE.Group()
+    const simMs = this.cb.getSimTime()
+    for (const point of getLagrangePoints(simMs)) {
+      const node = new THREE.Group()
+      node.name = `${point.secondary}-${point.id}`
+      node.userData.lagrange = point
+
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.09, 10, 10),
+        new THREE.MeshBasicMaterial({
+          color: point.secondary === 'jupiter' ? 0xf0b429 : 0x7ee0ff,
+        }),
+      )
+      marker.name = 'marker'
+      node.add(marker)
+
+      if (point.secondary === 'jupiter') {
+        const samples = sampleTrojanCloud(point, simMs)
+        const positions = new Float32Array(samples.length * 3)
+        samples.forEach((sample, index) => {
+          positions.set([sample.x, sample.y, sample.z], index * 3)
+        })
+        const geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+        const cloud = new THREE.Points(
+          geometry,
+          new THREE.PointsMaterial({
+            color: 0xf0b429,
+            size: 1.6,
+            sizeAttenuation: false,
+            transparent: true,
+            opacity: 0.5,
+            depthWrite: false,
+          }),
+        )
+        cloud.name = 'cloud'
+        cloud.frustumCulled = false
+        node.add(cloud)
+      }
+
+      group.add(node)
+    }
+    return group
+  }
+
+  setLagrangeVisible(v: boolean) {
+    if (this.lagrangeGroup) this.lagrangeGroup.visible = v
+  }
+
+  private updateLagrangePoints(simMs: number, realNow: number) {
+    if (!this.lagrangeGroup?.visible) return
+    const points = getLagrangePoints(simMs)
+    // Jupiter crosses a Trojan camp's own width over months, so re-sampling the
+    // 240-point cloud every frame would burn allocations for no visible motion.
+    const rebuildClouds = realNow - this.lastTrojanUpdateReal > TROJAN_REBUILD_INTERVAL_MS
+    if (rebuildClouds) this.lastTrojanUpdateReal = realNow
+
+    this.lagrangeGroup.children.forEach((node, index) => {
+      const point = points[index]
+      const stored = node.userData.lagrange as LagrangeScenePoint | undefined
+      if (!point || !stored || point.id !== stored.id || point.secondary !== stored.secondary) {
+        throw new Error(`Lagrange scene node is out of step with the model: ${node.name}`)
+      }
+      const marker = node.getObjectByName('marker')
+      if (!marker) throw new Error(`Lagrange node has no marker: ${node.name}`)
+      const scene = getLagrangeScenePosition(point, simMs)
+      marker.position.set(scene.x, scene.y, scene.z)
+
+      const cloud = node.getObjectByName('cloud')
+      if (rebuildClouds && cloud instanceof THREE.Points) {
+        const samples = sampleTrojanCloud(point, simMs)
+        const attribute = cloud.geometry.getAttribute('position') as THREE.BufferAttribute
+        samples.forEach((sample, sampleIndex) => {
+          attribute.setXYZ(sampleIndex, sample.x, sample.y, sample.z)
+        })
+        attribute.needsUpdate = true
+      }
+    })
   }
 
   private makeConstellations(): THREE.Group {

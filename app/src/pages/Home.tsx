@@ -130,6 +130,7 @@ export default function Home() {
   const [probesVisible, setProbesVisible] = useState(false)
   const [constellationsVisible, setConstellationsVisible] = useState(false)
   const [cometsVisible, setCometsVisible] = useState(false)
+  const [lagrangeVisible, setLagrangeVisible] = useState(false)
   const [asteroidsVisible, setAsteroidsVisible] = useState(false)
   const [earthObservatoryOpen, setEarthObservatoryOpen] = useState(false)
   const [earthLayerVisibility, setEarthLayerVisibility] = useState<EarthLayerVisibility>({
@@ -432,6 +433,14 @@ export default function Home() {
     setCometsVisible((v) => {
       const next = !v
       engineRef.current?.setCometsVisible(next)
+      return next
+    })
+  }, [])
+
+  const handleToggleLagrange = useCallback(() => {
+    setLagrangeVisible((v) => {
+      const next = !v
+      engineRef.current?.setLagrangeVisible(next)
       return next
     })
   }, [])
@@ -949,6 +958,8 @@ export default function Home() {
     probesVisible,
     onToggleComets: handleToggleComets,
     cometsVisible,
+    onToggleLagrange: handleToggleLagrange,
+    lagrangeVisible,
     onToggleConstellations: handleToggleConstellations,
     constellationsVisible,
     onToggleAsteroids: handleToggleAsteroids,

@@ -2,9 +2,13 @@ import { COMETS } from '@/lib/comets'
 import { MPC_TROJAN_URL, NASA_LAGRANGE_URL } from '@/lib/lagrange'
 import { UI_GROUPS } from '@/lib/satellites'
 import {
+  BRIGHT_STAR_CATALOG_SOURCE_URL,
+  CONSTELLATION_FIGURE_STAR_COUNT,
+  CONSTELLATIONS,
   IAU_CONSTELLATIONS,
   IAU_CONSTELLATIONS_SOURCE_URL,
 } from '@/lib/constellations'
+import { BRIGHT_STAR_COUNT, BRIGHT_STAR_MAGNITUDE_LIMIT } from '@/lib/star-catalog'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 
 interface LayerPanelProps {
@@ -210,17 +214,30 @@ export default function LayerPanel({
           </p>
         )}
         {constellationsVisible && (
-          <a
-            href={IAU_CONSTELLATIONS_SOURCE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1.5 block rounded-md border border-indigo-400/20 bg-indigo-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-indigo-200/80 hover:bg-indigo-400/10"
-          >
-            {t(
-              'IAU kataloğu: 88/88 · 5 temsili çizgi görünümü. IAU resmî çizgi şekli tanımlamaz.',
-              'IAU catalog: 88/88 · 5 representative line figures. The IAU defines no official stick figures.',
-            )} ↗
-          </a>
+          <div className="mt-1.5 space-y-1">
+            <a
+              href={IAU_CONSTELLATIONS_SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded-md border border-indigo-400/20 bg-indigo-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-indigo-200/80 hover:bg-indigo-400/10"
+            >
+              {t(
+                `IAU kataloğu: ${CONSTELLATIONS.length}/88 çizgi şekli, ${CONSTELLATION_FIGURE_STAR_COUNT} katalog yıldızı üzerinde. IAU resmî çizgi şekli tanımlamaz.`,
+                `IAU catalog: ${CONSTELLATIONS.length}/88 line figures, drawn on ${CONSTELLATION_FIGURE_STAR_COUNT} catalogued stars. The IAU defines no official stick figures.`,
+              )} ↗
+            </a>
+            <a
+              href={BRIGHT_STAR_CATALOG_SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded-md border border-indigo-400/20 bg-indigo-400/5 px-2 py-1.5 font-mono text-[8px] leading-relaxed text-indigo-200/80 hover:bg-indigo-400/10"
+            >
+              {t(
+                `Gökyüzü ${BRIGHT_STAR_COUNT.toLocaleString('tr-TR')} gerçek yıldızla çizilir; ${BRIGHT_STAR_MAGNITUDE_LIMIT} kadire kadar, renk B-V indisinden.`,
+                `The sky is drawn from ${BRIGHT_STAR_COUNT.toLocaleString('en-US')} real stars down to magnitude ${BRIGHT_STAR_MAGNITUDE_LIMIT}, coloured by B-V index.`,
+              )} ↗
+            </a>
+          </div>
         )}
       </div>
 

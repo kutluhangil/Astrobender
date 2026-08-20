@@ -6,11 +6,13 @@ export const BRIGHT_STAR_MAGNITUDE_LIMIT = BRIGHT_STARS.magnitudeLimit
 export const BRIGHT_STAR_COUNT = BRIGHT_STARS.count
 
 /**
- * Radius of the celestial sphere the sky is painted on, in scene units. It sits
- * well outside every drawn orbit — Sedna's aphelion reaches about 1,840 units —
- * so no body can ever pass in front of a star that is meant to be behind it.
+ * Radius of the celestial sphere the sky is painted on, in scene units. The
+ * shell is centred on the camera, so it has to clear the furthest the camera
+ * can pull back (8,000 units) plus the widest drawn orbit — Sedna's aphelion,
+ * at about 1,700 units — or a body on the far side of the Sun would end up
+ * behind the stars. It stays inside the camera's 25,000-unit far plane.
  */
-export const CELESTIAL_SPHERE_RADIUS = 3200
+export const CELESTIAL_SPHERE_RADIUS = 12000
 
 export interface StarPosition {
   x: number
@@ -110,6 +112,33 @@ export function colourFromBv(bv: number): [number, number, number] {
   return [channel(red), channel(green), channel(blue)]
 }
 
+/** Drawn point size, in device pixels, at the two ends of the catalogue. */
+export const STAR_POINT_SIZE_BRIGHTEST = 4.2
+export const STAR_POINT_SIZE_FAINTEST = 0.9
+
+/** Brightest magnitude in the catalogue — Sirius, at -1.46. */
+const BRIGHTEST_MAGNITUDE = Math.min(...BRIGHT_STARS.magnitude)
+
+/**
+ * Drawn size for one star's magnitude. Flux across the catalogue spans a factor
+ * of about 1,500 between Sirius and the 6.5 limit, which no point size can
+ * show, so the drawn radius is linear in magnitude instead of in flux. That is
+ * a power law — radius follows roughly the sixth root of flux — and it keeps
+ * the naked-eye range legible rather than saturating every star brighter than
+ * fourth magnitude at the same dot.
+ */
+export function starPointSize(magnitude: number): number {
+  if (!Number.isFinite(magnitude)) {
+    throw new Error(`Invalid star magnitude: ${magnitude}`)
+  }
+  const span = BRIGHT_STARS.magnitudeLimit - BRIGHTEST_MAGNITUDE
+  const faintness = (magnitude - BRIGHTEST_MAGNITUDE) / span
+  const size =
+    STAR_POINT_SIZE_BRIGHTEST -
+    faintness * (STAR_POINT_SIZE_BRIGHTEST - STAR_POINT_SIZE_FAINTEST)
+  return Math.max(STAR_POINT_SIZE_FAINTEST, Math.min(STAR_POINT_SIZE_BRIGHTEST, size))
+}
+
 export interface StarFieldBuffers {
   positions: Float32Array
   colours: Float32Array
@@ -117,10 +146,8 @@ export interface StarFieldBuffers {
 }
 
 /**
- * Flat buffers for the whole catalogue. Point size follows the magnitude scale
- * — every 5 magnitudes is a factor of 100 in flux — so a first-magnitude star
- * reads as brighter than a sixth-magnitude one instead of every star being an
- * identical dot.
+ * Flat buffers for the whole catalogue: a position on the celestial sphere, an
+ * sRGB colour from the B-V index, and a point size from the visual magnitude.
  */
 export function buildStarFieldBuffers(radius = CELESTIAL_SPHERE_RADIUS): StarFieldBuffers {
   const count = BRIGHT_STARS.count
@@ -132,10 +159,7 @@ export function buildStarFieldBuffers(radius = CELESTIAL_SPHERE_RADIUS): StarFie
     const position = starPosition(index, radius)
     positions.set([position.x, position.y, position.z], index * 3)
     colours.set(colourFromBv(BRIGHT_STARS.colourIndex[index]), index * 3)
-    // Relative flux against the 6.5 limit, then a square root so the drawn
-    // radius rather than the drawn area tracks brightness.
-    const flux = Math.pow(10, -0.4 * (BRIGHT_STARS.magnitude[index] - BRIGHT_STARS.magnitudeLimit))
-    sizes[index] = Math.min(4.2, 0.7 + Math.sqrt(flux) * 0.55)
+    sizes[index] = starPointSize(BRIGHT_STARS.magnitude[index])
   }
 
   return { positions, colours, sizes }

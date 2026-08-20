@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/body-comparison.test.ts tests/scene-readability.test.ts tests/comets.test.ts tests/lagrange.test.ts tests/probe-ephemeris.test.ts tests/mission-timeline.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts tests/sky-events.test.ts tests/skywatch-location.test.ts tests/tle-freshness.test.ts tests/tle-api.test.ts tests/health-api.test.ts tests/source-governance.test.ts tests/offline-storage.test.ts scripts/project-integrity.test.mjs tests/texture-manifest.test.ts tests/icon-assets.test.ts",
+    "test": "node --experimental-strip-types --test tests/orbital-mechanics.test.ts tests/celestial-catalog.test.ts tests/body-comparison.test.ts tests/scene-readability.test.ts tests/comets.test.ts tests/lagrange.test.ts tests/probe-ephemeris.test.ts tests/mission-timeline.test.ts tests/earth-observatory.test.ts tests/jpl-small-bodies.test.ts tests/star-catalog.test.ts tests/unified-search.test.ts tests/performance-budget.test.ts tests/cinematic-tour.test.ts tests/sky-events.test.ts tests/skywatch-location.test.ts tests/tle-freshness.test.ts tests/tle-api.test.ts tests/health-api.test.ts tests/source-governance.test.ts tests/offline-storage.test.ts scripts/project-integrity.test.mjs tests/texture-manifest.test.ts tests/icon-assets.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium --workers=1",
     "test:e2e:pwa": "playwright test --project=chromium-pwa-build --workers=1",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20
+
+- Replaced the 1,400 procedurally scattered dots with the real sky: all 8,404 stars of the Yale Bright Star Catalogue down to magnitude 6.5, placed by their J2000 equatorial coordinates, coloured from their B-V index and sized by visual magnitude.
+- Put the stars and the 88 constellation figures on one celestial sphere that rides with the camera, so the widest zoom-out no longer leaves the viewpoint outside its own sky or lets an outer body fall behind the stars.
+- Corrected the constellation layer's caption, which still claimed five representative figures after all 88 had been resolved, and gave the star field its own catalogue citation.
+
 ## 2026-08-19
 
 - Added a mission timeline: eighteen NSSDCA-sourced moments from Apollo 11 to Zhurong, grouped by decade, each of which sets the simulation clock to its instant, focuses the target body, and pins the surface site it landed on.

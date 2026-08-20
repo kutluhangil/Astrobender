@@ -48,6 +48,7 @@ import {
 import { getProbeHeliocentricAu } from './probe-ephemeris'
 import { DEEP_SPACE_PROBES, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
+import { buildStarFieldBuffers } from './star-catalog'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 import type { AuroraPoint, EarthEvent } from './earth-observatory'
@@ -294,6 +295,47 @@ void main() {
 }
 `
 
+/** Star alpha per theme: bright enough to read, below the bloom threshold. */
+const DARK_SKY_STAR_OPACITY = 0.62
+const LIGHT_SKY_STAR_OPACITY = 0.82
+
+// The sky is drawn as one point per catalogued star, so point size has to vary
+// per vertex with the star's magnitude. PointsMaterial only carries a single
+// size for the whole cloud, which is why this is a ShaderMaterial.
+const STAR_VERT = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
+attribute float aSize;
+uniform float uPixelRatio;
+varying vec3 vColour;
+void main() {
+  vColour = color;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mv;
+  // No size attenuation: the celestial sphere is a fixed shell around the
+  // camera, so a star must not swell as the camera drifts toward it.
+  gl_PointSize = aSize * uPixelRatio;
+  #include <logdepthbuf_vertex>
+}
+`
+
+const STAR_FRAG = /* glsl */ `
+#include <logdepthbuf_pars_fragment>
+uniform vec3 uTint;
+uniform float uOpacity;
+varying vec3 vColour;
+void main() {
+#include <logdepthbuf_fragment>
+  // Round off the square point sprite and soften its edge, so bright stars
+  // read as discs instead of pixel blocks.
+  vec2 offset = gl_PointCoord - vec2(0.5);
+  float radius = length(offset);
+  if (radius > 0.5) discard;
+  float edge = 1.0 - smoothstep(0.32, 0.5, radius);
+  gl_FragColor = vec4(vColour * uTint, uOpacity * edge);
+}
+`
+
 const MOON_VERT = /* glsl */ `
   #include <common>
   #include <logdepthbuf_pars_vertex>
@@ -513,7 +555,8 @@ export class GlobeEngine {
   /** Preallocated — mutated via .copy() every frame, never reassigned. Validity tracked by hasLastFocusPos. */
   private lastFocusPos = new THREE.Vector3()
   private hasLastFocusPos = false
-  private starsMat: THREE.PointsMaterial | null = null
+  private starsMat: THREE.ShaderMaterial | null = null
+  private skyGroup: THREE.Group | null = null
   public currentTheme: 'dark' | 'light' = 'dark'
   public isCinematicTourActive: boolean = false
   public tourTargetIndex: number = 0
@@ -887,7 +930,11 @@ export class GlobeEngine {
     // source in the background exhausts the WebGL texture budget on long sessions;
     // distant bodies keep their lightweight procedural preview until selected.
 
-    this.scene.add(this.makeStars())
+    // Stars and the constellation figures drawn over them are one celestial
+    // sphere, so they share a group and move together with the camera.
+    this.skyGroup = new THREE.Group()
+    this.skyGroup.add(this.makeStars())
+    this.scene.add(this.skyGroup)
 
     // ═══════════════════════════════════════════════════════════════════════
     // COSMIC ENVIRONMENTS — Deep Space Probes, Constellations
@@ -912,9 +959,9 @@ export class GlobeEngine {
       this.probeGroup.visible = false
       this.scene.add(this.probeGroup)
     }
-    if (this.constellationGroup) {
+    if (this.constellationGroup && this.skyGroup) {
       this.constellationGroup.visible = false
-      this.scene.add(this.constellationGroup)
+      this.skyGroup.add(this.constellationGroup)
     }
 
     // --- selection marker ---
@@ -1118,6 +1165,7 @@ export class GlobeEngine {
         }
       `,
     })
+
     const mesh = new THREE.Mesh(geo, mat)
     mesh.rotation.x = def.axialTilt * (Math.PI / 180)
     if (def.shapeScale) mesh.scale.set(...def.shapeScale)
@@ -1347,38 +1395,46 @@ export class GlobeEngine {
     }
   }
 
+  /**
+   * The real sky: every star in the bright-star catalogue, placed by its J2000
+   * equatorial coordinates on the celestial sphere, coloured by its B-V index
+   * and sized by its visual magnitude. The whole shell rides with the camera
+   * each frame (see `anchorSky`), because naked-eye stars are far enough away
+   * that no Solar System viewpoint shifts them measurably.
+   */
   private makeStars(): THREE.Points {
-    const N = 1400
-    const pos = new Float32Array(N * 3)
-    const col = new Float32Array(N * 3)
-    for (let i = 0; i < N; i++) {
-      let x = Math.random() * 2 - 1
-      let y = Math.random() * 2 - 1
-      let z = Math.random() * 2 - 1
-      const len = Math.sqrt(x * x + y * y + z * z) || 1
-      const r = 60 + Math.random() * 120
-      x = (x / len) * r
-      y = (y / len) * r
-      z = (z / len) * r
-      pos.set([x, y, z], i * 3)
-      const b = 0.2 + Math.random() * 0.45 // sparse and restrained, under bloom threshold
-      col.set([b, b, Math.min(0.8, b + 0.1)], i * 3)
-    }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    g.setAttribute('color', new THREE.BufferAttribute(col, 3))
-    const m = new THREE.PointsMaterial({
-      size: 1.0,
-      sizeAttenuation: false,
+    const { positions, colours, sizes } = buildStarFieldBuffers()
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geometry.setAttribute('color', new THREE.BufferAttribute(colours, 3))
+    geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uPixelRatio: { value: this.renderer.getPixelRatio() },
+        uTint: { value: new THREE.Color(0xffffff) },
+        uOpacity: { value: DARK_SKY_STAR_OPACITY },
+      },
+      vertexShader: STAR_VERT,
+      fragmentShader: STAR_FRAG,
       vertexColors: true,
       transparent: true,
-      opacity: 0.45,
       depthWrite: false,
     })
-    this.starsMat = m
-    const p = new THREE.Points(g, m)
-    p.frustumCulled = false
-    return p
+    this.starsMat = material
+
+    const points = new THREE.Points(geometry, material)
+    points.frustumCulled = false
+    return points
+  }
+
+  /**
+   * Keeps the celestial sphere centred on the camera. Without this the shell
+   * has a fixed centre, and flying past its radius would put the camera
+   * outside its own sky.
+   */
+  private anchorSky() {
+    if (this.skyGroup) this.skyGroup.position.copy(this.camera.position)
   }
 
   /** Shift Earth right of center on wide layouts to make room for the panel. */
@@ -1431,6 +1487,7 @@ export class GlobeEngine {
     this.composer.setPixelRatio(dpr)
     this.composer.setSize(w, h)
     for (const g of this.groups) g.mat.uniforms.uPixelRatio.value = dpr
+    if (this.starsMat) this.starsMat.uniforms.uPixelRatio.value = dpr
     if (this.replacement) {
       for (const g of this.replacement) g.mat.uniforms.uPixelRatio.value = dpr
     }
@@ -2110,6 +2167,7 @@ export class GlobeEngine {
     }
 
     this.controls.update()
+    this.anchorSky()
     this.composer.render()
     this.monitorPerf(performance.now())
   }
@@ -2429,8 +2487,10 @@ export class GlobeEngine {
       this.scene.background = new THREE.Color(0xe8f1f6)
       this.renderer.setClearColor(0xe8f1f6, 1)
       if (this.starsMat) {
-        this.starsMat.color.setHex(0x173a52)
-        this.starsMat.opacity = 0.82
+        // Star colours are multiplied down to a dark slate so the real sky
+        // stays visible against a bright background.
+        this.starsMat.uniforms.uTint.value.setHex(0x173a52)
+        this.starsMat.uniforms.uOpacity.value = LIGHT_SKY_STAR_OPACITY
       }
       this.bloom.strength = 0.2
       this.bloom.radius = 0.12
@@ -2440,8 +2500,8 @@ export class GlobeEngine {
       this.scene.background = null
       this.renderer.setClearColor(0x000000, 1)
       if (this.starsMat) {
-        this.starsMat.color.setHex(0xffffff)
-        this.starsMat.opacity = 0.45
+        this.starsMat.uniforms.uTint.value.setHex(0xffffff)
+        this.starsMat.uniforms.uOpacity.value = DARK_SKY_STAR_OPACITY
       }
       this.bloom.strength = 0.45
       this.bloom.radius = 0.25

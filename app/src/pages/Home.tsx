@@ -11,6 +11,7 @@ import { useSimClock } from '@/hooks/useSimClock'
 import { useTleData } from '@/hooks/useTleData'
 import { usePropagator } from '@/hooks/usePropagator'
 import { describeTleFreshness } from '@/lib/tle-freshness'
+import { textureBytesToMib } from '@/lib/texture-lod'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import IdentityBlock from '@/components/hud/IdentityBlock'
 import ClockCard from '@/components/hud/ClockCard'
@@ -149,6 +150,7 @@ export default function Home() {
   // Reported in the status port so the close-range satellite reduction is
   // visible rather than a silent drop in the record count.
   const [satelliteThinning, setSatelliteThinning] = useState(1)
+  const [residentTextureBytes, setResidentTextureBytes] = useState(0)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('tr')
   const [searchNotice, setSearchNotice] = useState<string | null>(null)
@@ -173,7 +175,9 @@ export default function Home() {
   useEffect(() => {
     const id = setInterval(() => {
       const engine = engineRef.current
-      if (engine) setSatelliteThinning(engine.getSatelliteThinning())
+      if (!engine) return
+      setSatelliteThinning(engine.getSatelliteThinning())
+      setResidentTextureBytes(engine.getResidentTextureBytes())
     }, 1000)
     return () => clearInterval(id)
   }, [])
@@ -891,6 +895,17 @@ export default function Home() {
                 `${Math.round(satelliteThinning * 100)}% of records drawn`,
               ),
               tone: 'warning' as const,
+            }]
+          : []),
+        ...(residentTextureBytes > 0
+          ? [{
+              id: 'texture-memory',
+              label: t('Doku belleği', 'Texture memory'),
+              value: t(
+                `${Math.round(textureBytesToMib(residentTextureBytes))} MiB yakın plan dokusu`,
+                `${Math.round(textureBytesToMib(residentTextureBytes))} MiB of close-range textures`,
+              ),
+              tone: 'normal' as const,
             }]
           : []),
         {

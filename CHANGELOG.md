@@ -2,6 +2,10 @@
 
 ## 2026-08-20
 
+- Gave every surface texture a distance-based level of detail: a body loads its full-resolution map only when it is focused or on screen and nearby, and releases it back to the procedural preview once the camera is far away. A visit to Mars now costs 171 MiB of GPU memory and gives it back on leaving, where before every body toured stayed resident for the session.
+- Reported resident close-range texture memory in the LIVE status port, alongside the satellite thinning already shown there.
+- Replaced the single catalog review date with a per-dataset registry: thirteen datasets each carry their own primary source, review date, review window and a stated reason for that window, so the frozen Yale star catalogue is not chased every 120 days while the yearly IMO shower calendar is.
+- Made `npm run check:sources` walk that registry instead of grepping one constant, and fail as well when the baked Horizons probe ephemeris drops below 180 days of remaining coverage.
 - Replaced the 1,400 procedurally scattered dots with the real sky: all 8,404 stars of the Yale Bright Star Catalogue down to magnitude 6.5, placed by their J2000 equatorial coordinates, coloured from their B-V index and sized by visual magnitude.
 - Put the stars and the 88 constellation figures on one celestial sphere that rides with the camera, so the widest zoom-out no longer leaves the viewpoint outside its own sky or lets an outer body fall behind the stars.
 - Corrected the constellation layer's caption, which still claimed five representative figures after all 88 had been resolved, and gave the star field its own catalogue citation.

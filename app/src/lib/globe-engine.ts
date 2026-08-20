@@ -49,6 +49,11 @@ import { getProbeHeliocentricAu } from './probe-ephemeris'
 import { DEEP_SPACE_PROBES, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { buildStarFieldBuffers } from './star-catalog'
+import {
+  estimateTextureBytes,
+  textureLodAction,
+  type TextureLodAction,
+} from './texture-lod'
 import { LANDING_SITES, findLandingSiteNear, type LandingSite } from './landing-sites'
 import { createAsteroidSwarm, type AsteroidSwarm } from './asteroids'
 import type { AuroraPoint, EarthEvent } from './earth-observatory'
@@ -61,6 +66,74 @@ export interface BodyScreenAnchor {
   radius: number
 }
 
+/**
+ * Builds the detail-texture state for one body. The texture is fetched on the
+ * first request and disposed on release, so a body only costs GPU memory while
+ * the camera is near it.
+ */
+function createTextureLod(options: {
+  bodyId: string
+  textureUrl: string
+  radius: number
+  preview: THREE.Texture
+  loader: THREE.TextureLoader
+  apply: (texture: THREE.Texture) => void
+  isDisposed: () => boolean
+  /** Anisotropic filtering for the detail texture; the surface default is 8. */
+  anisotropy?: number
+}): TextureLodRuntime {
+  const runtime: TextureLodRuntime = {
+    preview: options.preview,
+    detail: null,
+    loading: false,
+    radius: options.radius,
+    residentBytes: 0,
+    apply: options.apply,
+    request: () => {
+      if (runtime.detail || runtime.loading) return
+      runtime.loading = true
+      options.loader.load(
+        options.textureUrl,
+        (loaded) => {
+          runtime.loading = false
+          if (options.isDisposed()) {
+            loaded.dispose()
+            return
+          }
+          loaded.colorSpace = THREE.SRGBColorSpace
+          loaded.anisotropy = options.anisotropy ?? 8
+          loaded.minFilter = THREE.LinearMipmapLinearFilter
+          loaded.magFilter = THREE.LinearFilter
+          runtime.detail = loaded
+          runtime.residentBytes = estimateTextureBytes(loaded.image.width, loaded.image.height)
+          runtime.apply(loaded)
+        },
+        undefined,
+        () => {
+          runtime.loading = false
+          throw new Error(
+            `Failed to load texture for ${options.bodyId}: ${options.textureUrl}`,
+          )
+        },
+      )
+    },
+    release: () => {
+      if (!runtime.detail) return
+      runtime.apply(runtime.preview)
+      runtime.detail.dispose()
+      runtime.detail = null
+      runtime.residentBytes = 0
+    },
+  }
+  return runtime
+}
+
+/** How often the texture LOD pass reconsiders every body, in milliseconds. */
+const TEXTURE_LOD_INTERVAL_MS = 400
+
+/** Moon radius in Earth radii, the scene's unit for the Earth system. */
+const MOON_RADIUS = 0.2727
+
 /** Runtime state for a rendered planet or moon */
 interface PlanetRuntime {
   def: PlanetDef
@@ -72,6 +145,25 @@ interface PlanetRuntime {
   minorMoonPoints?: THREE.Points
   moons: PlanetRuntime[]
   ensureLoaded?: () => void
+  /** Detail-texture state, present only for bodies that ship a texture file. */
+  lod?: TextureLodRuntime
+}
+
+/** One body's detail texture and what the LOD pass needs to decide about it. */
+interface TextureLodRuntime {
+  /** Procedural stand-in, kept for the session — releasing detail falls back to it. */
+  preview: THREE.Texture
+  detail: THREE.Texture | null
+  loading: boolean
+  radius: number
+  /** Applies a texture to the body's material. */
+  apply: (texture: THREE.Texture) => void
+  /** Requests the detail texture; a no-op while one is already in flight. */
+  request: () => void
+  /** Drops the detail texture and returns the body to its preview. */
+  release: () => void
+  /** Decoded GPU cost of the resident detail texture, in bytes. */
+  residentBytes: number
 }
 
 export interface EngineCallbacks {
@@ -538,7 +630,13 @@ export class GlobeEngine {
   private signalCone: THREE.Mesh
   private moon: THREE.Mesh
   private moonMat: THREE.ShaderMaterial
-  private moonHighResolutionRequested = false
+  private tmpLodPos = new THREE.Vector3()
+  private lodFrustum = new THREE.Frustum()
+  private lodSphere = new THREE.Sphere()
+  private lodProjection = new THREE.Matrix4()
+  private moonPreviewTex: THREE.Texture
+  private moonLod: TextureLodRuntime | null = null
+  private lastTextureLodReal = 0
   private moonOrbitLine: THREE.Line
   private earthLandmarks: THREE.Group
   private earthObservatoryMarkers: THREE.Group
@@ -789,7 +887,7 @@ export class GlobeEngine {
     moonTex.minFilter = THREE.LinearMipmapLinearFilter
     moonTex.magFilter = THREE.LinearFilter
 
-    const moonGeo = new THREE.SphereGeometry(0.2727, 64, 64)
+    const moonGeo = new THREE.SphereGeometry(MOON_RADIUS, 64, 64)
     moonGeo.rotateX(Math.PI / 2)
     this.moonMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -802,6 +900,7 @@ export class GlobeEngine {
       vertexShader: MOON_VERT,
       fragmentShader: MOON_FRAG,
     })
+    this.moonPreviewTex = moonTex
     this.moon = new THREE.Mesh(moonGeo, this.moonMat)
     this.scene.add(this.moon)
 
@@ -1094,28 +1193,6 @@ export class GlobeEngine {
   // ─── Planet Factory ─────────────────────────────────────────────────────
   private createPlanet(def: PlanetDef, loader: THREE.TextureLoader): PlanetRuntime {
     const tex = createPlanetBaseTexture(def.id)
-    let isLoaded = false
-    const ensureLoaded = () => {
-      if (isLoaded) return
-      isLoaded = true
-      if (!def.texture) return
-      const textureUrl = `${import.meta.env.BASE_URL}textures/${def.texture}`
-      loader.load(
-        textureUrl,
-        (loadedTex) => {
-          loadedTex.colorSpace = THREE.SRGBColorSpace
-          loadedTex.anisotropy = 8
-          loadedTex.minFilter = THREE.LinearMipmapLinearFilter
-          loadedTex.magFilter = THREE.LinearFilter
-          mat.uniforms.uTex.value = loadedTex
-          mat.needsUpdate = true
-        },
-        undefined,
-        () => {
-          throw new Error(`Failed to load texture for ${def.id}: ${textureUrl}`)
-        },
-      )
-    }
 
     const geo = new THREE.SphereGeometry(def.radius, def.segments, def.segments)
     geo.rotateX(Math.PI / 2) // poles -> +z
@@ -1166,6 +1243,21 @@ export class GlobeEngine {
       `,
     })
 
+    const lod = def.texture
+      ? createTextureLod({
+          bodyId: def.id,
+          textureUrl: `${import.meta.env.BASE_URL}textures/${def.texture}`,
+          radius: def.radius,
+          preview: tex,
+          loader,
+          apply: (texture) => {
+            mat.uniforms.uTex.value = texture
+            mat.needsUpdate = true
+          },
+          isDisposed: () => this.disposed,
+        })
+      : undefined
+    const ensureLoaded = () => lod?.request()
     const mesh = new THREE.Mesh(geo, mat)
     mesh.rotation.x = def.axialTilt * (Math.PI / 180)
     if (def.shapeScale) mesh.scale.set(...def.shapeScale)
@@ -1392,6 +1484,7 @@ export class GlobeEngine {
       minorMoonPoints,
       moons: moonRTs,
       ensureLoaded,
+      lod,
     }
   }
 
@@ -1426,6 +1519,69 @@ export class GlobeEngine {
     const points = new THREE.Points(geometry, material)
     points.frustumCulled = false
     return points
+  }
+
+  /**
+   * Walks every body with a detail texture and loads or releases it by camera
+   * distance. Runs a few times a second rather than every frame: the decision
+   * only changes when the camera travels a body radius or more, and a texture
+   * load is orders of magnitude slower than the check itself.
+   */
+  private updateTextureLod() {
+    const now = performance.now()
+    if (now - this.lastTextureLodReal < TEXTURE_LOD_INTERVAL_MS) return
+    this.lastTextureLodReal = now
+
+    this.camera.updateMatrixWorld()
+    this.lodProjection.multiplyMatrices(
+      this.camera.projectionMatrix,
+      this.camera.matrixWorldInverse,
+    )
+    this.lodFrustum.setFromProjectionMatrix(this.lodProjection)
+
+    const apply = (
+      lod: TextureLodRuntime,
+      mesh: THREE.Object3D,
+      focused: boolean,
+    ) => {
+      mesh.getWorldPosition(this.tmpLodPos)
+      const action: TextureLodAction = textureLodAction({
+        distance: this.camera.position.distanceTo(this.tmpLodPos),
+        radius: lod.radius,
+        focused,
+        resident: lod.detail !== null,
+        loading: lod.loading,
+        // The body's own sphere, not just its centre, so a planet filling the
+        // frame from just off-axis still counts as on screen.
+        visible: this.lodFrustum.intersectsSphere(
+          this.lodSphere.set(this.tmpLodPos, lod.radius),
+        ),
+      })
+      if (action === 'load') lod.request()
+      else if (action === 'release') lod.release()
+    }
+
+    const walk = (runtimes: PlanetRuntime[]) => {
+      for (const runtime of runtimes) {
+        if (runtime.lod) apply(runtime.lod, runtime.mesh, this.focusTarget === runtime.def.id)
+        walk(runtime.moons)
+      }
+    }
+    walk(this.planetRuntimes)
+    if (this.moonLod) apply(this.moonLod, this.moon, this.focusTarget === 'moon')
+  }
+
+  /** Decoded GPU cost of every detail texture currently resident, in bytes. */
+  getResidentTextureBytes(): number {
+    let bytes = this.moonLod?.residentBytes ?? 0
+    const walk = (runtimes: PlanetRuntime[]) => {
+      for (const runtime of runtimes) {
+        bytes += runtime.lod?.residentBytes ?? 0
+        walk(runtime.moons)
+      }
+    }
+    walk(this.planetRuntimes)
+    return bytes
   }
 
   /**
@@ -2167,6 +2323,7 @@ export class GlobeEngine {
     }
 
     this.controls.update()
+    this.updateTextureLod()
     this.anchorSky()
     this.composer.render()
     this.monitorPerf(performance.now())
@@ -2223,7 +2380,7 @@ export class GlobeEngine {
 
   private getTargetBodyInfo(id: CelestialBodyId): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null {
     if (id === 'earth') return { mesh: this.earth, radius: 1.0, name: '🌍 EARTH' }
-    if (id === 'moon') return { mesh: this.moon, radius: 0.2727, name: '🌕 MOON' }
+    if (id === 'moon') return { mesh: this.moon, radius: MOON_RADIUS, name: '🌕 MOON' }
     if (id === 'sun') return { mesh: this.sun, radius: 2.5, name: '☀️ SUN' }
 
     const findInRuntimes = (list: PlanetRuntime[]): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null => {
@@ -2384,35 +2541,28 @@ export class GlobeEngine {
   // masks (height field, specular mask) sampled at a coarse UV offset for a
   // finite-difference gradient — the 2K versions loaded at startup are already
   // plenty of resolution, so there is no 8K bump/specular upgrade.
+  /**
+   * The Moon's colour map upgrades to 8K on focus and drops back to the 4K
+   * preview once the camera leaves, like every other body. The 8K level costs
+   * about 179 MiB decoded, which is too much to hold for a whole session after
+   * one visit.
+   */
   private loadMoonHighResolution() {
-    if (this.moonHighResolutionRequested) return
-    this.moonHighResolutionRequested = true
-    const loader = new THREE.TextureLoader()
-    const path = `${import.meta.env.BASE_URL}textures/moon-8k.jpg`
-    loader.loadAsync(path).then(
-      (surface) => {
-        if (this.disposed) {
-          surface.dispose()
-          return
-        }
-        surface.colorSpace = THREE.SRGBColorSpace
-        surface.anisotropy = 16
-        surface.needsUpdate = true
-        surface.minFilter = THREE.LinearMipmapLinearFilter
-        surface.magFilter = THREE.LinearFilter
-        const previous = this.moonMat.uniforms.uMoonTex.value as THREE.Texture
-        this.moonMat.uniforms.uMoonTex.value = surface
-        previous.dispose()
-      },
-      (error: unknown) => {
-        this.moonHighResolutionRequested = false
-        console.error(
-          `Moon 8K texture upgrade failed for ${path}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        )
-      },
-    )
+    if (!this.moonLod) {
+      this.moonLod = createTextureLod({
+        bodyId: 'moon',
+        textureUrl: `${import.meta.env.BASE_URL}textures/moon-8k.jpg`,
+        radius: MOON_RADIUS,
+        preview: this.moonPreviewTex,
+        loader: new THREE.TextureLoader(),
+        anisotropy: 16,
+        apply: (texture) => {
+          this.moonMat.uniforms.uMoonTex.value = texture
+        },
+        isDisposed: () => this.disposed,
+      })
+    }
+    this.moonLod.request()
   }
 
   setFocusTarget(target: CelestialBodyId) {
@@ -2718,6 +2868,16 @@ export class GlobeEngine {
   dispose() {
     this.disposed = true
     cancelAnimationFrame(this.raf)
+    // Detail textures live in shader uniforms, which the scene traversal below
+    // does not reach, so they are released explicitly.
+    this.moonLod?.release()
+    const releaseLods = (runtimes: PlanetRuntime[]) => {
+      for (const runtime of runtimes) {
+        runtime.lod?.release()
+        releaseLods(runtime.moons)
+      }
+    }
+    releaseLods(this.planetRuntimes)
     const el = this.renderer.domElement
     el.removeEventListener('pointerdown', this.onPointerDown)
     el.removeEventListener('pointerup', this.onPointerUp)

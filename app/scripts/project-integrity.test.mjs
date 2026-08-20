@@ -55,16 +55,28 @@ test('offline download feedback exposes storage use and a user-owned cache clear
   assert.match(worker, /failureCount/)
 })
 
-test('catalog source governance is date-bound and reviewed by a scheduled check', () => {
+test('every sourced dataset carries its own review date and window', () => {
   const governance = read('src/lib/source-governance.ts')
   const sourceCheck = read('scripts/check-source-freshness.mjs')
   const workflow = readRepository('.github/workflows/source-review.yml')
 
-  assert.match(governance, /CATALOG_VERIFIED_AT = '20\d{2}-\d{2}-\d{2}'/)
   assert.match(governance, /SOURCE_REVIEW_MAX_AGE_DAYS = 120/)
-  assert.match(sourceCheck, /source review is overdue/i)
+  assert.match(sourceCheck, /Source review overdue/)
   assert.match(workflow, /schedule:/)
   assert.match(workflow, /npm run check:sources/)
+
+  // The registry is the single place a review date may live; no module is
+  // allowed to hard-code one of its own.
+  const ids = [...governance.matchAll(/^\s{4}id: '([a-z-]+)',$/gm)].map((match) => match[1])
+  assert.ok(ids.length >= 13, `Only ${ids.length} datasets are registered`)
+  assert.equal(new Set(ids).size, ids.length, 'a dataset is registered twice')
+
+  const dates = [...governance.matchAll(/verifiedAt: '(\d{4}-\d{2}-\d{2})'/g)]
+  assert.equal(dates.length, ids.length, 'every dataset needs exactly one review date')
+  const windows = [...governance.matchAll(/maxAgeDays: (SOURCE_REVIEW_MAX_AGE_DAYS|\d+),/g)]
+  assert.equal(windows.length, ids.length, 'every dataset needs exactly one review window')
+  const reasons = [...governance.matchAll(/^\s{4}why: /gm)]
+  assert.equal(reasons.length, ids.length, 'every review window needs a stated reason')
 })
 
 test('ASTROBENDER is the only product name in the application source', () => {

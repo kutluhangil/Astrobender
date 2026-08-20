@@ -27,7 +27,11 @@ import {
   getSolarIllumination,
 } from '@/lib/solar-illumination'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
-import { formatSourceReviewStatus, getSourceFreshness } from '@/lib/source-governance'
+import {
+  formatSourceReviewStatus,
+  stalestDataset,
+  type SourceDatasetId,
+} from '@/lib/source-governance'
 
 /** Simulation time refresh for the live readouts; the panel shows minutes, not seconds. */
 const LIVE_READOUT_INTERVAL_MS = 2000
@@ -329,23 +333,35 @@ function TerminatorReadout({
 function SourceStrip({
   language,
   catalogUrl,
-  verifiedAt,
   physicalUrl,
   ringUrl,
 }: {
   language: UiLanguage
   catalogUrl: string
-  verifiedAt: string
   physicalUrl: string
   ringUrl?: string
 }) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
-  const freshness = getSourceFreshness(verifiedAt)
-  const links: Array<{ href: string; label: string }> = [
-    { href: catalogUrl, label: t('NASA kaynağı', 'NASA source') },
-    { href: physicalUrl, label: t('JPL fiziksel veri', 'JPL physical data') },
-    ...(ringUrl ? [{ href: ringUrl, label: t('PDS halka verisi', 'PDS ring data') }] : []),
+  const links: Array<{ href: string; label: string; dataset: SourceDatasetId }> = [
+    { href: catalogUrl, label: t('NASA kaynağı', 'NASA source'), dataset: 'celestial-catalog' },
+    {
+      href: physicalUrl,
+      label: t('JPL fiziksel veri', 'JPL physical data'),
+      dataset: 'physical-profiles',
+    },
+    ...(ringUrl
+      ? [
+          {
+            href: ringUrl,
+            label: t('PDS halka verisi', 'PDS ring data'),
+            dataset: 'ring-systems' as const,
+          },
+        ]
+      : []),
   ]
+  // The panel is only as current as the stalest source it cites, so that is the
+  // review the strip reports.
+  const review = stalestDataset(links.map((link) => link.dataset))
 
   return (
     <div className="mt-2 border-t border-white/[0.07] pt-2">
@@ -363,11 +379,16 @@ function SourceStrip({
         ))}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[8px] tracking-[0.1em] text-slate-600">
-        <span>{verifiedAt}</span>
+        <span>
+          {pickLanguage(language, review.dataset.labelTr, review.dataset.labelEn)}{' '}
+          {review.dataset.verifiedAt}
+        </span>
         <span
-          className={freshness.state === 'current' ? 'text-emerald-300/70' : 'text-amber-300/85'}
+          className={
+            review.freshness.state === 'current' ? 'text-emerald-300/70' : 'text-amber-300/85'
+          }
         >
-          {formatSourceReviewStatus(freshness, language)}
+          {formatSourceReviewStatus(review.freshness, language)}
         </span>
       </div>
     </div>
@@ -440,7 +461,6 @@ function BodyPanelContent({
       <SourceStrip
         language={language}
         catalogUrl={entry.sourceUrl}
-        verifiedAt={entry.verifiedAt}
         physicalUrl={physicalSourceUrl}
         ringUrl={ring?.sourceUrl}
       />

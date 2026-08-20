@@ -4,12 +4,16 @@ import { directionLabel, getPerseidWatch, type PerseidWatch } from '@/lib/persei
 import { eventDayKey } from '@/lib/skywatch-calendar'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import SkywatchEventCalendar from './SkywatchEventCalendar'
+import ObservationPlannerCard from './ObservationPlannerCard'
+import type { CelestialBodyId } from '@/lib/planets'
 
 interface SkywatchPanelProps {
   events: SkyEvent[]
   observer: SkyObserver | null
   locationError: string | null
   calculatedAt: number
+  /** Body the scene is focused on; pre-selects the planner's target when plannable. */
+  focusBody: CelestialBodyId
   language: UiLanguage
   onRequestBrowserLocation: () => void
   onSaveManualLocation: (latitude: number, longitude: number, label: string) => boolean
@@ -276,6 +280,7 @@ export default function SkywatchPanel({
   observer,
   locationError,
   calculatedAt,
+  focusBody,
   language,
   onRequestBrowserLocation,
   onSaveManualLocation,
@@ -360,6 +365,13 @@ export default function SkywatchPanel({
           onRequestBrowserLocation={onRequestBrowserLocation}
           onSaveManualLocation={onSaveManualLocation}
           onClearLocation={onClearLocation}
+        />
+
+        <ObservationPlannerCard
+          observer={observer}
+          nightOf={new Date(selectedDay ? `${selectedDay}T00:00:00Z` : now)}
+          defaultBodyId={focusBody}
+          language={language}
         />
 
         {perseidWatch && (

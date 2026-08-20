@@ -1312,6 +1312,7 @@ export default function Home() {
             observer={skywatchLocation.observer}
             locationError={skywatchLocation.error}
             calculatedAt={skywatchCalculatedAt}
+            focusBody={focusBody}
             language={uiLanguage}
             onRequestBrowserLocation={skywatchLocation.requestBrowserLocation}
             onSaveManualLocation={skywatchLocation.saveManualLocation}

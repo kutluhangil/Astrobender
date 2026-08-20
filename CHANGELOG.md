@@ -2,6 +2,9 @@
 
 ## 2026-08-20
 
+- Added an observation planner to Skywatch: pick one of the nine plannable bodies and it plans tonight from the saved location — the longest stretch that is both astronomically dark and above the 20° altitude floor, the exact culmination and its compass bearing, apparent magnitude, and how close a lit Moon sits to the target.
+- Drew that plan as an altitude curve across the night, with astronomical darkness shaded behind it, the horizon and the 20° floor as hairlines, a crosshair readout on hover and keyboard focus, and an hourly table so no value is reachable only by pointing.
+- Told the midnight sun and the polar night apart, which a sunset search alone cannot do: at 78°N in December the planner now reports one fifteen-hour dark window instead of no night at all.
 - Gave every surface texture a distance-based level of detail: a body loads its full-resolution map only when it is focused or on screen and nearby, and releases it back to the procedural preview once the camera is far away. A visit to Mars now costs 171 MiB of GPU memory and gives it back on leaving, where before every body toured stayed resident for the session.
 - Reported resident close-range texture memory in the LIVE status port, alongside the satellite thinning already shown there.
 - Replaced the single catalog review date with a per-dataset registry: thirteen datasets each carry their own primary source, review date, review window and a stated reason for that window, so the frozen Yale star catalogue is not chased every 120 days while the yearly IMO shower calendar is.

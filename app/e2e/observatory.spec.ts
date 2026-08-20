@@ -291,6 +291,55 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   await expect(page.getByRole('heading', { name: 'Venüs (Venus)' })).toBeVisible()
 })
 
+test('observation planner turns a location into a night plan for a chosen target', async ({ page }) => {
+  test.setTimeout(60_000)
+  // The plan is computed from the wall clock, so it is pinned like the calendar.
+  await page.clock.setFixedTime(SKYWATCH_FIXED_NOW)
+  await page.reload()
+  await page.getByRole('button', { name: '🌠 Gökyüzü Takvimi' }).click()
+  const panel = page.getByRole('region', { name: 'Gökyüzü Takvimi' })
+  const planner = panel.getByRole('region', { name: 'Gözlem planlayıcı' })
+
+  // Without a location the planner asks for one instead of inventing a horizon.
+  await expect(planner).toContainText('Yükseklik eğrisi ve gözlem penceresi için konum seçin.')
+
+  await panel.getByText('Koordinatları elle gir').click()
+  await panel.getByLabel('Enlem').fill('41.0082')
+  await panel.getByLabel('Boylam').fill('28.9784')
+  await panel.getByLabel('Konum etiketi').fill('İstanbul')
+  await panel.getByRole('button', { name: 'Konumu kaydet' }).click()
+
+  await planner.getByRole('button', { name: 'Satürn' }).click()
+  await expect(planner.getByText('En iyi pencere')).toBeVisible()
+  await expect(planner.getByText('Doruk yüksekliği')).toBeVisible()
+  // Saturn culminates well above the usable-altitude floor from this latitude,
+  // so the window reports a real clock range and a real peak.
+  await expect(planner).toContainText(/\d{2}:\d{2}–\d{2}:\d{2}/)
+  await expect(planner).toContainText(/\d+ sa \d+ dk/)
+
+  // The curve carries a hover readout, and the same numbers exist in a table.
+  const curve = planner.locator('svg[role="img"]')
+  await expect(curve).toBeVisible()
+  await curve.scrollIntoViewIfNeeded()
+  const box = (await curve.boundingBox())!
+  await curve.hover({ position: { x: box.width * 0.6, y: box.height * 0.5 } })
+  await page.mouse.move(box.x + box.width * 0.62, box.y + box.height * 0.5)
+  await expect(planner.locator('figcaption')).toContainText('°')
+  await planner.getByText('Saatlik veri tablosu').click()
+  await expect(planner.getByRole('columnheader', { name: 'Yükseklik' })).toBeVisible()
+
+  // Switching the target replans the whole card against the same night.
+  await planner.getByRole('button', { name: 'Neptün' }).click()
+  await expect(planner.locator('figcaption')).toContainText('Neptün')
+  await expect(planner.getByRole('button', { name: 'Neptün' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  // The table keeps every plotted value reachable without hovering, including
+  // the hours the target spends below the horizon.
+  await expect(planner.getByRole('table')).toContainText(/-\d+°/)
+})
+
 test('Skywatch stays operable on mobile with reduced motion', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ reducedMotion: 'reduce' })

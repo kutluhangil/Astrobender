@@ -300,6 +300,28 @@ canvas {
   }
 }
 
+/* Altitude curve — one data series, so one series colour. Both steps were
+   checked against their own surface for lightness band, chroma and contrast. */
+.altitude-curve {
+  --altitude-series: #00a5c8;
+  --altitude-surface: #071018;
+  --altitude-ink: #e2f4fb;
+  --altitude-muted: #7d97a5;
+  --altitude-axis: rgba(255, 255, 255, 0.22);
+  --altitude-grid: rgba(255, 255, 255, 0.11);
+  --altitude-darkness: rgba(255, 255, 255, 0.045);
+}
+
+[data-space-theme='light'] .altitude-curve {
+  --altitude-series: #00799a;
+  --altitude-surface: #f6fbfe;
+  --altitude-ink: #102c3d;
+  --altitude-muted: #527082;
+  --altitude-axis: rgba(16, 44, 61, 0.3);
+  --altitude-grid: rgba(16, 44, 61, 0.16);
+  --altitude-darkness: rgba(16, 44, 61, 0.07);
+}
+
 /* Focused celestial label — always anchored outside the selected body's silhouette. */
 .target-callout {
   --target-ink: #d8f8ff;

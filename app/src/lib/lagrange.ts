@@ -37,14 +37,15 @@ export const LAGRANGE_POINTS: readonly LagrangePoint[] = [
     secondary: 'earth',
     labelTr: 'Güneş–Dünya L1',
     labelEn: 'Sun-Earth L1',
-    occupants: ['SOHO', 'DSCOVR'],
+    occupants: ['SOHO', 'ACE', 'Wind', 'DSCOVR', 'Aditya-L1'],
   },
   {
     id: 'L2',
     secondary: 'earth',
     labelTr: 'Güneş–Dünya L2',
     labelEn: 'Sun-Earth L2',
-    occupants: ['James Webb Space Telescope', 'Euclid', 'Gaia'],
+    // Gaia was retired in March 2025 and pushed off L2 into a heliocentric orbit.
+    occupants: ['James Webb Space Telescope', 'Euclid'],
   },
   { id: 'L4', secondary: 'earth', labelTr: 'Güneş–Dünya L4', labelEn: 'Sun-Earth L4', occupants: [] },
   { id: 'L5', secondary: 'earth', labelTr: 'Güneş–Dünya L5', labelEn: 'Sun-Earth L5', occupants: [] },

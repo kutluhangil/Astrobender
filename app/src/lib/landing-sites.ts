@@ -292,8 +292,9 @@ export const LANDING_SITES: LandingSite[] = [
     year: 2005,
     agency: 'ESA / NASA',
     agencyTr: 'ESA (Avrupa) / NASA',
-    lat: -10.2,
-    lon: 192.4,
+    // Published as 10.573° S, 192.335° W; stored east-positive like every other site.
+    lat: -10.573,
+    lon: 167.665,
     emoji: '🛰️',
     detailsTr: 'Cassini uzay aracından ayrılarak Satürn\'ün dev uydusu Titan\'ın organik atmosferinden süzülüp inen, dış Güneş Sistemi\'ndeki ilk yüzey aracı.',
   },
@@ -318,7 +319,8 @@ export function findLandingSiteNear(bodyId: string, lat: number, lon: number, ra
   for (const s of LANDING_SITES) {
     if (s.bodyId === bodyId) {
       const dLat = Math.abs(s.lat - lat)
-      const dLon = Math.abs(s.lon - lon)
+      // Sites may be stored on 0..360 (Venera 13 at 303° E) while picks arrive on -180..180.
+      const dLon = Math.abs((((s.lon - lon) % 360) + 540) % 360 - 180)
       if (dLat < radiusThreshold && dLon < radiusThreshold) {
         return s
       }

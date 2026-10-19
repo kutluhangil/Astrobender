@@ -29,10 +29,17 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return
   }
 
-  const upstream = await fetch(JPL_CAD_URL, {
-    headers: { Accept: 'application/json', 'User-Agent': 'ASTROBENDER/1.0' },
-    signal: AbortSignal.timeout(10_000),
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(JPL_CAD_URL, {
+      headers: { Accept: 'application/json', 'User-Agent': 'ASTROBENDER/1.0' },
+      signal: AbortSignal.timeout(10_000),
+    })
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    response.status(504).json({ error: `JPL CAD request failed after 10000 ms: ${detail}` })
+    return
+  }
   if (!upstream.ok) {
     const body = (await upstream.text()).replace(/\s+/g, ' ').slice(0, 180)
     response.status(502).json({
@@ -41,7 +48,28 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return
   }
 
-  const payload: unknown = await upstream.json()
+  const text = await upstream.text()
+  let payload: unknown
+  try {
+    payload = JSON.parse(text)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    response.status(502).json({
+      error: `JPL CAD returned invalid JSON (${detail}) — ${text.replace(/\s+/g, ' ').slice(0, 180)}`,
+    })
+    return
+  }
+  // An empty window comes back as `{"count":0}` with no fields table; anything
+  // else without one is an upstream error shape, not data.
+  const record = typeof payload === 'object' && payload !== null
+    ? (payload as Record<string, unknown>)
+    : null
+  if (record === null || (!('fields' in record) && Number(record.count) !== 0)) {
+    response.status(502).json({
+      error: `JPL CAD returned no fields table — ${text.replace(/\s+/g, ' ').slice(0, 180)}`,
+    })
+    return
+  }
   response.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600')
   response.status(200).json(payload)
 }

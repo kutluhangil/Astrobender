@@ -148,7 +148,9 @@ export function parseNoaaAurora(payload: unknown): AuroraForecast {
   const points: AuroraPoint[] = []
   for (const coordinate of payload.coordinates) {
     if (!Array.isArray(coordinate) || coordinate.length < 3) continue
-    const lon = Number(coordinate[0])
+    // OVATION publishes longitude on 0..359 east; everything else here is -180..180.
+    const rawLon = Number(coordinate[0])
+    const lon = rawLon > 180 ? rawLon - 360 : rawLon
     const lat = Number(coordinate[1])
     const probability = Number(coordinate[2])
     if (!validCoordinate(lat, lon) || !Number.isFinite(probability)) continue

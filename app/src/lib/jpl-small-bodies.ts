@@ -9,15 +9,32 @@ export interface CloseApproach {
   maximumDistanceAu: number | null
   relativeVelocityKmS: number
   diameterKm: number | null
+  /** Absolute magnitude H; JPL publishes it for nearly every row that lacks a diameter. */
+  absoluteMagnitude: number | null
   sourceUrl: string
+}
+
+export type SmallBodyKind = 'dwarf-planet' | 'dwarf-planet-candidate' | 'asteroid' | 'comet'
+
+const SMALL_BODY_KIND_LABELS: Record<SmallBodyKind, { tr: string; en: string }> = {
+  'dwarf-planet': { tr: 'Cüce gezegen', en: 'Dwarf planet' },
+  'dwarf-planet-candidate': { tr: 'Cüce gezegen adayı', en: 'Dwarf-planet candidate' },
+  asteroid: { tr: 'Asteroit', en: 'Asteroid' },
+  comet: { tr: 'Kuyruklu yıldız', en: 'Comet' },
+}
+
+export function smallBodyKindLabel(kind: SmallBodyKind, language: 'tr' | 'en'): string {
+  return SMALL_BODY_KIND_LABELS[kind][language]
 }
 
 export interface NamedSmallBody {
   id: string
   name: string
   nameTr: string
-  kind: 'dwarf-planet' | 'asteroid' | 'comet'
+  /** Only the five IAU-recognised dwarf planets carry 'dwarf-planet'. */
+  kind: SmallBodyKind
   summaryTr: string
+  summaryEn: string
   sourceUrl: string
   /** Set when the body is also modelled in the 3D scene and can be focused. */
   bodyId?: CelestialBodyId
@@ -40,6 +57,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: 'Ceres',
     kind: 'dwarf-planet',
     summaryTr: 'Asteroit kuşağının en büyük cismi ve iç Güneş Sistemi’nin tek cüce gezegenidir.',
+    summaryEn: 'The largest body in the asteroid belt and the only dwarf planet in the inner Solar System.',
     sourceUrl: SBDB('1'),
     bodyId: 'ceres',
     designations: ['1', '1 Ceres', 'Ceres'],
@@ -50,6 +68,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '2 Pallas',
     kind: 'asteroid',
     summaryTr: 'Ana kuşağın en eğik yörüngeli büyük cismidir; kuşak düzleminin çok dışına çıkar.',
+    summaryEn: 'The main-belt giant on the most inclined orbit, carrying it far above and below the belt plane.',
     sourceUrl: SBDB('2'),
     bodyId: 'pallas',
     designations: ['2', '2 Pallas', 'Pallas'],
@@ -60,6 +79,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '3 Juno',
     kind: 'asteroid',
     summaryTr: 'Keşfedilen üçüncü asteroittir ve taşsı S tipi cisimlerin en büyüklerinden biridir.',
+    summaryEn: 'The third asteroid ever discovered and one of the largest stony S-type bodies.',
     sourceUrl: SBDB('3'),
     bodyId: 'juno',
     designations: ['3', '3 Juno', 'Juno'],
@@ -70,6 +90,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '4 Vesta',
     kind: 'asteroid',
     summaryTr: 'Dawn görevinin ziyaret ettiği, dev Rheasilvia çarpma havzasına sahip protoplanettir.',
+    summaryEn: 'The protoplanet Dawn visited, scarred by the giant Rheasilvia impact basin.',
     sourceUrl: SBDB('4'),
     bodyId: 'vesta',
     designations: ['4', '4 Vesta', 'Vesta'],
@@ -80,6 +101,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '10 Hygiea',
     kind: 'asteroid',
     summaryTr: 'Ana kuşağın dördüncü büyük cismi ve karbonca zengin C tipi ailesinin en büyük üyesidir.',
+    summaryEn: 'The fourth-largest main-belt body and the largest of the carbon-rich C-type family.',
     sourceUrl: SBDB('10'),
     bodyId: 'hygiea',
     designations: ['10', '10 Hygiea', 'Hygiea'],
@@ -90,6 +112,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '16 Psyche',
     kind: 'asteroid',
     summaryTr: 'Metalce zengin yapısıyla NASA’nın Psyche görevinin hedefidir.',
+    summaryEn: 'A metal-rich world and the target of NASA’s Psyche mission.',
     sourceUrl: SBDB('16'),
     bodyId: 'psyche',
     designations: ['16', '16 Psyche', 'Psyche'],
@@ -98,8 +121,9 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     id: 'quaoar',
     name: '50000 Quaoar',
     nameTr: '50000 Quaoar',
-    kind: 'dwarf-planet',
+    kind: 'dwarf-planet-candidate',
     summaryTr: 'Roche sınırının dışında iki halkası bulunan Kuiper Kuşağı cismidir.',
+    summaryEn: 'A Kuiper Belt object with two rings orbiting outside its Roche limit.',
     sourceUrl: SBDB('50000'),
     bodyId: 'quaoar',
     designations: ['50000', '50000 Quaoar', 'Quaoar'],
@@ -108,8 +132,9 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     id: 'gonggong',
     name: '225088 Gonggong',
     nameTr: '225088 Gonggong',
-    kind: 'dwarf-planet',
+    kind: 'dwarf-planet-candidate',
     summaryTr: 'Kütlesi ve yoğunluğu uydusu Xiangliu’nun yörüngesinden ölçülen dağınık disk cismidir.',
+    summaryEn: 'A scattered-disc body whose mass and density were measured from the orbit of its moon Xiangliu.',
     sourceUrl: SBDB('225088'),
     bodyId: 'gonggong',
     designations: ['225088', '225088 Gonggong', 'Gonggong'],
@@ -118,8 +143,9 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     id: 'sedna',
     name: '90377 Sedna',
     nameTr: '90377 Sedna',
-    kind: 'dwarf-planet',
+    kind: 'dwarf-planet-candidate',
     summaryTr: 'Günberisi 76 AU olan, iç Oort Bulutu’nun kanıtı sayılan uzak cisimdir.',
+    summaryEn: 'A distant body with a 76 au perihelion, treated as evidence of an inner Oort Cloud.',
     sourceUrl: SBDB('90377'),
     bodyId: 'sedna',
     designations: ['90377', '90377 Sedna', 'Sedna'],
@@ -130,6 +156,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '433 Eros',
     kind: 'asteroid',
     summaryTr: 'NEAR Shoemaker’ın yörüngeye girdiği ve yüzeyine indiği yakın Dünya asteroididir.',
+    summaryEn: 'The near-Earth asteroid NEAR Shoemaker orbited and then landed on.',
     sourceUrl: SBDB('433'),
     designations: ['433', '433 Eros', 'Eros'],
   },
@@ -139,6 +166,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: 'Bennu',
     kind: 'asteroid',
     summaryTr: 'OSIRIS-REx’in örnek getirerek erken Güneş Sistemi maddesini incelememizi sağladığı asteroittir.',
+    summaryEn: 'The asteroid OSIRIS-REx sampled, returning early Solar System material to Earth.',
     sourceUrl: SBDB('101955'),
     designations: ['101955', '101955 Bennu', 'Bennu'],
   },
@@ -148,6 +176,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: 'Ryugu',
     kind: 'asteroid',
     summaryTr: 'Hayabusa2’nin örnek getirdiği karbon bakımından zengin yakın Dünya asteroididir.',
+    summaryEn: 'The carbon-rich near-Earth asteroid Hayabusa2 sampled and returned to Earth.',
     sourceUrl: SBDB('162173'),
     designations: ['162173', '162173 Ryugu', 'Ryugu'],
   },
@@ -157,6 +186,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '99942 Apophis',
     kind: 'asteroid',
     summaryTr: '13 Nisan 2029’da jeosenkron uyduların altından geçecek olan yakın Dünya asteroididir.',
+    summaryEn: 'A near-Earth asteroid that will pass inside the geostationary ring on April 13, 2029.',
     sourceUrl: SBDB('99942'),
     designations: ['99942', '99942 Apophis', 'Apophis'],
   },
@@ -166,6 +196,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: 'Halley Kuyruklu Yıldızı',
     kind: 'comet',
     summaryTr: 'Yaklaşık 76 yıllık yörüngesiyle çıplak gözle tekrar tekrar görülebilen periyodik kuyruklu yıldızdır.',
+    summaryEn: 'A periodic comet seen with the naked eye on each return of its roughly 76-year orbit.',
     sourceUrl: SBDB('1P'),
     designations: ['1P', '1P/Halley'],
   },
@@ -175,6 +206,7 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     nameTr: '67P/Çuryumov–Gerasimenko',
     kind: 'comet',
     summaryTr: 'Rosetta’nın yörüngesine girdiği ve Philae’nin yüzeyine indiği çift loblu kuyruklu yıldızdır.',
+    summaryEn: 'The double-lobed comet Rosetta orbited and Philae landed on.',
     sourceUrl: SBDB('67P'),
     designations: ['67P', '67P/Churyumov-Gerasimenko'],
   },
@@ -261,6 +293,19 @@ export function lunarDistances(distanceAu: number): number {
   return distanceAu / LUNAR_DISTANCE_AU
 }
 
+/**
+ * Size range implied by an absolute magnitude when no measured diameter exists,
+ * using D = 1329 km / sqrt(albedo) * 10^(-H/5) over the 0.25 (bright) to 0.05
+ * (dark) albedo span typical of near-Earth asteroids.
+ */
+export function diameterRangeFromAbsoluteMagnitude(absoluteMagnitude: number): { minKm: number; maxKm: number } {
+  if (!Number.isFinite(absoluteMagnitude)) {
+    throw new Error(`Absolute magnitude must be finite: ${absoluteMagnitude}`)
+  }
+  const scale = 1329 * 10 ** (-absoluteMagnitude / 5)
+  return { minKm: scale / Math.sqrt(0.25), maxKm: scale / Math.sqrt(0.05) }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -272,6 +317,8 @@ function parseOptionalNumber(value: unknown): number | null {
 }
 
 export function parseCloseApproaches(payload: unknown): CloseApproach[] {
+  // JPL omits the fields table entirely when nothing falls inside the window.
+  if (isRecord(payload) && Number(payload.count) === 0 && payload.data === undefined) return []
   if (!isRecord(payload) || !Array.isArray(payload.fields) || !Array.isArray(payload.data)) {
     throw new Error('JPL CAD response must contain fields and data arrays')
   }
@@ -301,6 +348,7 @@ export function parseCloseApproaches(payload: unknown): CloseApproach[] {
       maximumDistanceAu: parseOptionalNumber(row[fieldIndex.dist_max]),
       relativeVelocityKmS,
       diameterKm: parseOptionalNumber(row[fieldIndex.diameter]),
+      absoluteMagnitude: parseOptionalNumber(row[fieldIndex.h]),
       sourceUrl: JPL_CAD_SOURCE_URL,
     })
   }

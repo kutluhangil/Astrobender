@@ -138,7 +138,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     distFromSunAu: '5.20 AU (778.5 milyon km)',
     rotationPeriod: '9 saat 55 dk (En Hızlı)',
     orbitPeriod: '11.86 yıl',
-    moonsCount: '101 Bilinen Uydu',
+    moonsCount: '115 Bilinen Uydu',
     atmosphere: 'Hidrojen (%89), Helyum (%10)',
     funFactTr: 'Büyük Kırmızı Leke adı verilen dev fırtınası içine Dünya\'yı sığdırabilir.',
   },
@@ -208,7 +208,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     distFromSunAu: '9.58 AU (1.43 milyar km)',
     rotationPeriod: '10 saat 33 dk',
     orbitPeriod: '29.45 yıl',
-    moonsCount: '274 Bilinen Uydu',
+    moonsCount: '293 Bilinen Uydu',
     atmosphere: 'Hidrojen (%96), Helyum (%3)',
     funFactTr: 'Özgül ağırlığı sudan azdır; dev bir okyanusa konsaydı su üstünde yüzerdi.',
   },
@@ -290,7 +290,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     distFromSunAu: '19.22 AU (2.87 milyar km)',
     rotationPeriod: '17 saat 14 dk (Yan Yatar!)',
     orbitPeriod: '84.01 yıl',
-    moonsCount: '28 Bilinen Uydu',
+    moonsCount: '29 Bilinen Uydu',
     atmosphere: 'Hidrojen (%83), Helyum (%15), Metan (%2)',
     funFactTr: '97.8° eksen eğikliği nedeniyle yörüngesinde adeta yan yatarak yuvarlanır.',
   },
@@ -462,7 +462,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
   },
   nix: {
     id: 'nix', name: 'Nix', nameTr: 'Nix', emoji: '🌑',
-    typeTr: 'Plüton Uydusu', radiusKm: 'Yaklaşık 20 km',
+    typeTr: 'Plüton Uydusu', radiusKm: 'Yaklaşık 18 km',
     distFromSunAu: '39.48 AU (Plüton sisteminde 48,694 km)',
     rotationPeriod: 'Kaotik', orbitPeriod: '24.85 gün',
     moonsCount: '0', atmosphere: 'Yok',
@@ -478,7 +478,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
   },
   hydra: {
     id: 'hydra', name: 'Hydra', nameTr: 'Hydra', emoji: '🌑',
-    typeTr: 'Plüton Uydusu', radiusKm: 'Yaklaşık 22 km',
+    typeTr: 'Plüton Uydusu', radiusKm: 'Yaklaşık 18.5 km',
     distFromSunAu: '39.48 AU (Plüton sisteminde 64,738 km)',
     rotationPeriod: 'Kaotik', orbitPeriod: '38.20 gün',
     moonsCount: '0', atmosphere: 'Yok',
@@ -692,6 +692,11 @@ export const CELESTIAL_FUN_FACTS_EN: Record<CelestialBodyId, string> = {
 }
 
 const ENGLISH_VALUE_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
+  ['8 Gezegen', '8 planets'],
+  ['En Hızlı', 'Fastest'],
+  ['Merkür\'den Büyük!', 'larger than Mercury'],
+  [' ve ', ' and '],
+  ['yaklaşık', 'approx.'],
   ['Kütleçekimsel Kilitli', 'Tidally locked'],
   ['Ölçülmedi', 'Not measured'],
   ['Küresel atmosfer saptanmadı', 'No global atmosphere detected'],

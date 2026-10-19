@@ -46,7 +46,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'CO₂ ~%96.5, N₂ ~%3.5; sülfürik asit bulutları.', en: 'CO₂ ~96.5%, N₂ ~3.5%; sulfuric-acid clouds.' },
   },
   earth: {
-    mass: '5.9722 × 10²⁴ kg', density: '5.513 g/cm³', gravity: '9.807 m/s²', temperature: '−89 to +57 °C',
+    mass: '5.9722 × 10²⁴ kg', density: '5.513 g/cm³', gravity: '9.80 m/s²', temperature: '−89 to +57 °C',
     chemistry: { tr: 'N₂ %78.08, O₂ %20.95, Ar %0.93, CO₂ ~%0.04; silikat kaya ve sıvı su.', en: 'N₂ 78.08%, O₂ 20.95%, Ar 0.93%, CO₂ ~0.04%; silicate rock and liquid water.' },
   },
   moon: {
@@ -55,14 +55,14 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   },
   mars: {
     mass: '6.4171 × 10²³ kg', density: '3.934 g/cm³', gravity: '3.71 m/s²', temperature: '~−63 °C',
-    chemistry: { tr: 'CO₂ ~%95.3, N₂ ~%2.7, Ar ~%1.6; demir oksitli regolit.', en: 'CO₂ ~95.3%, N₂ ~2.7%, Ar ~1.6%; iron-oxide-rich regolith.' },
+    chemistry: { tr: 'CO₂ ~%95, N₂ ~%2.6, Ar ~%1.9; demir oksitli regolit.', en: 'CO₂ ~95%, N₂ ~2.6%, Ar ~1.9%; iron-oxide-rich regolith.' },
   },
   phobos: {
-    mass: '1.066 × 10¹⁶ kg', density: '1.876 g/cm³', gravity: '0.0057 m/s²', temperature: '~−112 °C',
+    mass: '1.062 × 10¹⁶ kg', density: '1.872 g/cm³', gravity: '0.0057 m/s²', temperature: '~−112 °C',
     chemistry: { tr: 'Koyu, karbonca zengin olabilecek gözenekli regolit; atmosfer saptanmadı.', en: 'Dark, porous regolith that may be carbon-rich; no detected atmosphere.' },
   },
   deimos: {
-    mass: '1.476 × 10¹⁵ kg', density: '1.47 g/cm³', gravity: '0.0030 m/s²', temperature: '~−40 °C',
+    mass: '1.441 × 10¹⁵ kg', density: '1.47 g/cm³', gravity: '0.0030 m/s²', temperature: '~−40 °C',
     chemistry: { tr: 'Koyu, ince regolitli düzensiz kaya; atmosfer saptanmadı.', en: 'Dark irregular rock with fine regolith; no detected atmosphere.' },
   },
   jupiter: {
@@ -74,11 +74,11 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Silikat kaya, kükürt ve SO₂ donları; seyrek SO₂ atmosferi.', en: 'Silicate rock, sulfur, and SO₂ frost; tenuous SO₂ atmosphere.' },
   },
   europa: {
-    mass: '4.800 × 10²² kg', density: '3.014 g/cm³', gravity: '1.315 m/s²', temperature: '~−160 °C',
+    mass: '4.799 × 10²² kg', density: '3.013 g/cm³', gravity: '1.315 m/s²', temperature: '~−160 °C',
     chemistry: { tr: 'H₂O buz kabuğu, tuzlar ve olası küresel tuzlu okyanus; ince O₂ ekzosferi.', en: 'H₂O ice shell, salts, and a possible global saline ocean; thin O₂ exosphere.' },
   },
   ganymede: {
-    mass: '1.482 × 10²³ kg', density: '1.936 g/cm³', gravity: '1.428 m/s²', temperature: '~−163 °C',
+    mass: '1.481 × 10²³ kg', density: '1.942 g/cm³', gravity: '1.428 m/s²', temperature: '~−163 °C',
     chemistry: { tr: 'Su buzu ve silikat kaya karışımı; çok ince O₂ ekzosferi.', en: 'Mixture of water ice and silicate rock; very thin O₂ exosphere.' },
   },
   callisto: {
@@ -86,19 +86,19 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Buz/kaya karışımı; çok ince CO₂, O₂ ve H₂ ekzosferi.', en: 'Ice-rock mixture; very thin CO₂, O₂, and H₂ exosphere.' },
   },
   amalthea: {
-    mass: '2.08 × 10¹⁸ kg', density: '0.86 g/cm³', gravity: '0.020 m/s²', temperature: '~−153 °C',
+    mass: '2.47 × 10¹⁸ kg', density: '1.01 g/cm³', gravity: '0.024 m/s²', temperature: '~−153 °C',
     chemistry: { tr: 'Koyu kırmızımsı, çok gözenekli kaya/buz karışımı; atmosfer saptanmadı.', en: 'Dark reddish, highly porous rock-ice mixture; no detected atmosphere.' },
   },
   himalia: {
-    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−160 °C',
+    mass: '≈2.3 × 10¹⁸ kg', density: '≈0.9 g/cm³', gravity: '≈0.021 m/s²', temperature: '~−160 °C',
     chemistry: { tr: 'Koyu, karbonlu-kaya benzeri yüzey; atmosfer saptanmadı.', en: 'Dark carbonaceous-rock-like surface; no detected atmosphere.' },
   },
   saturn: {
-    mass: '5.6834 × 10²⁶ kg', density: '0.687 g/cm³', gravity: '10.44 m/s²', temperature: '~−178 °C',
+    mass: '5.6832 × 10²⁶ kg', density: '0.687 g/cm³', gravity: '10.44 m/s²', temperature: '~−178 °C',
     chemistry: { tr: 'H₂ ~%96, He ~%3; CH₄, NH₃ ve H₂O izleri.', en: 'H₂ ~96%, He ~3%; traces of CH₄, NH₃, and H₂O.' },
   },
   pan: {
-    mass: UNKNOWN_PROFILE_VALUE, density: '0.36 g/cm³ (yaklaşık)', gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−190 °C',
+    mass: '≈4.2 × 10¹⁵ kg', density: '≈0.37 g/cm³', gravity: '≈0.0014 m/s²', temperature: '~−190 °C',
     chemistry: { tr: 'Gözenekli, su buzu bakımından zengin halka malzemesi; atmosfer saptanmadı.', en: 'Porous, water-ice-rich ring material; no detected atmosphere.' },
   },
   titan: {
@@ -110,11 +110,11 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Su buzu, tuzlar ve organik bileşikler; H₂O buhar püskürmeleri.', en: 'Water ice, salts, and organic compounds; H₂O vapor plumes.' },
   },
   mimas: {
-    mass: '3.749 × 10¹⁹ kg', density: '1.150 g/cm³', gravity: '0.064 m/s²', temperature: '~−205 °C',
+    mass: '3.751 × 10¹⁹ kg', density: '1.150 g/cm³', gravity: '0.064 m/s²', temperature: '~−205 °C',
     chemistry: { tr: 'Başlıca su buzu, az miktarda kaya; atmosfer saptanmadı.', en: 'Mostly water ice with a small rock fraction; no detected atmosphere.' },
   },
   tethys: {
-    mass: '6.174 × 10²⁰ kg', density: '0.984 g/cm³', gravity: '0.145 m/s²', temperature: '~−187 °C',
+    mass: '6.175 × 10²⁰ kg', density: '0.984 g/cm³', gravity: '0.145 m/s²', temperature: '~−187 °C',
     chemistry: { tr: 'Neredeyse tamamen su buzu; atmosfer saptanmadı.', en: 'Almost entirely water ice; no detected atmosphere.' },
   },
   dione: {
@@ -122,7 +122,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Su buzu ve kaya; çok ince O₂/CO₂ ekzosferi olasılığı.', en: 'Water ice and rock; possible extremely thin O₂/CO₂ exosphere.' },
   },
   rhea: {
-    mass: '2.307 × 10²¹ kg', density: '1.237 g/cm³', gravity: '0.264 m/s²', temperature: '~−174 °C',
+    mass: '2.306 × 10²¹ kg', density: '1.237 g/cm³', gravity: '0.264 m/s²', temperature: '~−174 °C',
     chemistry: { tr: 'Su buzu ağırlıklı, kaya katkılı yüzey; atmosfer saptanmadı.', en: 'Water-ice-dominated surface with rock contribution; no detected atmosphere.' },
   },
   iapetus: {
@@ -130,31 +130,31 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Su buzu; koyu yarımkürede organikçe zengin toz birikimi.', en: 'Water ice; organic-rich dust deposits on the dark hemisphere.' },
   },
   hyperion: {
-    mass: '5.62 × 10¹⁸ kg', density: '0.539 g/cm³', gravity: '0.020 m/s²', temperature: '~−180 °C',
+    mass: '5.55 × 10¹⁸ kg', density: '0.539 g/cm³', gravity: '0.020 m/s²', temperature: '~−180 °C',
     chemistry: { tr: 'Çok gözenekli su buzu/kaya karışımı; atmosfer saptanmadı.', en: 'Highly porous water-ice/rock mixture; no detected atmosphere.' },
   },
   uranus: {
-    mass: '8.6810 × 10²⁵ kg', density: '1.270 g/cm³', gravity: '8.69 m/s²', temperature: '~−197 °C',
+    mass: '8.6810 × 10²⁵ kg', density: '1.270 g/cm³', gravity: '8.87 m/s²', temperature: '~−197 °C',
     chemistry: { tr: 'H₂ ~%83, He ~%15, CH₄ ~%2; derinde su-amonyak-metandan oluşan buz akışkanları.', en: 'H₂ ~83%, He ~15%, CH₄ ~2%; deep water-ammonia-methane icy fluids.' },
   },
   miranda: {
-    mass: '6.59 × 10¹⁹ kg', density: '1.20 g/cm³', gravity: '0.079 m/s²', temperature: '~−187 °C',
+    mass: '6.44 × 10¹⁹ kg', density: '1.18 g/cm³', gravity: '0.077 m/s²', temperature: '~−187 °C',
     chemistry: { tr: 'Su buzu ve kaya karışımı; atmosfer saptanmadı.', en: 'Water-ice and rock mixture; no detected atmosphere.' },
   },
   ariel: {
-    mass: '1.353 × 10²¹ kg', density: '1.66 g/cm³', gravity: '0.269 m/s²', temperature: '~−213 °C',
+    mass: '1.251 × 10²¹ kg', density: '1.54 g/cm³', gravity: '0.249 m/s²', temperature: '~−213 °C',
     chemistry: { tr: 'Su buzu, CO₂ buzu ve kaya; atmosfer saptanmadı.', en: 'Water ice, CO₂ ice, and rock; no detected atmosphere.' },
   },
   umbriel: {
-    mass: '1.172 × 10²¹ kg', density: '1.46 g/cm³', gravity: '0.234 m/s²', temperature: '~−213 °C',
+    mass: '1.275 × 10²¹ kg', density: '1.52 g/cm³', gravity: '0.249 m/s²', temperature: '~−213 °C',
     chemistry: { tr: 'Koyu su buzu/kaya yüzeyi, olası CO₂ buzları; atmosfer saptanmadı.', en: 'Dark water-ice/rock surface with possible CO₂ ice; no detected atmosphere.' },
   },
   titania: {
-    mass: '3.527 × 10²¹ kg', density: '1.71 g/cm³', gravity: '0.379 m/s²', temperature: '~−203 °C',
+    mass: '3.400 × 10²¹ kg', density: '1.65 g/cm³', gravity: '0.365 m/s²', temperature: '~−203 °C',
     chemistry: { tr: 'Su buzu ve kaya; CO₂ buzlarının işaretleri; atmosfer saptanmadı.', en: 'Water ice and rock with signs of CO₂ ice; no detected atmosphere.' },
   },
   oberon: {
-    mass: '3.014 × 10²¹ kg', density: '1.63 g/cm³', gravity: '0.347 m/s²', temperature: '~−198 °C',
+    mass: '3.076 × 10²¹ kg', density: '1.66 g/cm³', gravity: '0.354 m/s²', temperature: '~−198 °C',
     chemistry: { tr: 'Su buzu ve kaya; koyu krater tabanları; atmosfer saptanmadı.', en: 'Water ice and rock with dark crater floors; no detected atmosphere.' },
   },
   neptune: {
@@ -166,7 +166,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Koyu, düzensiz buz/kaya cismi; atmosfer saptanmadı.', en: 'Dark, irregular ice-rock body; no detected atmosphere.' },
   },
   proteus: {
-    mass: '4.4 × 10¹⁹ kg', density: '~1.3 g/cm³', gravity: '~0.08 m/s²', temperature: '~−220 °C',
+    mass: '≈3.9 × 10¹⁹ kg', density: '≈1.0 g/cm³', gravity: '≈0.06 m/s²', temperature: '~−220 °C',
     chemistry: { tr: 'Koyu buz/kaya yüzeyi; atmosfer saptanmadı.', en: 'Dark ice-rock surface; no detected atmosphere.' },
   },
   nereid: {
@@ -182,7 +182,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'N₂, CH₄ ve CO buzları; mevsimsel, çok ince N₂ atmosferi.', en: 'N₂, CH₄, and CO ices; seasonal, very thin N₂ atmosphere.' },
   },
   charon: {
-    mass: '1.586 × 10²¹ kg', density: '1.70 g/cm³', gravity: '0.288 m/s²', temperature: '~−220 °C',
+    mass: '1.590 × 10²¹ kg', density: '1.70 g/cm³', gravity: '0.288 m/s²', temperature: '~−220 °C',
     chemistry: { tr: 'Su buzu, amonyak hidratları ve kaya; atmosfer saptanmadı.', en: 'Water ice, ammonia hydrates, and rock; no detected atmosphere.' },
   },
   styx: {
@@ -190,7 +190,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Küçük, düzensiz buzlu gövde; atmosfer saptanmadı.', en: 'Small irregular icy body; no detected atmosphere.' },
   },
   nix: {
-    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−230 °C',
+    mass: '≈2.2 × 10¹⁶ kg', density: '≈0.88 g/cm³', gravity: '≈0.0046 m/s²', temperature: '~−230 °C',
     chemistry: { tr: 'Su buzu zengini düzensiz gövde; kırmızımsı bir krater alanı bulunur.', en: 'Water-ice-rich irregular body with a reddish crater region.' },
   },
   kerberos: {
@@ -198,16 +198,16 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Parlak, olası temas ikilisi; yüzey bileşimi sınırlı ölçüldü.', en: 'Bright possible contact binary; surface composition is only sparsely measured.' },
   },
   hydra: {
-    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−230 °C',
+    mass: '≈3.0 × 10¹⁶ kg', density: '≈1.2 g/cm³', gravity: '≈0.0058 m/s²', temperature: '~−230 °C',
     chemistry: { tr: 'Su buzu zengini küçük düzensiz gövde; atmosfer saptanmadı.', en: 'Water-ice-rich small irregular body; no detected atmosphere.' },
   },
   metis: {
-    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
-    chemistry: { tr: 'Koyu, kırmızımsı düzensiz kaya; ana halkaya toz besler. JPL’in GM belirsizliği kütlesinden büyük.', en: 'Dark, reddish irregular rock feeding dust into the main ring. JPL’s GM uncertainty exceeds its own value.' },
+    mass: '≈3.7 × 10¹⁶ kg', density: '≈0.9 g/cm³', gravity: '≈0.005 m/s²', temperature: '~−150 °C',
+    chemistry: { tr: 'Koyu, kırmızımsı düzensiz kaya; ana halkaya toz besler. JPL GM değeri ~%64 belirsizlik taşır.', en: 'Dark, reddish irregular rock feeding dust into the main ring. JPL’s GM carries a ~64% uncertainty.' },
   },
   thebe: {
-    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
-    chemistry: { tr: 'Koyu düzensiz kaya; büyük Zethus krateri bulunur. JPL’in GM belirsizliği kütlesinden büyük.', en: 'Dark irregular rock carrying the large Zethus crater. JPL’s GM uncertainty exceeds its own value.' },
+    mass: '≈4.5 × 10¹⁷ kg', density: '≈0.9 g/cm³', gravity: '≈0.012 m/s²', temperature: '~−150 °C',
+    chemistry: { tr: 'Koyu düzensiz kaya; büyük Zethus krateri bulunur. JPL GM değeri ~%41 belirsizlik taşır.', en: 'Dark irregular rock carrying the large Zethus crater. JPL’s GM carries a ~41% uncertainty.' },
   },
   elara: {
     mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−150 °C',
@@ -218,19 +218,19 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Ters yörüngeli koyu düzensiz cisim; yüzey bileşimi sınırlı ölçüldü.', en: 'Retrograde dark irregular body; its surface composition is only sparsely measured.' },
   },
   janus: {
-    mass: '1.98 × 10¹⁸ kg', density: '0.65 g/cm³', gravity: '0.0146 m/s²', temperature: '~−193 °C',
+    mass: '1.90 × 10¹⁸ kg', density: '0.64 g/cm³', gravity: '0.016 m/s²', temperature: '~−193 °C',
     chemistry: { tr: 'Su buzu ağırlıklı, oldukça gözenekli moloz yığını; atmosfer saptanmadı.', en: 'Water-ice-dominated, highly porous rubble pile; no detected atmosphere.' },
   },
   epimetheus: {
-    mass: '5.5 × 10¹⁷ kg', density: '0.63 g/cm³', gravity: '0.0064 m/s²', temperature: '~−193 °C',
+    mass: '5.27 × 10¹⁷ kg', density: '0.64 g/cm³', gravity: '0.010 m/s²', temperature: '~−193 °C',
     chemistry: { tr: 'Janus ile aynı yapıda su buzu moloz yığını; yüzeyi kraterlerle örtülü.', en: 'Water-ice rubble pile like Janus, with a heavily cratered surface.' },
   },
   phoebe: {
-    mass: '8.289 × 10¹⁸ kg', density: '1.633 g/cm³', gravity: '0.0488 m/s²', temperature: '~−198 °C',
+    mass: '8.312 × 10¹⁸ kg', density: '1.643 g/cm³', gravity: '0.0488 m/s²', temperature: '~−198 °C',
     chemistry: { tr: 'Su buzu üzerinde koyu karbonlu örtü; Kuiper Kuşağı kökenli olduğu düşünülür.', en: 'Dark carbonaceous coating over water ice; thought to originate in the Kuiper Belt.' },
   },
   ceres: {
-    mass: '9.3835 × 10²⁰ kg', density: '2.162 g/cm³', gravity: '0.284 m/s²', temperature: '~−106 °C',
+    mass: '9.3842 × 10²⁰ kg', density: '2.162 g/cm³', gravity: '0.27 m/s²', temperature: '~−106 °C',
     chemistry: { tr: 'Su buzu, hidratlı mineraller ve karbonat tuzları; geçici su buharı izleri.', en: 'Water ice, hydrated minerals, and carbonate salts; transient water-vapor traces.' },
   },
   haumea: {
@@ -238,11 +238,11 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'Kristalin su buzu ağırlıklı, hızla dönen uzamış cüce gezegen; halka içerir.', en: 'Crystalline-water-ice-rich, rapidly spinning elongated dwarf planet with a ring.' },
   },
   makemake: {
-    mass: UNKNOWN_PROFILE_VALUE, density: UNKNOWN_PROFILE_VALUE, gravity: UNKNOWN_PROFILE_VALUE, temperature: '~−239 °C',
+    mass: '≈3.1 × 10²¹ kg', density: '≈2.1 g/cm³', gravity: '0.40 m/s²', temperature: '~−239 °C',
     chemistry: { tr: 'Metan ve etan buzları, karmaşık organik tholinler; küresel atmosfer saptanmadı.', en: 'Methane and ethane ices with complex organic tholins; no global atmosphere detected.' },
   },
   eris: {
-    mass: '1.647 × 10²² kg', density: '2.52 g/cm³', gravity: '0.82 m/s²', temperature: '~−231 °C',
+    mass: '1.66 × 10²² kg', density: '2.3 g/cm³', gravity: '0.77 m/s²', temperature: '~−231 °C',
     chemistry: { tr: 'Metan buzu ve kaya; uzak konumda geçici atmosfer olasılığı araştırılıyor.', en: 'Methane ice and rock; a transient atmosphere at its distant location is being studied.' },
   },
   vesta: {

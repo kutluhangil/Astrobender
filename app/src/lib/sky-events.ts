@@ -115,10 +115,14 @@ function eclipseLabel(kind: EclipseKind, language: UiLanguage): string {
   return labels[kind][language === 'tr' ? 0 : 1]
 }
 
-function solarVisibility(start: Date, observer: SkyObserver | undefined): SkyEventVisibility {
+function solarVisibility(globalPeak: Date, observer: SkyObserver | undefined): SkyEventVisibility {
   if (!observer) return 'location-required'
-  const local = SearchLocalSolarEclipse(start, new Observer(observer.latitude, observer.longitude, 0))
-  return Math.abs(local.peak.time.date.getTime() - start.getTime()) < 36 * 60 * 60 * 1000 && local.peak.altitude > 0
+  // The local search looks for the next new moon after its start time, and that
+  // new moon precedes the global peak, so starting at the peak skips the very
+  // eclipse being described. Start a day early instead.
+  const searchFrom = new Date(globalPeak.getTime() - 24 * 60 * 60 * 1000)
+  const local = SearchLocalSolarEclipse(searchFrom, new Observer(observer.latitude, observer.longitude, 0))
+  return Math.abs(local.peak.time.date.getTime() - globalPeak.getTime()) < 36 * 60 * 60 * 1000 && local.peak.altitude > 0
     ? 'local-visible'
     : 'local-not-visible'
 }
@@ -166,7 +170,9 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
   while (containsDate(input.start, input.end, eclipse.peak.date)) {
     const peak = eclipse.peak.date
     const type = eclipseLabel(eclipse.kind, input.language)
-    const phaseDurationMs = eclipse.sd_penum * 2 * 60 * 1000
+    // sd_penum is the semi-duration in minutes, so the penumbral phase ends one
+    // semi-duration after the peak.
+    const phaseDurationMs = eclipse.sd_penum * 60 * 1000
     events.push({
       id: `lunar-eclipse-${peak.toISOString().slice(0, 10)}`,
       kind: 'lunar-eclipse',
@@ -219,10 +225,10 @@ function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
         guidance: t(
           input.language,
           stream.northernHemisphere
-            ? 'Karanlık bir konum seçin ve gece yarısından sonra kuzey göğünü izleyin.'
+            ? 'Karanlık bir konum seçin; gece yarısından sonra, radyant yükselirken göğün geniş bir bölümünü izleyin.'
             : 'Karanlık bir konum seçin; en iyi saatler gözlem konumuna göre değişir.',
           stream.northernHemisphere
-            ? 'Choose a dark location and watch the northern sky after midnight.'
+            ? 'Choose a dark location and, after midnight while the radiant climbs, watch a wide stretch of sky.'
             : 'Choose a dark location; the best hours vary with the observer location.',
         ),
         sourceUrl: stream.sourceUrl,

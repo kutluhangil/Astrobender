@@ -4,6 +4,7 @@ import type { EarthEvent } from './earth-observatory.ts'
 import { LANDING_SITES, type LandingSite } from './landing-sites.ts'
 import {
   NAMED_SMALL_BODIES,
+  smallBodyKindLabel,
   type CloseApproach,
   type NamedSmallBody,
 } from './jpl-small-bodies.ts'
@@ -160,7 +161,7 @@ export function searchObservatory(
       kind: 'small-body',
       id: `small-body-${body.id}`,
       title: language === 'tr' ? body.nameTr : body.name,
-      subtitle: withKindLabel(language, 'small-body', body.kind),
+      subtitle: withKindLabel(language, 'small-body', smallBodyKindLabel(body.kind, language)),
       body,
     }, [body.id, body.name, body.nameTr, body.kind])
   }
@@ -182,7 +183,7 @@ export function searchObservatory(
       title: language === 'tr' ? probe.nameTr : probe.name,
       subtitle: withKindLabel(language, 'mission', `${probe.launchYear}`),
       probe,
-    }, [probe.id, probe.name, probe.nameTr, probe.statusTr])
+    }, [probe.id, probe.name, probe.nameTr, probe.statusTr, probe.statusEn])
   }
 
   for (const constellation of IAU_CONSTELLATIONS) {

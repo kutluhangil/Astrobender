@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { CELESTIAL_CATALOG } from '../src/lib/celestial-catalog.ts'
-import { CELESTIAL_FUN_FACTS_EN } from '../src/lib/celestial-facts.ts'
+import { CELESTIAL_FACTS, CELESTIAL_FUN_FACTS_EN, celestialValueEn } from '../src/lib/celestial-facts.ts'
+import { findLandingSiteNear } from '../src/lib/landing-sites.ts'
 import {
   CELESTIAL_PHYSICAL_PROFILES,
   JPL_PHYSICAL_PARAMETERS_URL,
@@ -19,7 +20,7 @@ test('catalog covers every selectable rendered body with a dated primary source'
     const entry = CELESTIAL_CATALOG[bodyId]
     assert.equal(entry.id, bodyId)
     assert.match(entry.sourceUrl, /^https:\/\/science\.nasa\.gov\//)
-    assert.equal(entry.verifiedAt, '2026-07-26')
+    assert.equal(entry.verifiedAt, '2026-10-19')
     assert.ok(CELESTIAL_FUN_FACTS_EN[bodyId].length > 20)
   }
 })
@@ -74,9 +75,9 @@ test('major satellite models have orbital elements and complete systems retain m
     ]),
   )
   assert.deepEqual(moonTotals, {
-    jupiter: 101,
-    saturn: 274,
-    uranus: 28,
+    jupiter: 115,
+    saturn: 293,
+    uranus: 29,
     neptune: 16,
     pluto: 5,
     ceres: 0,
@@ -124,4 +125,15 @@ test('ring bands stay ordered, cited, and outside the body they orbit', () => {
     assert.deepEqual(inners, [...inners].sort((a, b) => a - b), `${planet.id} band order`)
   }
   assert.deepEqual(bandCounts, { jupiter: 4, uranus: 13, neptune: 5 })
+})
+
+test('landing sites stored on 0..360 east are found from -180..180 picks', () => {
+  assert.equal(findLandingSiteNear('venus', -7.5, -57)?.id, 'venera13')
+  assert.equal(findLandingSiteNear('titan', -10.6, 167.7)?.id, 'huygens')
+})
+
+test('English body values carry no Turkish fragments', () => {
+  assert.equal(celestialValueEn(CELESTIAL_FACTS.jupiter.rotationPeriod), '9 hours 55 min (Fastest)')
+  assert.equal(celestialValueEn(CELESTIAL_FACTS.sun.moonsCount), '8 planets + dwarf planets')
+  assert.doesNotMatch(celestialValueEn(CELESTIAL_FACTS.callisto.atmosphere), / ve /)
 })

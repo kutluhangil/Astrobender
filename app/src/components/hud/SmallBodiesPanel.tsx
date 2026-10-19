@@ -2,7 +2,9 @@ import { useState } from 'react'
 import {
   JPL_CAD_SOURCE_URL,
   NAMED_SMALL_BODIES,
+  diameterRangeFromAbsoluteMagnitude,
   lunarDistances,
+  smallBodyKindLabel,
   upcomingCloseApproaches,
   type CloseApproach,
   type CloseApproachHighlight,
@@ -37,6 +39,14 @@ function distanceLabel(distanceAu: number): string {
 
 function lunarDistanceLabel(distanceAu: number): string {
   return `${lunarDistances(distanceAu).toFixed(1)} LD`
+}
+
+function sizeLabel(approach: CloseApproach, t: (tr: string, en: string) => string): string {
+  if (approach.diameterKm !== null) return `${approach.diameterKm.toFixed(3)} km`
+  if (approach.absoluteMagnitude === null) return t('Bilinmiyor', 'Unknown')
+  const { minKm, maxKm } = diameterRangeFromAbsoluteMagnitude(approach.absoluteMagnitude)
+  const meters = (km: number) => Math.round(km * 1000)
+  return `≈${meters(minKm)}–${meters(maxKm)} m (H ${approach.absoluteMagnitude.toFixed(1)})`
 }
 
 export default function SmallBodiesPanel({
@@ -194,7 +204,7 @@ export default function SmallBodiesPanel({
                 <div className="mt-1 grid grid-cols-2 gap-1 text-slate-400">
                   <span>{t('Nominal', 'Nominal')}: {distanceLabel(selected.distanceAu)}</span>
                   <span>{t('Ay uzaklığı', 'Lunar distance')}: {lunarDistanceLabel(selected.distanceAu)}</span>
-                  <span>{t('Çap', 'Diameter')}: {selected.diameterKm === null ? t('Bilinmiyor', 'Unknown') : `${selected.diameterKm.toFixed(3)} km`}</span>
+                  <span>{t('Çap', 'Diameter')}: {sizeLabel(selected, t)}</span>
                   <span>{t('Min', 'Min')}: {selected.minimumDistanceAu === null ? '—' : distanceLabel(selected.minimumDistanceAu)}</span>
                   <span>{t('Maks', 'Max')}: {selected.maximumDistanceAu === null ? '—' : distanceLabel(selected.maximumDistanceAu)}</span>
                 </div>
@@ -216,9 +226,9 @@ export default function SmallBodiesPanel({
                 <span className="font-mono text-[10px] font-semibold text-amber-100">
                   {language === 'tr' ? body.nameTr : body.name}
                 </span>
-                <span className="ml-2 font-mono text-[7px] uppercase text-slate-500">{body.kind}</span>
+                <span className="ml-2 font-mono text-[7px] uppercase text-slate-500">{smallBodyKindLabel(body.kind, language)}</span>
                 <p className="mt-1 text-[9px] leading-relaxed text-slate-400">
-                  {body.summaryTr}
+                  {language === 'tr' ? body.summaryTr : body.summaryEn}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-2">
                   <a
@@ -307,7 +317,7 @@ export default function SmallBodiesPanel({
                     </span>
                     <span className="font-mono text-[7px] text-slate-500">{probe.launchYear}</span>
                   </div>
-                  <p className="mt-1 text-[9px] text-slate-300">{probe.statusTr}</p>
+                  <p className="mt-1 text-[9px] text-slate-300">{language === 'tr' ? probe.statusTr : probe.statusEn}</p>
                   <div className="mt-1.5 grid grid-cols-2 gap-1 font-mono text-[8px] text-slate-400">
                     <span>
                       {t("Güneş'e uzaklık", 'Distance from Sun')}:{' '}

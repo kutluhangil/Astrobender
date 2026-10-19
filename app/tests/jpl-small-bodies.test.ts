@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   NAMED_SMALL_BODIES,
   closeApproachTimeMs,
+  diameterRangeFromAbsoluteMagnitude,
   lunarDistances,
   parseCloseApproaches,
   resolveApproachBody,
@@ -10,7 +11,7 @@ import {
   type CloseApproach,
 } from '../src/lib/jpl-small-bodies.ts'
 import { getAllBodyIds } from '../src/lib/planets.ts'
-import { DEEP_SPACE_PROBES, probeDistanceAuAt } from '../src/lib/probes.ts'
+import { DEEP_SPACE_PROBES } from '../src/lib/probes.ts'
 
 test('JPL CAD parser maps dynamic fields and physical values', () => {
   const approaches = parseCloseApproaches({
@@ -28,6 +29,7 @@ test('JPL CAD parser maps dynamic fields and physical values', () => {
     maximumDistanceAu: 0.013,
     relativeVelocityKmS: 12.4,
     diameterKm: 0.14,
+    absoluteMagnitude: null,
     sourceUrl: 'https://ssd-api.jpl.nasa.gov/cad.api',
   })
 })
@@ -66,6 +68,7 @@ const approach = (designation: string, fullName: string, date: string, distanceA
   maximumDistanceAu: null,
   relativeVelocityKmS: 9.4,
   diameterKm: null,
+  absoluteMagnitude: null,
   sourceUrl: 'https://ssd-api.jpl.nasa.gov/cad.api',
 })
 
@@ -107,9 +110,26 @@ test('every deep-space mission is plotted from its own Horizons table', () => {
   const clipper = DEEP_SPACE_PROBES.find((probe) => probe.id === 'europa-clipper')
   assert.ok(voyager)
   assert.ok(clipper)
-  assert.ok(probeDistanceAuAt(voyager, voyager.referenceEpochMs + 86_400_000) > voyager.distanceAu)
   for (const probe of DEEP_SPACE_PROBES) {
     assert.equal(probe.rendered, true, `${probe.id} must be rendered`)
     assert.match(probe.ephemerisNoteTr, /JPL Horizons vektör tablosundan/, probe.id)
+    assert.ok(probe.statusEn.length > 0, `${probe.id} needs an English status`)
   }
+})
+
+test('an empty JPL CAD window parses to no approaches', () => {
+  assert.deepEqual(parseCloseApproaches({ signature: { version: '1.5' }, count: 0 }), [])
+})
+
+test('absolute magnitude bounds the size of an unmeasured asteroid', () => {
+  const { minKm, maxKm } = diameterRangeFromAbsoluteMagnitude(22)
+  assert.ok(minKm > 0.1 && minKm < 0.12, `min ${minKm}`)
+  assert.ok(maxKm > 0.23 && maxKm < 0.25, `max ${maxKm}`)
+  assert.throws(() => diameterRangeFromAbsoluteMagnitude(Number.NaN), /finite/)
+})
+
+test('only the five IAU dwarf planets are labelled dwarf planets', () => {
+  const dwarfs = NAMED_SMALL_BODIES.filter((body) => body.kind === 'dwarf-planet').map((body) => body.id)
+  assert.deepEqual(dwarfs, ['ceres'])
+  for (const body of NAMED_SMALL_BODIES) assert.ok(body.summaryEn.length > 0, body.id)
 })

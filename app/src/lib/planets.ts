@@ -155,6 +155,8 @@ interface MajorMoonInput {
   inclination: number
   parent: CelestialBodyId
   color: [number, number, number]
+  /** Only for moons that are not tidally locked; defaults to the orbital period. */
+  rotationPeriodHours?: number
 }
 
 function majorMoon(input: MajorMoonInput): PlanetDef {
@@ -162,7 +164,7 @@ function majorMoon(input: MajorMoonInput): PlanetDef {
     ...input,
     emoji: '🌑',
     segments: 32,
-    rotationPeriodHours: input.orbitPeriodDays * 24,
+    rotationPeriodHours: input.rotationPeriodHours ?? input.orbitPeriodDays * 24,
     axialTilt: 0,
     atmosphereColor: null,
     atmosphereIntensity: 0,
@@ -283,7 +285,7 @@ export const PLANETS: PlanetDef[] = [
     atmosphereIntensity: 1.2,
     uiColor: 'border-amber-600/60 bg-amber-600/20 text-amber-200',
     uiGlow: 'shadow-[0_0_10px_rgba(217,119,6,0.3)]',
-    knownMoonCount: 101,
+    knownMoonCount: 115,
     // Ratios are the PDS Ring-Moon Systems boundaries divided by Jupiter's
     // 71,492 km equatorial radius.
     ring: {
@@ -387,6 +389,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'himalia',
+        rotationPeriodHours: 7.8,
         name: 'Himalia',
         radius: 0.021,
         semiMajorAxisKm: 11460000,
@@ -417,6 +420,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'elara',
+        rotationPeriodHours: 12,
         name: 'Elara',
         radius: 0.0063,
         semiMajorAxisKm: 11737000,
@@ -451,7 +455,7 @@ export const PLANETS: PlanetDef[] = [
     inclination: 2.49,
     atmosphereColor: [0.85, 0.78, 0.50],
     atmosphereIntensity: 1.0,
-    knownMoonCount: 274,
+    knownMoonCount: 293,
     ring: {
       innerRadius: 1.35,
       outerRadius: 2.45,
@@ -563,6 +567,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'hyperion',
+        rotationPeriodHours: 312,
         name: 'Hyperion',
         radius: 0.02,
         semiMajorAxisKm: 1481009,
@@ -593,6 +598,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'phoebe',
+        rotationPeriodHours: 9.27,
         name: 'Phoebe',
         radius: 0.0167,
         semiMajorAxisKm: 12947780,
@@ -618,7 +624,7 @@ export const PLANETS: PlanetDef[] = [
     atmosphereColor: [0.55, 0.85, 0.90],
     atmosphereIntensity: 1.3,
     retrograde: true,
-    knownMoonCount: 28,
+    knownMoonCount: 29,
     // Ratios are the PDS Ring-Moon Systems middle boundaries divided by
     // Uranus's 25,559 km equatorial radius. The ten dense rings are 1.5 to
     // 58 km wide, far below one drawn pixel, so they carry `narrow: true`.
@@ -774,6 +780,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'nereid',
+        rotationPeriodHours: 11.59,
         name: 'Nereid',
         radius: 0.027,
         semiMajorAxisKm: 5513400,
@@ -834,6 +841,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'styx',
+        rotationPeriodHours: 77.8,
         name: 'Styx',
         radius: 0.003,
         semiMajorAxisKm: 42656,
@@ -844,6 +852,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'nix',
+        rotationPeriodHours: 43.9,
         name: 'Nix',
         radius: 0.006,
         semiMajorAxisKm: 48694,
@@ -854,6 +863,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'kerberos',
+        rotationPeriodHours: 127.4,
         name: 'Kerberos',
         radius: 0.004,
         semiMajorAxisKm: 57783,
@@ -864,6 +874,7 @@ export const PLANETS: PlanetDef[] = [
       }),
       majorMoon({
         id: 'hydra',
+        rotationPeriodHours: 10.3,
         name: 'Hydra',
         radius: 0.006,
         semiMajorAxisKm: 64738,

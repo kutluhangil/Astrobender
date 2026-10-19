@@ -46,7 +46,7 @@ test('comparisons are stated against Earth and localized', () => {
 
 test('moons report both the known total and how many are modelled', () => {
   const [, , jupiterMoons] = getSignatureMetrics('jupiter', 'tr')
-  assert.equal(jupiterMoons.value, '101')
+  assert.equal(jupiterMoons.value, '115')
   assert.match(jupiterMoons.comparison ?? '', /^10 tanesi modelli$/)
 
   const [, , vestaMoons] = getSignatureMetrics('vesta', 'tr')

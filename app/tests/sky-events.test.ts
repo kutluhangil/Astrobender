@@ -71,3 +71,32 @@ test('Skywatch rejects an inverted window and labels unlocated solar visibility'
   })
   assert.equal(events.find((event) => event.kind === 'solar-eclipse')?.visibility, 'location-required')
 })
+
+test('the 2026-08-12 total solar eclipse is visible from Reykjavik and Madrid', () => {
+  for (const observer of [
+    { latitude: 64.15, longitude: -21.94, label: 'Reykjavik' },
+    { latitude: 40.42, longitude: -3.7, label: 'Madrid' },
+  ]) {
+    const events = getSkyEvents({
+      start: new Date('2026-08-01T00:00:00Z'),
+      end: new Date('2026-08-31T23:59:59Z'),
+      observer,
+      language: 'en',
+    })
+    const solar = events.find((event) => event.kind === 'solar-eclipse')
+    assert.equal(solar?.visibility, 'local-visible', observer.label)
+  }
+})
+
+test('a lunar eclipse ends one penumbral semi-duration after its peak', () => {
+  const events = getSkyEvents({
+    start: new Date('2026-08-01T00:00:00Z'),
+    end: new Date('2026-08-31T23:59:59Z'),
+    language: 'en',
+  })
+  const lunar = events.find((event) => event.kind === 'lunar-eclipse')
+  assert.ok(lunar?.endsAt)
+  const hours = (Date.parse(lunar.endsAt) - Date.parse(lunar.startsAt)) / 3_600_000
+  // The 2026-08-28 partial eclipse has a penumbral phase of ~5.6 h in total.
+  assert.ok(hours > 2.5 && hours < 3.1, `penumbral half-phase was ${hours.toFixed(2)} h`)
+})

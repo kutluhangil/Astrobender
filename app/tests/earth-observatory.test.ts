@@ -93,3 +93,13 @@ test('Earth Observatory cache preserves source timestamps and rejects corrupt pa
     /invalid aurora\.fetchedAt/,
   )
 })
+
+test('NOAA aurora longitudes on 0..359 east map onto -180..180 instead of being dropped', () => {
+  const forecast = parseNoaaAurora({
+    'Forecast Time': '2026-10-19T20:46:00Z',
+    coordinates: [[260, 62, 40], [181, 65, 12], [10, 66, 5]],
+  })
+  assert.equal(forecast.maxProbability, 40)
+  assert.equal(forecast.lon, -100)
+  assert.deepEqual(forecast.points.map((point) => point.lon), [-100, -179])
+})

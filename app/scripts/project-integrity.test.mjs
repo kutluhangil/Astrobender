@@ -125,8 +125,8 @@ test('current moon counts and Neptune wind units are correct', () => {
   const facts = read('src/lib/celestial-facts.ts')
   const scaleModal = read('src/components/hud/ScaleSandboxModal.tsx')
 
-  assert.match(facts, /101 Bilinen Uydu/)
-  assert.match(facts, /274 Bilinen Uydu/)
+  assert.match(facts, /115 Bilinen Uydu/)
+  assert.match(facts, /293 Bilinen Uydu/)
   assert.doesNotMatch(scaleModal, /2,100 km\/s/)
   assert.match(scaleModal, /2,000 km\/h/)
 })

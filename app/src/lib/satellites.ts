@@ -59,22 +59,25 @@ const G = {
 
 const WEATHER_PREFIXES = [
   'NOAA', 'GOES', 'METEOSAT', 'METOP', 'FENGYUN', 'FY-', 'HIMAWARI',
-  'ELECTRO-L', 'DMSP', 'GOMS', 'INSAT', 'KALPANA', 'GEO-KOMPSAT', 'ARSAT',
+  'ELECTRO-L', 'DMSP', 'GOMS', 'INSAT', 'KALPANA', 'GEO-KOMPSAT',
 ]
 
 /** Classify an active-catalog name into a UI group index. */
 function classifyActive(nameRaw: string): number {
   const n = nameRaw.trim().toUpperCase()
+  // Whole-word station names only: a bare substring test pulls in AISSAT,
+  // SWISSCUBE and "OUTPOST MISSION".
   if (
-    n.includes('ISS') || n.includes('ZARYA') || n.includes('TIANGONG') ||
-    n.startsWith('CSS') || n.includes('TIANHE') || n.includes('WENTIAN') ||
+    /^ISS \(/.test(n) || n.includes('ZARYA') || n.startsWith('TIANGONG') ||
+    /^CSS \(/.test(n) || n.includes('TIANHE') || n.includes('WENTIAN') ||
     n.includes('MENGTIAN')
   ) {
     return G.Stations
   }
   if (n.startsWith('GPS ') || n.startsWith('NAVSTAR')) return G.Gps
   if (n.includes('GLONASS')) return G.Glonass
-  if (n.includes('GALILEO') || n.startsWith('GSAT')) return G.Galileo
+  // Galileo names read "GSAT0101 (GALILEO-PFM)"; ISRO's "GSAT-7" etc. are not Galileo.
+  if (n.includes('GALILEO')) return G.Galileo
   if (n.startsWith('STARLINK')) return G.Starlink
   if (n.startsWith('ONEWEB')) return G.OneWeb
   for (const p of WEATHER_PREFIXES) if (n.startsWith(p)) return G.Weather

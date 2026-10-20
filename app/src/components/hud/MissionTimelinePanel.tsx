@@ -21,6 +21,10 @@ const KIND_GLYPH: Record<MissionEventKind, string> = {
   'orbit-insertion': '◍',
   landing: '▼',
   end: '×',
+  impact: '✸',
+  flight: '⌁',
+  'sample-return': '⤓',
+  milestone: '◆',
 }
 
 const KIND_LABEL: Record<MissionEventKind, [string, string]> = {
@@ -29,17 +33,20 @@ const KIND_LABEL: Record<MissionEventKind, [string, string]> = {
   'orbit-insertion': ['Yörüngeye giriş', 'Orbit insertion'],
   landing: ['İniş', 'Landing'],
   end: ['Görev sonu', 'Mission end'],
+  impact: ['Çarpma', 'Impact'],
+  flight: ['Uçuş', 'Flight'],
+  'sample-return': ['Örnek dönüşü', 'Sample return'],
+  milestone: ['Dönüm noktası', 'Milestone'],
 }
 
 function formatEventDate(event: MissionEvent, language: UiLanguage): string {
+  const dayOnly = event.precision === 'day'
   return new Intl.DateTimeFormat(language === 'tr' ? 'tr-TR' : 'en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    ...(dayOnly ? {} : { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }),
     timeZone: 'UTC',
-    timeZoneName: 'short',
   }).format(new Date(missionEventTimeMs(event)))
 }
 

@@ -5,7 +5,9 @@ import { eventDayKey } from '@/lib/skywatch-calendar'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
 import SkywatchEventCalendar from './SkywatchEventCalendar'
 import ObservationPlannerCard from './ObservationPlannerCard'
+import SatellitePassesCard from './SatellitePassesCard'
 import type { CelestialBodyId } from '@/lib/planets'
+import type { OmmElements } from '@/lib/omm'
 
 interface SkywatchPanelProps {
   events: SkyEvent[]
@@ -20,6 +22,9 @@ interface SkywatchPanelProps {
   onClearLocation: () => void
   onSelectEvent: (event: SkyEvent) => void
   onStartPerseidSimulation: (watch: PerseidWatch) => void
+  /** Space stations whose visible passes are predicted for the observer. */
+  passTargets: OmmElements[]
+  onShowSatellitePass: (norad: number, atMs: number) => void
   onClose: () => void
 }
 
@@ -30,6 +35,8 @@ const EVENT_STYLE: Record<SkyEventKind, { glyph: string; accent: string; panel: 
   'maximum-elongation': { glyph: '◌', accent: 'text-cyan-200', panel: 'border-cyan-300/25 bg-cyan-300/[0.045]' },
   conjunction: { glyph: '⊙', accent: 'text-cyan-200', panel: 'border-cyan-300/25 bg-cyan-300/[0.045]' },
   opposition: { glyph: '◍', accent: 'text-sky-200', panel: 'border-sky-300/25 bg-sky-300/[0.045]' },
+  'moon-phase': { glyph: '☾', accent: 'text-zinc-200', panel: 'border-zinc-300/20 bg-zinc-300/[0.035]' },
+  'planet-pair': { glyph: '⁘', accent: 'text-emerald-200', panel: 'border-emerald-300/25 bg-emerald-300/[0.045]' },
 }
 
 function monthKey(value: string): string {
@@ -102,12 +109,20 @@ function formatUtcRange(start: string, end: string, language: UiLanguage): strin
   return `${formatter.format(new Date(start))} – ${formatter.format(new Date(end))}`
 }
 
+function formatDayRange(start: string, end: string, language: UiLanguage): string {
+  const formatter = new Intl.DateTimeFormat(language === 'tr' ? 'tr-TR' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+  return `${formatter.format(new Date(start))} – ${formatter.format(new Date(end))}`
+}
+
 function perseidStatusLabel(status: PerseidWatch['status'], language: UiLanguage): string {
   const labels: Record<PerseidWatch['status'], [string, string]> = {
     upcoming: ['Yaklaşıyor', 'Upcoming'],
     active: ['Aktif', 'Active'],
     peak: ['Zirve şimdi', 'Peak now'],
-    completed: ['Sezon tamamlandı', 'Season complete'],
   }
   return labels[status][language === 'tr' ? 0 : 1]
 }
@@ -136,7 +151,7 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-100/75">Perseid Watch · 2026</div>
+            <div className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-100/75">Perseid Watch · {watch.year}</div>
             <h3 className="mt-0.5 font-mono text-xs font-bold tracking-[0.1em] text-amber-50">{t('PERSEİD AKIŞI', 'PERSEID STREAM')}</h3>
           </div>
           <span className="rounded-full border border-amber-100/25 bg-black/20 px-1.5 py-0.5 font-mono text-[8px] font-semibold text-amber-100">{perseidStatusLabel(watch.status, language)}</span>
@@ -145,7 +160,7 @@ function PerseidWatchCard({ watch, language, onStartSimulation }: {
         <div className="mt-2 grid grid-cols-2 gap-1.5 font-mono text-[8px]">
           <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
             <div className="text-amber-100/55">{t('AKTİF', 'ACTIVE')}</div>
-            <div className="mt-0.5">17 Tem – 24 Ağu</div>
+            <div className="mt-0.5">{formatDayRange(watch.activeStart, watch.activeEnd, language)}</div>
           </div>
           <div className="rounded border border-white/10 bg-black/15 px-2 py-1.5 text-amber-50/90">
             <div className="text-amber-100/55">{t('ZİRVE', 'PEAK')}</div>
@@ -287,11 +302,13 @@ export default function SkywatchPanel({
   onClearLocation,
   onSelectEvent,
   onStartPerseidSimulation,
+  passTargets,
+  onShowSatellitePass,
   onClose,
 }: SkywatchPanelProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
   const [now, setNow] = useState(() => Date.now())
-  const perseidWatch = getPerseidWatch(new Date(now), observer ?? undefined)
+  const perseidWatch = useMemo(() => getPerseidWatch(new Date(now), observer ?? undefined), [now, observer])
   const months = useMemo(() => [...new Set(events.map((event) => monthKey(event.startsAt)))], [events])
   const [requestedMonth, setRequestedMonth] = useState(() => months[0] ?? '')
   const [requestedDay, setRequestedDay] = useState<string | null>(null)
@@ -367,6 +384,14 @@ export default function SkywatchPanel({
           onClearLocation={onClearLocation}
         />
 
+        <SatellitePassesCard
+          targets={passTargets}
+          observer={observer}
+          fromMs={Math.floor(now / 600_000) * 600_000}
+          language={language}
+          onShowPass={onShowSatellitePass}
+        />
+
         <ObservationPlannerCard
           observer={observer}
           nightOf={new Date(selectedDay ? `${selectedDay}T00:00:00Z` : now)}
@@ -374,13 +399,11 @@ export default function SkywatchPanel({
           language={language}
         />
 
-        {perseidWatch && (
-          <PerseidWatchCard
-            watch={perseidWatch}
-            language={language}
-            onStartSimulation={onStartPerseidSimulation}
-          />
-        )}
+        <PerseidWatchCard
+          watch={perseidWatch}
+          language={language}
+          onStartSimulation={onStartPerseidSimulation}
+        />
 
         {displayedEvents.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-white/[0.025] p-3 font-mono text-[9px] leading-relaxed text-slate-400">

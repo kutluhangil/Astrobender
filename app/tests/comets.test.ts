@@ -8,7 +8,7 @@ import {
 } from '../src/lib/orbital-mechanics.ts'
 
 test('every comet has Keplerian elements that match its published shape', () => {
-  assert.equal(COMETS.length, 3)
+  assert.equal(COMETS.length, 4)
   for (const comet of COMETS) {
     const elements = PLANETARY_ELEMENTS[comet.id]
     assert.ok(elements, `${comet.id} elements`)
@@ -61,4 +61,15 @@ test('comets are looked up by id and share one marker size', () => {
   assert.equal(findComet('halley')?.designation, '1P/Halley')
   assert.equal(findComet('not-a-comet'), undefined)
   assert.ok(COMET_MARKER_RADIUS > 0)
+})
+
+test('2P/Encke reaches its next perihelion on 2027-02-10, as the SBDB period predicts', () => {
+  let closest = { distance: Number.POSITIVE_INFINITY, timeMs: 0 }
+  for (let timeMs = Date.UTC(2027, 0, 1); timeMs < Date.UTC(2027, 3, 1); timeMs += 3_600_000) {
+    const position = heliocentricPositionAu('encke', timeMs)
+    const distance = Math.hypot(position.x, position.y, position.z)
+    if (distance < closest.distance) closest = { distance, timeMs }
+  }
+  assert.equal(new Date(closest.timeMs).toISOString().slice(0, 10), '2027-02-10')
+  assert.ok(Math.abs(closest.distance - 0.3396) < 0.001)
 })

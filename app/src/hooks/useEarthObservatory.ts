@@ -5,18 +5,24 @@ import {
   fetchJson,
   parseEarthObservatoryCache,
   parseEonetEvents,
+  parseKpForecast,
   parseNoaaAurora,
   parseUsgsEarthquakes,
+  parseXrayFlares,
   type AuroraForecast,
   type EarthObservatoryCache,
   type EarthEvent,
   type EarthSourceId,
+  type FlareSummary,
+  type KpOutlook,
 } from '@/lib/earth-observatory'
 
 export interface EarthObservatoryState {
   status: 'idle' | 'loading' | 'ready' | 'partial' | 'error'
   events: EarthEvent[]
   aurora: AuroraForecast | null
+  kp: KpOutlook | null
+  flares: FlareSummary | null
   errors: Partial<Record<EarthSourceId | 'cache', string>>
   updatedAt: number | null
   cachedSources: EarthSourceId[]
@@ -27,6 +33,8 @@ const INITIAL_STATE: EarthObservatoryState = {
   status: 'idle',
   events: [],
   aurora: null,
+  kp: null,
+  flares: null,
   errors: {},
   updatedAt: null,
   cachedSources: [],
@@ -82,6 +90,8 @@ export function useEarthObservatory(enabled: boolean) {
       status: 'loading',
       events: cachedEvents,
       aurora: cache.sources.aurora?.data ?? null,
+      kp: cache.sources.kp?.data ?? null,
+      flares: cache.sources.flares?.data ?? null,
       errors: cacheReadError ? { cache: cacheReadError } : {},
       updatedAt: cachedSources.length
         ? Math.max(...cachedSources.map((source) => cache.sources[source]?.fetchedAt ?? 0))
@@ -93,10 +103,12 @@ export function useEarthObservatory(enabled: boolean) {
     })
 
     try {
-      const [eonetResult, usgsResult, auroraResult] = await Promise.allSettled([
+      const [eonetResult, usgsResult, auroraResult, kpResult, flaresResult] = await Promise.allSettled([
         fetchJson(EARTH_DATA_URLS.eonet, controller.signal).then(parseEonetEvents),
         fetchJson(EARTH_DATA_URLS.usgs, controller.signal).then(parseUsgsEarthquakes),
         fetchJson(EARTH_DATA_URLS.aurora, controller.signal).then(parseNoaaAurora),
+        fetchJson(EARTH_DATA_URLS.kp, controller.signal).then(parseKpForecast),
+        fetchJson(EARTH_DATA_URLS.flares, controller.signal).then(parseXrayFlares),
       ])
       if (generationRef.current !== generation) return
 
@@ -142,11 +154,24 @@ export function useEarthObservatory(enabled: boolean) {
           ? auroraResult.reason.message
           : String(auroraResult.reason)
       }
+      const kp = kpResult.status === 'fulfilled' ? kpResult.value : (cache.sources.kp?.data ?? null)
+      const flares = flaresResult.status === 'fulfilled' ? flaresResult.value : (cache.sources.flares?.data ?? null)
+      if (kpResult.status === 'fulfilled') {
+        nextCache.sources.kp = { fetchedAt: now, data: kpResult.value }
+      } else {
+        if (cache.sources.kp) usedCachedSources.push('kp')
+        errors.kp = kpResult.reason instanceof Error ? kpResult.reason.message : String(kpResult.reason)
+      }
+      if (flaresResult.status === 'fulfilled') {
+        nextCache.sources.flares = { fetchedAt: now, data: flaresResult.value }
+      } else {
+        if (cache.sources.flares) usedCachedSources.push('flares')
+        errors.flares = flaresResult.reason instanceof Error ? flaresResult.reason.message : String(flaresResult.reason)
+      }
       const cacheWriteError = writeCache(nextCache)
       if (cacheWriteError) errors.cache = cacheWriteError
-      const sourceFailureCount = ['eonet', 'usgs', 'aurora'].filter(
-        (source) => errors[source as EarthSourceId],
-      ).length
+      const allSources: EarthSourceId[] = ['eonet', 'usgs', 'aurora', 'kp', 'flares']
+      const sourceFailureCount = allSources.filter((source) => errors[source]).length
       const sourceUpdatedAt = Object.fromEntries(
         (Object.keys(nextCache.sources) as EarthSourceId[]).map((source) => [
           source,
@@ -157,11 +182,13 @@ export function useEarthObservatory(enabled: boolean) {
         status:
           sourceFailureCount === 0
             ? 'ready'
-            : sourceFailureCount === 3 && usedCachedSources.length === 0
+            : sourceFailureCount === allSources.length && usedCachedSources.length === 0
               ? 'error'
               : 'partial',
         events: [...earthquakes, ...eonetEvents],
         aurora,
+        kp,
+        flares,
         errors,
         updatedAt: now,
         cachedSources: usedCachedSources,

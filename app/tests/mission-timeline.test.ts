@@ -21,7 +21,12 @@ test('every mission event is sourced, dated, and aimed at a modelled body', () =
     seen.add(event.id)
     assert.match(event.at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `${event.id} timestamp`)
     assert.ok(Number.isFinite(missionEventTimeMs(event)), `${event.id} parses`)
-    assert.ok(event.sourceUrl.startsWith(NSSDCA_MASTER_CATALOG_URL), `${event.id} source`)
+    // NSSDCA first; an agency mission page only where NSSDCA has no record yet.
+    assert.ok(
+      event.sourceUrl.startsWith(NSSDCA_MASTER_CATALOG_URL) ||
+        /^https:\/\/www\.(isro\.gov\.in|nasa\.gov)\//.test(event.sourceUrl),
+      `${event.id} source`,
+    )
     assert.ok(bodyIds.has(event.targetBody), `${event.id} targets ${event.targetBody}`)
     assert.ok(event.titleTr.length > 5 && event.titleEn.length > 5, `${event.id} titles`)
     if (event.landingSiteId) {
@@ -69,4 +74,11 @@ test('a malformed timestamp raises instead of sorting as NaN', () => {
       }),
     /unparsable timestamp/,
   )
+})
+
+test('day-precision events sit at UTC midnight so no invented time of day is shown', () => {
+  for (const event of MISSION_EVENTS) {
+    if (event.precision === 'day') assert.match(event.at, /T00:00:00Z$/, event.id)
+  }
+  assert.ok(MISSION_EVENTS.some((event) => event.id === 'voyager1-heliopause' && event.precision === 'day'))
 })

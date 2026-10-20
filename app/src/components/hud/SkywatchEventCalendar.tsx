@@ -17,6 +17,8 @@ const EVENT_DOT: Record<SkyEventKind, string> = {
   'maximum-elongation': 'bg-cyan-200',
   conjunction: 'bg-cyan-300',
   opposition: 'bg-sky-200',
+  'moon-phase': 'bg-zinc-300',
+  'planet-pair': 'bg-emerald-200',
 }
 
 function calendarCells(month: string): Array<string | null> {

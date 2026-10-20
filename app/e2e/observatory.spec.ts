@@ -119,7 +119,7 @@ test('scale honesty and terminator readouts open from the body panel', async ({ 
 })
 
 test('comet layer draws sourced eccentric orbits and states its ephemeris drift', async ({ page }) => {
-  await page.getByRole('button', { name: /Kuyruklu Yıldızlar 3/ }).first().click()
+  await page.getByRole('button', { name: /Kuyruklu Yıldızlar 4/ }).first().click()
   await expect(
     page.getByText(/kuyruklu yıldız çekirdekleri ölçeğe göre çizilemeyecek/).first(),
   ).toBeVisible()
@@ -127,9 +127,10 @@ test('comet layer draws sourced eccentric orbits and states its ephemeris drift'
   await page.getByRole('button', { name: '☄️ JPL Cisimleri' }).first().click()
   const panel = page.getByRole('region', { name: 'JPL Küçük Cisim Gözlemevi' })
   await expect(panel).toBeVisible()
-  await panel.getByRole('button', { name: /Kuyruklu 3/ }).click()
+  await panel.getByRole('button', { name: /Kuyruklu 4/ }).click()
   await expect(panel.getByText('1P/Halley')).toBeVisible()
   await expect(panel.getByText('12P/Pons-Brooks')).toBeVisible()
+  await expect(panel.getByText('2P/Encke')).toBeVisible()
   await expect(panel.getByText(/JPL Horizons'tan 0\.276 AU sapıyor/)).toBeVisible()
 })
 
@@ -137,6 +138,7 @@ test('Lagrange layer discloses its exaggerated collinear points and schematic ca
   await page.getByRole('button', { name: /Lagrange & Trojanlar/ }).first().click()
   await expect(page.getByText(/L1 ve L2 sıkıştırılmış ölçekte Dünya küresinin içinde/).first()).toBeVisible()
   await expect(page.getByText(/Jüpiter Trojan kampları şematiktir/).first()).toBeVisible()
+  await expect(page.getByText(/Aditya-L1/).first()).toBeVisible()
   await expect(page.getByRole('link', { name: /MPC Trojan listesi/ }).first()).toHaveAttribute(
     'href',
     'https://www.minorplanetcenter.net/iau/lists/JupiterTrojans.html',
@@ -175,7 +177,7 @@ test('LIVE controller exposes operational status from its information port', asy
   const infoPort = page.getByRole('button', { name: 'Sistem veri durumunu göster' })
   await infoPort.hover()
   await expect(page.getByText('Sistem Durumu')).toBeVisible()
-  await expect(page.getByText('TLE epoch yaşı')).toBeVisible()
+  await expect(page.getByText('GP epoch yaşı')).toBeVisible()
 })
 
 test('keyboard search supports arrow navigation and NORAD selection', async ({ page }) => {
@@ -200,8 +202,33 @@ test('Earth Observatory isolates source failures and keeps the globe usable', as
   await expect(page.getByText(/NASA EONET verisi alınamadı/)).toBeVisible()
   await expect(page.getByText(/USGS Deprem verisi alınamadı/)).toBeVisible()
   await expect(page.getByText(/NOAA Aurora verisi alınamadı/)).toBeVisible()
+  await expect(page.getByText(/NOAA Kp indeksi verisi alınamadı/)).toBeVisible()
+  await expect(page.getByText(/GOES X-ışını verisi alınamadı/)).toBeVisible()
   await expect(page.locator('canvas')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Dünya (Earth)' })).toBeVisible()
+})
+
+test('Earth Observatory shows NOAA space weather with its storm and blackout levels', async ({ page }) => {
+  await page.route('https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { time_tag: '2026-10-19T21:00:00', kp: 5.0, observed: 'estimated', noaa_scale: 'G1' },
+        { time_tag: '2026-10-20T03:00:00', kp: 6.33, observed: 'predicted', noaa_scale: 'G2' },
+      ]),
+    }),
+  )
+  await page.route('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-7-day.json', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ max_class: 'M1.6', max_time: '2026-10-19T09:03:00Z', max_xrlong: 1.68e-5 }]),
+    }),
+  )
+  await page.getByRole('button', { name: '🌍 Dünya Verisi' }).click()
+  const card = page.getByLabel('Uzay havası')
+  await expect(card).toContainText('5.0 · G1')
+  await expect(card).toContainText('Öngörü en yüksek 6.3 (G2)')
+  await expect(card).toContainText('M1.6 · R1')
 })
 
 test('mobile light theme and English mode remain operable', async ({ page }) => {
@@ -262,10 +289,15 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   const eventCalendar = panel.getByRole('group', { name: 'Olay takvimi' })
   await expect(eventCalendar).toBeVisible()
   await expect(eventCalendar.getByRole('button', { name: /15 Ağustos.*Venüs/ })).toBeVisible()
+  // September now carries Moon phases and Neptune's opposition, so October is two steps on.
   await panel.getByRole('button', { name: 'Sonraki ay' }).click()
-  await expect(eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ })).toBeVisible()
-  await eventCalendar.getByRole('button', { name: /21 Ekim.*Orionids/ }).click()
-  await expect(panel.getByText('Orionids Meteor Yağmuru')).toBeVisible()
+  await expect(eventCalendar.getByRole('button', { name: /26 Eylül.*Neptün karşı konumda/ })).toBeVisible()
+  await panel.getByRole('button', { name: 'Sonraki ay' }).click()
+  await expect(eventCalendar.getByRole('button', { name: /21 Ekim.*Orionidler/ })).toBeVisible()
+  await eventCalendar.getByRole('button', { name: /21 Ekim.*Orionidler/ }).click()
+  await expect(panel.getByText('Orionidler Meteor Yağmuru')).toBeVisible()
+  await expect(panel.getByText(/IMO ZHR 20/)).toBeVisible()
+  await panel.getByRole('button', { name: 'Önceki ay' }).click()
   await panel.getByRole('button', { name: 'Önceki ay' }).click()
 
   await panel.getByText('Koordinatları elle gir').click()
@@ -274,6 +306,9 @@ test('Skywatch calculates events, accepts a manual observer, and moves the simul
   await panel.getByLabel('Konum etiketi').fill('İstanbul')
   await panel.getByRole('button', { name: 'Konumu kaydet' }).click()
   await expect(panel.getByRole('region', { name: 'Gözlem konumu' }).getByText('İstanbul')).toBeVisible()
+  // The bundled GP snapshot is weeks older than the pinned clock, so the pass
+  // card must refuse to predict rather than print drifted times.
+  await expect(panel.getByRole('region', { name: 'Görünür uydu geçişleri' })).toContainText(/Element setleri \d+ günlük/)
   const perseidWatch = panel.getByRole('region', { name: 'Perseid Watch' })
   await expect(perseidWatch).toContainText('PERSEİD AKIŞI')
   await expect(panel.getByText(/Astronomik skor; bulutluluk/)).toBeVisible()

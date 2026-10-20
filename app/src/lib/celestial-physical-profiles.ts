@@ -103,7 +103,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
   },
   titan: {
     mass: '1.3452 × 10²³ kg', density: '1.881 g/cm³', gravity: '1.352 m/s²', temperature: '~−179 °C',
-    chemistry: { tr: 'N₂ ~%98, CH₄ ~%1.4; su buzu kabuk ve metan/etan gölleri.', en: 'N₂ ~98%, CH₄ ~1.4%; water-ice crust and methane/ethane lakes.' },
+    chemistry: { tr: 'N₂ ~%95–98, CH₄ ~%1.4–5 (metan yüzeye yakın en yüksek); su buzu kabuk ve metan/etan gölleri.', en: 'N₂ ~95–98%, CH₄ ~1.4–5% (methane peaks near the surface); water-ice crust and methane/ethane lakes.' },
   },
   enceladus: {
     mass: '1.080 × 10²⁰ kg', density: '1.610 g/cm³', gravity: '0.113 m/s²', temperature: '~−201 °C',
@@ -233,6 +233,9 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     mass: '9.3842 × 10²⁰ kg', density: '2.162 g/cm³', gravity: '0.27 m/s²', temperature: '~−106 °C',
     chemistry: { tr: 'Su buzu, hidratlı mineraller ve karbonat tuzları; geçici su buharı izleri.', en: 'Water ice, hydrated minerals, and carbonate salts; transient water-vapor traces.' },
   },
+  // Density and gravity follow the 2017 stellar occultation (Ortiz et al.,
+  // Nature 550, 219), which superseded the 2.6 g/cm³ JPL still tabulates
+  // from light-curve modelling.
   haumea: {
     mass: '4.006 × 10²¹ kg', density: '1.89 g/cm³', gravity: '~0.4 m/s²', temperature: '~−241 °C',
     chemistry: { tr: 'Kristalin su buzu ağırlıklı, hızla dönen uzamış cüce gezegen; halka içerir.', en: 'Crystalline-water-ice-rich, rapidly spinning elongated dwarf planet with a ring.' },

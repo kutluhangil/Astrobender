@@ -1,19 +1,34 @@
 import {
+  AngleBetween,
+  AngleFromSun,
+  ApsisKind,
   Body,
   EclipseKind,
   Equator,
+  GeoMoon,
+  GeoVector,
   Horizon,
   NextGlobalSolarEclipse,
+  NextLunarApsis,
   NextLunarEclipse,
+  NextMoonQuarter,
   Observer,
   SearchGlobalSolarEclipse,
   SearchLocalSolarEclipse,
+  SearchLunarApsis,
   SearchLunarEclipse,
   SearchMaxElongation,
+  SearchMoonQuarter,
   SearchRelativeLongitude,
 } from 'astronomy-engine'
+import {
+  METEOR_SHOWERS,
+  bestRadiantWindow,
+  type RadiantWindow,
+  moonIlluminationPercent,
+  showerApparition,
+} from './meteor-showers.ts'
 import type { CelestialBodyId } from './planets.ts'
-import { PERSEID_2026 } from './perseid-watch.ts'
 import type { UiLanguage } from './ui-language.ts'
 
 export type SkyEventKind =
@@ -23,6 +38,8 @@ export type SkyEventKind =
   | 'maximum-elongation'
   | 'conjunction'
   | 'opposition'
+  | 'moon-phase'
+  | 'planet-pair'
 
 export interface SkyObserver {
   latitude: number
@@ -56,32 +73,24 @@ interface SkyEventInput {
   language: UiLanguage
 }
 
-interface MeteorStream {
-  id: string
-  month: number
-  day: number
-  hour?: number
-  body: string
-  northernHemisphere: boolean
-  sourceUrl: string
-}
 
 const NASA_ECLIPSE_URL = 'https://science.nasa.gov/eclipses/future-eclipses/'
-const NASA_METEOR_URL = 'https://science.nasa.gov/solar-system/meteors-meteorites/facts/'
+const NASA_MOON_PHASES_URL = 'https://science.nasa.gov/moon/moon-phases/'
+const NASA_SUPERMOON_URL = 'https://science.nasa.gov/moon/supermoons/'
+const AU_KM = 149_597_870.7
 const JPL_PLANETS_URL = 'https://ssd.jpl.nasa.gov/planets/'
 
-const METEOR_STREAMS: readonly MeteorStream[] = [
-  { id: 'quadrantids', month: 1, day: 3, body: '(196256) 2003 EH1', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
-  { id: 'lyrids', month: 4, day: 22, body: 'C/1861 G1 Thatcher', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
-  { id: 'eta-aquariids', month: 5, day: 5, body: '1P/Halley', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
-  { id: 'southern-delta-aquariids', month: 7, day: 30, body: '96P/Machholz', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
-  { id: 'perseids', month: 8, day: 12, body: PERSEID_2026.parentBody, northernHemisphere: true, sourceUrl: PERSEID_2026.sourceUrl },
-  { id: 'orionids', month: 10, day: 21, body: '1P/Halley', northernHemisphere: false, sourceUrl: NASA_METEOR_URL },
-  { id: 'leonids', month: 11, day: 17, body: '55P/Tempel-Tuttle', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
-  { id: 'geminids', month: 12, day: 14, body: '(3200) Phaethon', northernHemisphere: true, sourceUrl: NASA_METEOR_URL },
-]
 
-const BODY_INFO: Record<Body.Mercury | Body.Venus | Body.Mars | Body.Jupiter | Body.Saturn, {
+type PlanetBody =
+  | Body.Mercury
+  | Body.Venus
+  | Body.Mars
+  | Body.Jupiter
+  | Body.Saturn
+  | Body.Uranus
+  | Body.Neptune
+
+const BODY_INFO: Record<PlanetBody, {
   id: CelestialBodyId
   tr: string
   en: string
@@ -91,7 +100,11 @@ const BODY_INFO: Record<Body.Mercury | Body.Venus | Body.Mars | Body.Jupiter | B
   [Body.Mars]: { id: 'mars', tr: 'Mars', en: 'Mars' },
   [Body.Jupiter]: { id: 'jupiter', tr: 'Jüpiter', en: 'Jupiter' },
   [Body.Saturn]: { id: 'saturn', tr: 'Satürn', en: 'Saturn' },
+  [Body.Uranus]: { id: 'uranus', tr: 'Uranüs', en: 'Uranus' },
+  [Body.Neptune]: { id: 'neptune', tr: 'Neptün', en: 'Neptune' },
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function t(language: UiLanguage, tr: string, en: string): string {
   return language === 'tr' ? tr : en
@@ -197,45 +210,153 @@ function addLunarEclipses(input: SkyEventInput, events: SkyEvent[]) {
   }
 }
 
+/** Below this radiant altitude a shower yields too few meteors to plan for. */
+const METEOR_MIN_RADIANT_ALTITUDE_DEGREES = 15
+
+function meteorRadiantNote(window: RadiantWindow, language: UiLanguage): string {
+  if (window.bestAt === null) {
+    // High latitudes in summer: the Sun never drops 12° below the horizon,
+    // whatever the radiant does.
+    return t(
+      language,
+      ' Seçili konumda zirve çevresinde gökyüzü astronomik olarak kararmıyor.',
+      ' At the selected location the sky never gets astronomically dark around the maximum.',
+    )
+  }
+  const altitude = Math.round(window.bestAltitudeDegrees)
+  const at = window.bestAt.toISOString().slice(11, 16)
+  if (window.bestAltitudeDegrees <= 0) {
+    return t(language, ' Seçili konumda radyant karanlıkta ufkun üstüne çıkmaz.', ' At the selected location the radiant stays below the horizon in darkness.')
+  }
+  if (window.bestAltitudeDegrees < METEOR_MIN_RADIANT_ALTITUDE_DEGREES) {
+    return t(
+      language,
+      ` Seçili konumda radyant karanlıkta yalnızca ${altitude}° yükselir (${at} UTC); görülecek meteor sayısı çok düşük kalır.`,
+      ` At the selected location the radiant reaches only ${altitude}° in darkness (${at} UTC), so few meteors will show.`,
+    )
+  }
+  return t(
+    language,
+    ` Seçili konumda radyant karanlıkta en çok ${altitude}° yükselir (${at} UTC).`,
+    ` At the selected location the radiant reaches ${altitude}° in darkness (${at} UTC).`,
+  )
+}
+
 function addMeteorShowers(input: SkyEventInput, events: SkyEvent[]) {
-  for (let year = input.start.getUTCFullYear() - 1; year <= input.end.getUTCFullYear() + 1; year += 1) {
-    for (const stream of METEOR_STREAMS) {
-      const peak = stream.id === 'perseids' && year === 2026
-        ? new Date(PERSEID_2026.peakAt)
-        : new Date(Date.UTC(year, stream.month - 1, stream.day, stream.hour ?? 2, 0, 0))
+  for (let year = input.start.getUTCFullYear(); year <= input.end.getUTCFullYear(); year += 1) {
+    for (const shower of METEOR_SHOWERS) {
+      const apparition = showerApparition(shower, year)
+      const peak = apparition.peakAt
       if (!containsDate(input.start, input.end, peak)) continue
-      const name = stream.id.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ')
+      const name = t(input.language, shower.nameTr, shower.nameEn)
+      const moon = moonIlluminationPercent(peak)
+      const window = input.observer
+        ? bestRadiantWindow(shower, peak, input.observer.latitude, input.observer.longitude)
+        : null
+      const activity = `${apparition.activeStart.toISOString().slice(5, 10)} → ${apparition.activeEnd.toISOString().slice(5, 10)}`
+      const radiantNote = window ? meteorRadiantNote(window, input.language) : ''
       events.push({
-        id: `meteor-${stream.id}-${year}`,
+        id: `meteor-${shower.id}-${year}`,
         kind: 'meteor-shower',
         startsAt: toIso(peak),
         endsAt: null,
         title: t(input.language, `${name} Meteor Yağmuru`, `${name} Meteor Shower`),
-        summary: stream.id === 'perseids' && year === 2026
-          ? t(
-            input.language,
-            `${stream.body} kaynaklı akış 17 Temmuz–24 Ağustos arasında etkindir; IMO ana maksimumu 13 Ağustos 02:00–04:00 UTC olarak verir.`,
-            `The ${stream.body} stream is active July 17–August 24; IMO gives the main maximum as Aug. 13, 02:00–04:00 UTC.`,
-          )
-          : t(
-            input.language,
-            `${stream.body} kaynaklı toz akışı Dünya atmosferinde yanar.`,
-            `Dust from ${stream.body} burns in Earth’s atmosphere.`,
-          ),
+        summary: t(
+          input.language,
+          `${shower.parentBody} kaynaklı akış · IMO ZHR ${apparition.zhr} · etkinlik ${activity} · zirvede Ay %${moon} aydınlık.${radiantNote}`,
+          `Stream of ${shower.parentBody} · IMO ZHR ${apparition.zhr} · active ${activity} · Moon ${moon}% lit at maximum.${radiantNote}`,
+        ),
         guidance: t(
           input.language,
-          stream.northernHemisphere
-            ? 'Karanlık bir konum seçin; gece yarısından sonra, radyant yükselirken göğün geniş bir bölümünü izleyin.'
-            : 'Karanlık bir konum seçin; en iyi saatler gözlem konumuna göre değişir.',
-          stream.northernHemisphere
-            ? 'Choose a dark location and, after midnight while the radiant climbs, watch a wide stretch of sky.'
-            : 'Choose a dark location; the best hours vary with the observer location.',
+          'Karanlık bir konum seçin; radyant yükseldikçe göğün geniş bir bölümünü, radyanttan biraz uzağa bakarak izleyin.',
+          'Choose a dark site; as the radiant climbs, watch a wide stretch of sky a little away from it.',
         ),
-        sourceUrl: stream.sourceUrl,
+        sourceUrl: apparition.sourceUrl,
         targetBody: 'earth',
-        visibility: input.observer ? 'global' : 'location-required',
+        visibility: window
+          ? window.bestAt !== null && window.bestAltitudeDegrees >= METEOR_MIN_RADIANT_ALTITUDE_DEGREES
+            ? 'local-visible'
+            : 'local-not-visible'
+          : 'location-required',
       })
     }
+  }
+}
+
+/** Distance from Earth's centre to the Moon's centre, km. */
+function moonDistanceKm(date: Date): number {
+  const vector = GeoMoon(date)
+  return Math.hypot(vector.x, vector.y, vector.z) * AU_KM
+}
+
+/**
+ * NASA's working definition: a full Moon within 90 % of perigee, i.e. in the
+ * closest tenth of the span between the surrounding apogee and perigee.
+ */
+function isSupermoon(fullMoon: Date): boolean {
+  let apsis = SearchLunarApsis(new Date(fullMoon.getTime() - 16 * DAY_MS))
+  let perigeeKm: number | null = null
+  let apogeeKm: number | null = null
+  let perigeeGap = Number.POSITIVE_INFINITY
+  let apogeeGap = Number.POSITIVE_INFINITY
+  while (apsis.time.date.getTime() < fullMoon.getTime() + 16 * DAY_MS) {
+    const gap = Math.abs(apsis.time.date.getTime() - fullMoon.getTime())
+    if (apsis.kind === ApsisKind.Pericenter && gap < perigeeGap) {
+      perigeeGap = gap
+      perigeeKm = apsis.dist_km
+    } else if (apsis.kind === ApsisKind.Apocenter && gap < apogeeGap) {
+      apogeeGap = gap
+      apogeeKm = apsis.dist_km
+    }
+    apsis = NextLunarApsis(apsis)
+  }
+  if (perigeeKm === null || apogeeKm === null) return false
+  return (apogeeKm - moonDistanceKm(fullMoon)) / (apogeeKm - perigeeKm) >= 0.9
+}
+
+function addMoonPhases(input: SkyEventInput, events: SkyEvent[]) {
+  const names: Array<[string, string]> = [
+    ['Yeni Ay', 'New Moon'],
+    ['İlk Dördün', 'First Quarter'],
+    ['Dolunay', 'Full Moon'],
+    ['Son Dördün', 'Last Quarter'],
+  ]
+  let quarter = SearchMoonQuarter(input.start)
+  while (containsDate(input.start, input.end, quarter.time.date)) {
+    const when = quarter.time.date
+    const distanceKm = Math.round(moonDistanceKm(when))
+    const supermoon = quarter.quarter === 2 && isSupermoon(when)
+    const [nameTr, nameEn] = names[quarter.quarter]
+    const darkSky = quarter.quarter === 0
+    events.push({
+      id: `moon-phase-${quarter.quarter}-${when.toISOString().slice(0, 10)}`,
+      kind: 'moon-phase',
+      startsAt: toIso(when),
+      endsAt: null,
+      title: supermoon
+        ? t(input.language, 'Süper Dolunay', 'Supermoon')
+        : t(input.language, nameTr, nameEn),
+      summary: supermoon
+        ? t(
+          input.language,
+          `Dolunay yerberiye yakın: Ay ${distanceKm.toLocaleString('tr-TR')} km uzakta. NASA tanımıyla süper ay, yılın en sönük dolunayından %30'a kadar daha parlak görünebilir.`,
+          `A full Moon near perigee: the Moon is ${distanceKm.toLocaleString('en-US')} km away. By NASA's definition a supermoon, it can look up to 30% brighter than the year's faintest full Moon.`,
+        )
+        : t(
+          input.language,
+          `Ay evresi; Dünya–Ay uzaklığı ${distanceKm.toLocaleString('tr-TR')} km.`,
+          `Lunar phase; Earth–Moon distance ${distanceKm.toLocaleString('en-US')} km.`,
+        ),
+      guidance: darkSky
+        ? t(input.language, 'Ay ışığı yok: sönük gökler ve meteorlar için en iyi gecelerdir.', 'No moonlight: the best nights for faint skies and meteors.')
+        : quarter.quarter === 2
+          ? t(input.language, 'Ay bütün gece gökte; sönük cisimler için en kötü gecedir.', 'The Moon is up all night; the worst night for faint objects.')
+          : t(input.language, 'Terminatör boyunca kraterler en belirgin hâlindedir.', 'Craters stand out most sharply along the terminator.'),
+      sourceUrl: supermoon ? NASA_SUPERMOON_URL : NASA_MOON_PHASES_URL,
+      targetBody: 'moon',
+      visibility: input.observer ? 'global' : 'location-required',
+    })
+    quarter = NextMoonQuarter(quarter)
   }
 }
 
@@ -271,38 +392,155 @@ function addMaximumElongations(input: SkyEventInput, events: SkyEvent[]) {
 }
 
 function addPlanetAlignments(input: SkyEventInput, events: SkyEvent[]) {
-  for (const body of [Body.Mars, Body.Jupiter, Body.Saturn] as const) {
-    const info = BODY_INFO[body]
-    const opposition = SearchRelativeLongitude(body, 0, input.start).date
-    if (containsDate(input.start, input.end, opposition)) {
-      events.push({
-        id: `opposition-${info.id}-${opposition.toISOString().slice(0, 10)}`,
-        kind: 'opposition',
-        startsAt: toIso(opposition),
-        endsAt: null,
-        title: t(input.language, `${info.tr} karşı konumda`, `${info.en} at opposition`),
-        summary: t(input.language, `${info.tr}, Dünya’nın gece tarafında Güneş’in karşısında yer alır.`, `${info.en} lies opposite the Sun in Earth’s night sky.`),
-        guidance: t(input.language, 'Gün batımından sonra gözlem için uygun bir başlangıç noktasıdır.', 'A useful observing starting point after sunset.'),
-        sourceUrl: JPL_PLANETS_URL,
-        targetBody: info.id,
-        visibility: input.observer ? 'global' : 'location-required',
-      })
-    }
+  const outer = [Body.Mars, Body.Jupiter, Body.Saturn, Body.Uranus, Body.Neptune] as const
+  const inner = [Body.Mercury, Body.Venus] as const
 
-    const conjunction = SearchRelativeLongitude(body, 180, input.start).date
-    if (containsDate(input.start, input.end, conjunction)) {
-      events.push({
-        id: `conjunction-${info.id}-${conjunction.toISOString().slice(0, 10)}`,
-        kind: 'conjunction',
-        startsAt: toIso(conjunction),
-        endsAt: null,
-        title: t(input.language, `${info.tr} Güneş doğrultusunda`, `${info.en} in solar conjunction`),
-        summary: t(input.language, `${info.tr}, gökyüzünde Güneş’e yakın doğrultudadır.`, `${info.en} lies close to the Sun’s direction in the sky.`),
-        guidance: t(input.language, 'Güneş parlaması nedeniyle gözlem için uygun değildir.', 'It is not suitable for observation because of solar glare.'),
-        sourceUrl: JPL_PLANETS_URL,
-        targetBody: info.id,
-        visibility: input.observer ? 'global' : 'location-required',
-      })
+  const push = (
+    body: PlanetBody,
+    when: Date,
+    kind: 'opposition' | 'conjunction',
+    variant: 'opposition' | 'solar' | 'inferior' | 'superior',
+  ) => {
+    const info = BODY_INFO[body]
+    const titles: Record<typeof variant, [string, string]> = {
+      opposition: [`${info.tr} karşı konumda`, `${info.en} at opposition`],
+      solar: [`${info.tr} Güneş doğrultusunda`, `${info.en} in solar conjunction`],
+      inferior: [`${info.tr} iç kavuşumda`, `${info.en} at inferior conjunction`],
+      superior: [`${info.tr} dış kavuşumda`, `${info.en} at superior conjunction`],
+    }
+    const summaries: Record<typeof variant, [string, string]> = {
+      opposition: [
+        `${info.tr}, Dünya’nın gece tarafında Güneş’in karşısında; yıl içinde en yakın ve en parlak dönemindedir.`,
+        `${info.en} lies opposite the Sun in Earth’s night sky, near its closest and brightest for the year.`,
+      ],
+      solar: [`${info.tr}, gökyüzünde Güneş’e yakın doğrultudadır.`, `${info.en} lies close to the Sun’s direction in the sky.`],
+      inferior: [`${info.tr}, Dünya ile Güneş arasından geçer.`, `${info.en} passes between Earth and the Sun.`],
+      superior: [`${info.tr}, Güneş’in arkasından geçer.`, `${info.en} passes behind the Sun.`],
+    }
+    const isOpposition = variant === 'opposition'
+    const [titleTr, titleEn] = titles[variant]
+    const [summaryTr, summaryEn] = summaries[variant]
+    events.push({
+      id: `${kind}-${variant === 'opposition' || variant === 'solar' ? '' : `${variant}-`}${info.id}-${when.toISOString().slice(0, 10)}`,
+      kind,
+      startsAt: toIso(when),
+      endsAt: null,
+      title: t(input.language, titleTr, titleEn),
+      summary: t(input.language, summaryTr, summaryEn),
+      guidance: isOpposition
+        ? t(input.language, 'Gün batımında doğar, bütün gece gözlenebilir.', 'It rises at sunset and is observable all night.')
+        : t(input.language, 'Güneş parlaması nedeniyle gözlem için uygun değildir.', 'It is not suitable for observation because of solar glare.'),
+      sourceUrl: JPL_PLANETS_URL,
+      targetBody: info.id,
+      visibility: input.observer ? 'global' : 'location-required',
+    })
+  }
+
+  // Each search finds the next event after its start, so step past the last
+  // hit until the window is exhausted; a long window can hold several.
+  const each = (body: PlanetBody, relativeLongitude: number, visit: (when: Date) => void) => {
+    let from = input.start
+    for (;;) {
+      const when = SearchRelativeLongitude(body, relativeLongitude, from).date
+      if (!containsDate(input.start, input.end, when)) return
+      visit(when)
+      from = new Date(when.getTime() + DAY_MS)
+    }
+  }
+  for (const body of outer) {
+    each(body, 0, (when) => push(body, when, 'opposition', 'opposition'))
+    each(body, 180, (when) => push(body, when, 'conjunction', 'solar'))
+  }
+  for (const body of inner) {
+    each(body, 0, (when) => push(body, when, 'conjunction', 'inferior'))
+    each(body, 180, (when) => push(body, when, 'conjunction', 'superior'))
+  }
+}
+
+/** Naked-eye planets; pairs closer than this many degrees are reported. */
+const PAIR_BODIES = [Body.Mercury, Body.Venus, Body.Mars, Body.Jupiter, Body.Saturn] as const
+const PAIR_MAX_SEPARATION_DEGREES = 1.5
+/** Pairs this close to the Sun are lost in twilight glare and skipped. */
+const PAIR_MIN_ELONGATION_DEGREES = 12
+
+function separationDegrees(left: Body, right: Body, when: Date): number {
+  return AngleBetween(GeoVector(left, when, true), GeoVector(right, when, true))
+}
+
+function addPlanetPairs(input: SkyEventInput, events: SkyEvent[]) {
+  const stepMs = 6 * 60 * 60 * 1000
+  const firstMs = input.start.getTime() - stepMs
+  const sampleCount = Math.floor((input.end.getTime() + stepMs - firstMs) / stepMs) + 1
+  // One geocentric direction per body per step, shared by all ten pairs; the
+  // pair scan then costs a dot product instead of two ephemeris evaluations.
+  const directions = PAIR_BODIES.map((body) => {
+    const samples: Array<[number, number, number]> = []
+    for (let index = 0; index < sampleCount; index++) {
+      const vector = GeoVector(body, new Date(firstMs + index * stepMs), true)
+      const length = Math.hypot(vector.x, vector.y, vector.z)
+      samples.push([vector.x / length, vector.y / length, vector.z / length])
+    }
+    return samples
+  })
+  const sampledSeparation = (a: number, b: number, index: number) => {
+    const [ax, ay, az] = directions[a][index]
+    const [bx, by, bz] = directions[b][index]
+    return (Math.acos(Math.min(1, Math.max(-1, ax * bx + ay * by + az * bz))) * 180) / Math.PI
+  }
+  for (let a = 0; a < PAIR_BODIES.length; a++) {
+    for (let b = a + 1; b < PAIR_BODIES.length; b++) {
+      const left = PAIR_BODIES[a]
+      const right = PAIR_BODIES[b]
+      for (let index = 1; index < sampleCount - 1; index++) {
+        const ms = firstMs + index * stepMs
+        const previous = sampledSeparation(a, b, index - 1)
+        const current = sampledSeparation(a, b, index)
+        const next = sampledSeparation(a, b, index + 1)
+        if (current <= previous && current < next && current < PAIR_MAX_SEPARATION_DEGREES + 0.5) {
+          // Golden-section refinement of the minimum inside [ms − step, ms + step].
+          let low = ms - stepMs
+          let high = ms + stepMs
+          const ratio = (Math.sqrt(5) - 1) / 2
+          // 24 iterations shrink the 12 h bracket below one second.
+          for (let iteration = 0; iteration < 24; iteration++) {
+            const x1 = high - ratio * (high - low)
+            const x2 = low + ratio * (high - low)
+            if (separationDegrees(left, right, new Date(x1)) < separationDegrees(left, right, new Date(x2))) high = x2
+            else low = x1
+          }
+          const when = new Date((low + high) / 2)
+          const separation = separationDegrees(left, right, when)
+          const elongation = Math.min(AngleFromSun(left, when), AngleFromSun(right, when))
+          if (
+            separation < PAIR_MAX_SEPARATION_DEGREES &&
+            elongation >= PAIR_MIN_ELONGATION_DEGREES &&
+            containsDate(input.start, input.end, when)
+          ) {
+            const leftInfo = BODY_INFO[left]
+            const rightInfo = BODY_INFO[right]
+            events.push({
+              id: `planet-pair-${leftInfo.id}-${rightInfo.id}-${when.toISOString().slice(0, 10)}`,
+              kind: 'planet-pair',
+              startsAt: toIso(when),
+              endsAt: null,
+              title: t(input.language, `${leftInfo.tr} – ${rightInfo.tr} yakınlaşması`, `${leftInfo.en}–${rightInfo.en} close approach`),
+              summary: t(
+                input.language,
+                `İki gezegen gökyüzünde ${separation.toFixed(2)}° (${Math.round(separation * 60)}′) yaklaşır; Güneş’ten uzanım ${Math.round(elongation)}°.`,
+                `The two planets close to ${separation.toFixed(2)}° (${Math.round(separation * 60)}′) apart; elongation from the Sun ${Math.round(elongation)}°.`,
+              ),
+              guidance: t(
+                input.language,
+                'Çıplak gözle görülür; dürbün veya küçük teleskop ikisini aynı görüş alanında gösterir.',
+                'Visible to the naked eye; binoculars or a small telescope show both in one field.',
+              ),
+              sourceUrl: JPL_PLANETS_URL,
+              targetBody: leftInfo.id,
+              visibility: input.observer ? 'global' : 'location-required',
+            })
+          }
+        }
+      }
     }
   }
 }
@@ -319,8 +557,10 @@ export function getSkyEvents(input: SkyEventInput): SkyEvent[] {
   addSolarEclipses(input, events)
   addLunarEclipses(input, events)
   addMeteorShowers(input, events)
+  addMoonPhases(input, events)
   addMaximumElongations(input, events)
   addPlanetAlignments(input, events)
+  addPlanetPairs(input, events)
 
   const seen = new Set<string>()
   return events

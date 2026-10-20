@@ -43,6 +43,7 @@ export type PlanetaryBodyId =
   | 'halley'
   | 'churyumov-gerasimenko'
   | 'pons-brooks'
+  | 'encke'
 
 export type SatelliteBodyId =
   | 'moon'
@@ -313,6 +314,15 @@ export const PLANETARY_ELEMENTS: Record<PlanetaryBodyId, PlanetaryElements> = {
     meanLongitudeDeg: element(332.03407, 505.32785),
     longitudePerihelionDeg: element(94.84335, 0),
     longitudeAscendingNodeDeg: element(255.85535, 0),
+  },
+  // SBDB 2P/Encke solution, epoch JD 2460363.5 (2024-02-25).
+  encke: {
+    semiMajorAxisAu: element(2.21862476, 0),
+    eccentricity: element(0.84694043, 0),
+    inclinationDeg: element(11.33676, 0),
+    meanLongitudeDeg: element(88.02599, 10893.527),
+    longitudePerihelionDeg: element(161.30534, 0),
+    longitudeAscendingNodeDeg: element(334.01714, 0),
   },
 }
 

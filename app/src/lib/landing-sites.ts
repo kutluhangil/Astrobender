@@ -228,6 +228,37 @@ export const LANDING_SITES: LandingSite[] = [
     emoji: '🇨🇳',
     detailsTr: 'İnsanlık tarihinde Ay\'ın uzak/karanlık yüzüne (Far Side) yumuşak iniş yapan ilk uzay aracı ve Yutu-2 gezgini.',
   },
+  {
+    id: 'chandrayaan3',
+    bodyId: 'moon',
+    name: 'Chandrayaan-3 (Statio Shiv Shakti)',
+    nameTr: 'Chandrayaan-3 (Shiv Shakti Noktası)',
+    year: 2023,
+    agency: 'ISRO (India)',
+    agencyTr: 'ISRO (Hindistan)',
+    lat: -69.373,
+    lon: 32.319,
+    emoji: '🇮🇳',
+    detailsTr: 'Vikram iniş aracı ve Pragyan gezgini, Ay’ın güney kutup bölgesine yumuşak iniş yapan ilk araçlardır.',
+    detailsEn: 'The Vikram lander and Pragyan rover were the first craft to soft-land near the lunar south pole.',
+    sourceUrl: 'https://www.isro.gov.in/Chandrayaan3_Details.html',
+  },
+  {
+    id: 'change6',
+    bodyId: 'moon',
+    name: 'Chang\'e 6 (Apollo Basin)',
+    nameTr: 'Chang\'e 6 (Apollo Havzası)',
+    year: 2024,
+    agency: 'CNSA (China)',
+    agencyTr: 'CNSA (Çin)',
+    // NASA LRO position, ±30 m; published as 206.0148° E.
+    lat: -41.6385,
+    lon: -153.9852,
+    emoji: '🇨🇳',
+    detailsTr: 'Ay’ın uzak yüzünden ilk örneği (1.935 kg) Dünya’ya getiren görevin iniş alanı.',
+    detailsEn: 'Landing site of the mission that returned the first sample (1,935 g) from the lunar far side.',
+    sourceUrl: 'https://www.nasa.gov/centers-and-facilities/goddard/nasas-lro-spots-chinas-change-6-spacecraft-on-lunar-far-side',
+  },
 
   // 🔴 MARS
   {

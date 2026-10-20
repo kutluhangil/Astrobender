@@ -2,40 +2,38 @@ import {
   Body,
   Equator,
   Horizon,
-  Illumination,
   Observer,
 } from 'astronomy-engine'
+import {
+  IMO_FIREBALL_REPORT_URL,
+  IMO_HOME_URL,
+  findMeteorShower,
+  moonIlluminationPercent as moonIlluminationAt,
+  showerApparition,
+} from './meteor-showers.ts'
 import type { SkyObserver } from './sky-events.ts'
 import type { UiLanguage } from './ui-language.ts'
 
-export const PERSEID_2026 = {
-  activeStart: '2026-07-17T00:00:00.000Z',
-  activeEnd: '2026-08-24T23:59:59.999Z',
-  peakStart: '2026-08-13T02:00:00.000Z',
-  peakEnd: '2026-08-13T04:00:00.000Z',
-  peakAt: '2026-08-13T03:00:00.000Z',
-  parentBody: '109P/Swift-Tuttle',
-  zhr: 100,
-  sourceUrl: 'https://www.imo.net/files/meteor-shower/cal2026.pdf',
-  reportUrl: 'https://www.imo.net/observations/methods/visual-observation/major/report/',
-  fireballUrl: 'https://www.imo.net/observations/fireballs/fireball-report-program/',
-  radiant: {
-    rightAscensionHours: 3.2,
-    declinationDegrees: 58,
-  },
-} as const
+const PERSEIDS = findMeteorShower('perseids')
+const HOUR_MS = 3_600_000
 
-export type PerseidStatus = 'upcoming' | 'active' | 'peak' | 'completed'
+/** A finished season never shows: the card moves on to the next year's Perseids. */
+export type PerseidStatus = 'upcoming' | 'active' | 'peak'
 
 export interface PerseidWatch {
   status: PerseidStatus
+  /** Year of the maximum this card describes. */
+  year: number
   activeStart: string
   activeEnd: string
   peakStart: string
   peakEnd: string
   peakAt: string
   parentBody: string
-  zhr: number
+  /** IMO forecast as published, e.g. "110+". */
+  zhr: string
+  /** Radiant at maximum, J2000. */
+  radiant: { rightAscensionHours: number; declinationDegrees: number }
   moonIlluminationPercent: number
   sourceUrl: string
   reportUrl: string
@@ -68,54 +66,70 @@ export function directionLabel(azimuthDegrees: number, language: UiLanguage): st
   return directions[Math.round(normalized / 45) % directions.length]
 }
 
-export function getPerseidWatch(now: Date, observer?: SkyObserver): PerseidWatch | null {
-  if (now.getUTCFullYear() !== 2026) return null
-
-  const activeStartMs = Date.parse(PERSEID_2026.activeStart)
-  const activeEndMs = Date.parse(PERSEID_2026.activeEnd)
-  const peakStartMs = Date.parse(PERSEID_2026.peakStart)
-  const peakEndMs = Date.parse(PERSEID_2026.peakEnd)
+/**
+ * The Perseids of the current season, or of next year once this season's
+ * activity has ended. The maximum is the instant the Sun reaches the IMO node
+ * longitude; the two-hour peak window starts on the hour before it, which
+ * reproduces the IMO 2026 (02–04 UT) and 2027 (08–10 UT) windows.
+ */
+export function getPerseidWatch(now: Date, observer?: SkyObserver): PerseidWatch {
   const nowMs = now.getTime()
-  const status: PerseidStatus = nowMs < activeStartMs
+  let apparition = showerApparition(PERSEIDS, now.getUTCFullYear())
+  if (nowMs > apparition.activeEnd.getTime()) {
+    apparition = showerApparition(PERSEIDS, now.getUTCFullYear() + 1)
+  }
+  const peakStartMs = Math.floor(apparition.peakAt.getTime() / HOUR_MS) * HOUR_MS
+  const peakEndMs = peakStartMs + 2 * HOUR_MS
+  const status: PerseidStatus = nowMs < apparition.activeStart.getTime()
     ? 'upcoming'
-    : nowMs > activeEndMs
-      ? 'completed'
-      : nowMs >= peakStartMs && nowMs <= peakEndMs
-        ? 'peak'
-        : 'active'
-  const peakAt = new Date(PERSEID_2026.peakAt)
-  const moonIlluminationPercent = Math.round(Illumination(Body.Moon, peakAt).phase_fraction * 100)
-
-  if (!observer) {
-    return {
-      status,
-      ...PERSEID_2026,
-      moonIlluminationPercent,
-      observer: null,
-    }
+    : nowMs >= peakStartMs && nowMs <= peakEndMs
+      ? 'peak'
+      : 'active'
+  const moonIlluminationPercent = moonIlluminationAt(apparition.peakAt)
+  const radiant = {
+    rightAscensionHours: PERSEIDS.radiant.raDeg / 15,
+    declinationDegrees: PERSEIDS.radiant.decDeg,
+  }
+  const base = {
+    status,
+    year: apparition.year,
+    activeStart: apparition.activeStart.toISOString(),
+    activeEnd: apparition.activeEnd.toISOString(),
+    peakStart: new Date(peakStartMs).toISOString(),
+    peakEnd: new Date(peakEndMs).toISOString(),
+    peakAt: apparition.peakAt.toISOString(),
+    parentBody: PERSEIDS.parentBody,
+    zhr: apparition.zhr,
+    radiant,
+    moonIlluminationPercent,
+    sourceUrl: apparition.sourceUrl,
+    // IMO's visual report forms were offline during its 2026 rebuild; the
+    // home page states which services are available.
+    reportUrl: IMO_HOME_URL,
+    fireballUrl: IMO_FIREBALL_REPORT_URL,
   }
 
+  if (!observer) return { ...base, observer: null }
+
   const astronomyObserver = new Observer(observer.latitude, observer.longitude, 0)
-  const radiant = Horizon(
+  const radiantNow = Horizon(
     now,
     astronomyObserver,
-    PERSEID_2026.radiant.rightAscensionHours,
-    PERSEID_2026.radiant.declinationDegrees,
+    radiant.rightAscensionHours,
+    radiant.declinationDegrees,
     'normal',
   )
   const sunEquator = Equator(Body.Sun, now, astronomyObserver, true, true)
   const sun = Horizon(now, astronomyObserver, sunEquator.ra, sunEquator.dec, 'normal')
 
   return {
-    status,
-    ...PERSEID_2026,
-    moonIlluminationPercent,
+    ...base,
     observer: {
       label: observer.label,
-      radiantAltitudeDegrees: radiant.altitude,
-      radiantAzimuthDegrees: radiant.azimuth,
+      radiantAltitudeDegrees: radiantNow.altitude,
+      radiantAzimuthDegrees: radiantNow.azimuth,
       sunAltitudeDegrees: sun.altitude,
-      astronomicalScore: observerScore(radiant.altitude, sun.altitude, moonIlluminationPercent),
+      astronomicalScore: observerScore(radiantNow.altitude, sun.altitude, moonIlluminationPercent),
     },
   }
 }

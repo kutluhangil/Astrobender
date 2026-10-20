@@ -1,5 +1,5 @@
 import { COMETS } from '@/lib/comets'
-import { MPC_TROJAN_URL, NASA_LAGRANGE_URL } from '@/lib/lagrange'
+import { LAGRANGE_POINTS, MPC_TROJAN_URL, NASA_LAGRANGE_URL } from '@/lib/lagrange'
 import { UI_GROUPS } from '@/lib/satellites'
 import {
   BRIGHT_STAR_CATALOG_SOURCE_URL,
@@ -195,6 +195,14 @@ export default function LayerPanel({
                 'The Jupiter Trojan camps are schematic: they show a camp’s libration and inclination spread, not catalogued object positions.',
               )}
             </p>
+            <ul className="mt-1" aria-label={t('Lagrange noktalarındaki araçlar', 'Spacecraft at Lagrange points')}>
+              {LAGRANGE_POINTS.filter((point) => point.occupants.length > 0).map((point) => (
+                <li key={`${point.secondary}-${point.id}`}>
+                  <span className="text-violet-100">{language === 'tr' ? point.labelTr : point.labelEn}:</span>{' '}
+                  {point.occupants.join(', ')}
+                </li>
+              ))}
+            </ul>
             <div className="mt-1 flex flex-wrap gap-x-3">
               <a href={NASA_LAGRANGE_URL} target="_blank" rel="noreferrer" className="text-violet-200 hover:text-violet-100">
                 {t('NASA Lagrange', 'NASA Lagrange')} ↗

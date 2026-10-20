@@ -46,7 +46,7 @@ test('named small-body catalog covers requested asteroids, comets, and Ceres', (
     NAMED_SMALL_BODIES.map((body) => body.id),
     [
       'ceres', 'pallas', 'juno', 'vesta', 'hygiea', 'psyche', 'quaoar', 'gonggong',
-      'sedna', 'eros', 'bennu', 'ryugu', 'apophis', 'halley', '67p',
+      'sedna', 'eros', 'bennu', 'ryugu', 'apophis', 'halley', '67p', 'encke',
     ],
   )
   const renderedIds = new Set<string>(getAllBodyIds())

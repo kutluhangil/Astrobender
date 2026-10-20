@@ -223,7 +223,7 @@ export const CELESTIAL_FACTS: Record<CelestialBodyId, CelestialFact> = {
     rotationPeriod: '15.94 gün',
     orbitPeriod: '15.94 gün',
     moonsCount: '0',
-    atmosphere: 'Azot (%95), Metan (%5)',
+    atmosphere: 'Azot (~%95–98), Metan (~%1.4–5)',
     funFactTr: 'Yoğun atmosferi ve sıvı metan/etan gölleri olan tek uydudur.',
   },
   enceladus: {

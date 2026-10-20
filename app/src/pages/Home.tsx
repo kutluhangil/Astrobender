@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as satellite from 'satellite.js'
 import { GlobeEngine } from '@/lib/globe-engine'
 import { formatUtc, tleAge, UI_GROUPS } from '@/lib/satellites'
+import { satrecFromElements } from '@/lib/omm'
 import type { SatInfo } from '@/lib/satellites'
 import { LANDING_SITES } from '@/lib/landing-sites'
 import { missionEventTimeMs, type MissionEvent } from '@/lib/mission-timeline'
@@ -28,22 +29,14 @@ import PlanetInfoCard from '@/components/hud/PlanetInfoCard'
 import TargetBodyCallout from '@/components/hud/TargetBodyCallout'
 import CosmicTourControls from '@/components/hud/CosmicTourControls'
 import OpeningWordmark from '@/components/OpeningWordmark'
-import ScaleSandboxModal from '@/components/hud/ScaleSandboxModal'
-import LandingSiteModal from '@/components/hud/LandingSiteModal'
-import MissionTimelinePanel from '@/components/hud/MissionTimelinePanel'
-import EarthObservatoryPanel from '@/components/hud/EarthObservatoryPanel'
-import SmallBodiesPanel from '@/components/hud/SmallBodiesPanel'
-import SkywatchPanel from '@/components/hud/SkywatchPanel'
-import MeteorFlowOverlay from '@/components/hud/MeteorFlowOverlay'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
-import AboutAstrobenderModal from '@/components/hud/AboutAstrobenderModal'
 import { useBodyPanelPlacement } from '@/hooks/useBodyPanelPlacement'
 import type { LandingSite } from '@/lib/landing-sites'
 import type {
   EarthEvent,
   EarthLayerVisibility,
-  EarthSourceId,
+  EarthLayerId,
 } from '@/lib/earth-observatory'
 import { useEarthObservatory } from '@/hooks/useEarthObservatory'
 import { useSmallBodies } from '@/hooks/useSmallBodies'
@@ -52,16 +45,30 @@ import type { UnifiedSearchResult } from '@/lib/unified-search'
 import { getSkyEvents, type SkyEvent } from '@/lib/sky-events'
 import type { PerseidWatch } from '@/lib/perseid-watch'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
+import LazyPanelBoundary from '@/components/LazyPanelBoundary'
 import { SpaceAudioSynth } from '@/lib/audio-synth'
 import {
   CINEMATIC_TOUR_AUDIO_PATHS,
   type CinematicTourLanguage,
 } from '@/lib/cinematic-tour'
-import FallbackTable from '@/components/FallbackTable'
+
+// Panels and modals render only after a user opens them, so they load as
+// separate chunks instead of weighing down the first paint.
+const ScaleSandboxModal = lazy(() => import('@/components/hud/ScaleSandboxModal'))
+const LandingSiteModal = lazy(() => import('@/components/hud/LandingSiteModal'))
+const MissionTimelinePanel = lazy(() => import('@/components/hud/MissionTimelinePanel'))
+const EarthObservatoryPanel = lazy(() => import('@/components/hud/EarthObservatoryPanel'))
+const SmallBodiesPanel = lazy(() => import('@/components/hud/SmallBodiesPanel'))
+const SkywatchPanel = lazy(() => import('@/components/hud/SkywatchPanel'))
+const MeteorFlowOverlay = lazy(() => import('@/components/hud/MeteorFlowOverlay'))
+const AboutAstrobenderModal = lazy(() => import('@/components/hud/AboutAstrobenderModal'))
+const FallbackTable = lazy(() => import('@/components/FallbackTable'))
 
 const EARTH_R = 6371
 const EMPTY_SATS: SatInfo[] = []
 const DEEP_LINK_SPEEDS = [-240, -60, -10, 1, 10, 60, 240]
+/** ISS (ZARYA) and Tiangong's core module CSS (TIANHE): the stations bright enough to plan for. */
+const PASS_TARGET_NORADS = [25544, 48274]
 
 interface HoverState {
   index: number
@@ -158,14 +165,29 @@ export default function Home() {
   const smallBodies = useSmallBodies(smallBodiesOpen)
   const skywatchLocation = useSkywatchLocation()
   const t = (tr: string, en: string) => pickLanguage(uiLanguage, tr, en)
+  // Ninety days of eclipses, phases, showers and planet pairs take tens of
+  // milliseconds; computing them during idle time keeps the first paint free.
+  // Opening Skywatch forces the computation immediately.
+  const [skyEventsIdleReady, setSkyEventsIdleReady] = useState(false)
+  useEffect(() => {
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(() => setSkyEventsIdleReady(true), { timeout: 4000 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(() => setSkyEventsIdleReady(true), 1500)
+    return () => window.clearTimeout(id)
+  }, [])
+  const skyEventsWanted = skyEventsIdleReady || skywatchOpen
   const skywatchEvents = useMemo(
-    () => getSkyEvents({
-      start: new Date(skywatchCalculatedAt),
-      end: new Date(skywatchCalculatedAt + 90 * 24 * 60 * 60 * 1000),
-      observer: skywatchLocation.observer ?? undefined,
-      language: uiLanguage,
-    }),
-    [skywatchCalculatedAt, skywatchLocation.observer, uiLanguage],
+    () => skyEventsWanted
+      ? getSkyEvents({
+        start: new Date(skywatchCalculatedAt),
+        end: new Date(skywatchCalculatedAt + 90 * 24 * 60 * 60 * 1000),
+        observer: skywatchLocation.observer ?? undefined,
+        language: uiLanguage,
+      })
+      : [],
+    [skyEventsWanted, skywatchCalculatedAt, skywatchLocation.observer, uiLanguage],
   )
 
   useEffect(() => {
@@ -219,7 +241,7 @@ export default function Home() {
     const s = satsRef.current[index]
     if (!s) return null
     try {
-      const rec = satellite.twoline2satrec(s.l1, s.l2)
+      const rec = satrecFromElements(s.elements)
       recCache.current.set(index, rec)
       return rec
     } catch {
@@ -337,7 +359,7 @@ export default function Home() {
     })
   }, [handleSelectBody])
 
-  const handleToggleEarthLayer = useCallback((source: EarthSourceId) => {
+  const handleToggleEarthLayer = useCallback((source: EarthLayerId) => {
     setEarthLayerVisibility((current) => ({ ...current, [source]: !current[source] }))
   }, [])
 
@@ -521,13 +543,34 @@ export default function Home() {
     selectSat(null)
     clock.setTime(eventTime)
     handleSelectBody(event.targetBody)
-    setMeteorFlowVisible(event.id === 'meteor-perseids-2026')
+    setMeteorFlowVisible(event.id.startsWith('meteor-perseids-'))
     setSkywatchOpen(false)
     setLayersOpen(false)
     setSearchNotice(
       uiLanguage === 'tr'
         ? `${event.title} simülasyonda açıldı.`
         : `${event.title} opened in the simulation.`,
+    )
+  }, [clock, handleSelectBody, selectSat, uiLanguage])
+
+  const passTargets = useMemo(
+    () => sats.filter((s) => PASS_TARGET_NORADS.includes(s.norad)).map((s) => s.elements),
+    [sats],
+  )
+
+  const handleShowSatellitePass = useCallback((norad: number, atMs: number) => {
+    const index = noradMapRef.current.get(norad)
+    if (index === undefined) {
+      throw new Error(`Satellite pass refers to NORAD ${norad}, which is not in the loaded catalog`)
+    }
+    clock.setTime(atMs)
+    handleSelectBody('earth')
+    selectSat(index)
+    setSkywatchOpen(false)
+    setSearchNotice(
+      uiLanguage === 'tr'
+        ? `${satsRef.current[index]?.name ?? norad} geçişinin en yüksek anı simülasyonda açıldı.`
+        : `Culmination of the ${satsRef.current[index]?.name ?? norad} pass opened in the simulation.`,
     )
   }, [clock, handleSelectBody, selectSat, uiLanguage])
 
@@ -910,7 +953,7 @@ export default function Home() {
           : []),
         {
           id: 'tle-epoch',
-          label: t('TLE epoch yaşı', 'TLE epoch age'),
+          label: t('GP epoch yaşı', 'GP epoch age'),
           value: `${tleAge(dataset.epochMs, Date.now())} · ${dataset.source}`,
           tone:
             tleFreshness.severity === 'stale'
@@ -932,8 +975,8 @@ export default function Home() {
           id: 'tle-freshness',
           title: t('Uydu yörünge verisi yaşlandı', 'Satellite orbital data is stale'),
           summary: t(
-            `Orta TLE epoch’u ${tleAge(dataset?.epochMs ?? 0, Date.now())} yaşında; yeni kaynak verisi gelene kadar konum hassasiyeti azalabilir.`,
-            `The median TLE epoch is ${tleAge(dataset?.epochMs ?? 0, Date.now())} old; position accuracy may degrade until newer source data arrives.`,
+            `Orta GP epoch’u ${tleAge(dataset?.epochMs ?? 0, Date.now())} yaşında; yeni kaynak verisi gelene kadar konum hassasiyeti azalabilir.`,
+            `The median GP epoch is ${tleAge(dataset?.epochMs ?? 0, Date.now())} old; position accuracy may degrade until newer source data arrives.`,
           ),
           technicalDetails: dataset
             ? `source=${dataset.source}; epoch=${formatUtc(dataset.epochMs)}; fetchedAt=${formatUtc(dataset.fetchedAt)}`
@@ -945,7 +988,7 @@ export default function Home() {
     ...(tleWarning
       ? [{
           id: 'tle',
-          title: t('Canlı TLE güncellemesi kullanılamıyor', 'Live TLE update unavailable'),
+          title: t('Canlı GP güncellemesi kullanılamıyor', 'Live GP update unavailable'),
           summary: t(
             'Paketlenmiş son geçerli uydu kataloğu kullanılmaya devam ediyor.',
             'The last valid bundled satellite catalog remains in use.',
@@ -1035,7 +1078,9 @@ export default function Home() {
   if (!webglOk) {
     return (
       <div className="h-full w-full overflow-y-auto bg-[#04060a]">
-        <FallbackTable dataset={dataset} />
+        <LazyPanelBoundary language={uiLanguage} label={t('Statik uydu tablosu', 'Static satellite table')}>
+          <FallbackTable dataset={dataset} />
+        </LazyPanelBoundary>
       </div>
     )
   }
@@ -1280,55 +1325,65 @@ export default function Home() {
 
       {earthObservatoryOpen && (
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
-          <EarthObservatoryPanel
-            {...earthObservatory}
-            language={uiLanguage}
-            onClose={() => setEarthObservatoryOpen(false)}
-            onRefresh={() => void earthObservatory.refresh()}
-            onSelectEvent={handleSelectEarthEvent}
-            layerVisibility={earthLayerVisibility}
-            onToggleLayer={handleToggleEarthLayer}
-          />
+          <LazyPanelBoundary language={uiLanguage} label={t('Dünya Gözlemevi', 'Earth Observatory')} onClose={() => setEarthObservatoryOpen(false)}>
+            <EarthObservatoryPanel
+              {...earthObservatory}
+              language={uiLanguage}
+              onClose={() => setEarthObservatoryOpen(false)}
+              onRefresh={() => void earthObservatory.refresh()}
+              onSelectEvent={handleSelectEarthEvent}
+              layerVisibility={earthLayerVisibility}
+              onToggleLayer={handleToggleEarthLayer}
+            />
+          </LazyPanelBoundary>
         </div>
       )}
 
       {smallBodiesOpen && (
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
-          <SmallBodiesPanel
-            {...smallBodies}
-            language={uiLanguage}
-            onClose={() => setSmallBodiesOpen(false)}
-            onRefresh={() => void smallBodies.refresh()}
-            onShowApproach={handleShowCloseApproach}
-            onFocusBody={handleFocusSmallBody}
-          />
+          <LazyPanelBoundary language={uiLanguage} label={t('JPL Küçük Cisim Gözlemevi', 'JPL Small-Body Observatory')} onClose={() => setSmallBodiesOpen(false)}>
+            <SmallBodiesPanel
+              {...smallBodies}
+              language={uiLanguage}
+              onClose={() => setSmallBodiesOpen(false)}
+              onRefresh={() => void smallBodies.refresh()}
+              onShowApproach={handleShowCloseApproach}
+              onFocusBody={handleFocusSmallBody}
+            />
+          </LazyPanelBoundary>
         </div>
       )}
 
       {skywatchOpen && (
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
-          <SkywatchPanel
-            events={skywatchEvents}
-            observer={skywatchLocation.observer}
-            locationError={skywatchLocation.error}
-            calculatedAt={skywatchCalculatedAt}
-            focusBody={focusBody}
-            language={uiLanguage}
-            onRequestBrowserLocation={skywatchLocation.requestBrowserLocation}
-            onSaveManualLocation={skywatchLocation.saveManualLocation}
-            onClearLocation={skywatchLocation.clearLocation}
-            onSelectEvent={handleSelectSkywatchEvent}
-            onStartPerseidSimulation={handleStartPerseidSimulation}
-            onClose={() => setSkywatchOpen(false)}
-          />
+          <LazyPanelBoundary language={uiLanguage} label={t('Gökyüzü Takvimi', 'Skywatch Calendar')} onClose={() => setSkywatchOpen(false)}>
+            <SkywatchPanel
+              events={skywatchEvents}
+              observer={skywatchLocation.observer}
+              locationError={skywatchLocation.error}
+              calculatedAt={skywatchCalculatedAt}
+              focusBody={focusBody}
+              language={uiLanguage}
+              onRequestBrowserLocation={skywatchLocation.requestBrowserLocation}
+              onSaveManualLocation={skywatchLocation.saveManualLocation}
+              onClearLocation={skywatchLocation.clearLocation}
+              onSelectEvent={handleSelectSkywatchEvent}
+              onStartPerseidSimulation={handleStartPerseidSimulation}
+              passTargets={passTargets}
+              onShowSatellitePass={handleShowSatellitePass}
+              onClose={() => setSkywatchOpen(false)}
+            />
+          </LazyPanelBoundary>
         </div>
       )}
 
       {meteorFlowVisible && (
-        <MeteorFlowOverlay
-          language={uiLanguage}
-          onClose={() => setMeteorFlowVisible(false)}
-        />
+        <LazyPanelBoundary language={uiLanguage} label={t('Meteor akışı', 'Meteor flow')} onClose={() => setMeteorFlowVisible(false)}>
+          <MeteorFlowOverlay
+            language={uiLanguage}
+            onClose={() => setMeteorFlowVisible(false)}
+          />
+        </LazyPanelBoundary>
       )}
 
       {/* ============ MOBILE: FAB + Bottom Sheet ============ */}
@@ -1386,7 +1441,7 @@ export default function Home() {
 
       {/* ============ FOOTER CREDITS (desktop only) ============ */}
       <div className="pointer-events-none absolute bottom-1.5 left-7 z-10 hidden font-mono text-[10px] tracking-wider text-slate-600 md:block">
-        TLE CelesTrak · SGP4 satellite.js · Imagery NASA · USGS Astrogeology · JPL
+        GP/OMM CelesTrak · SGP4 satellite.js · Imagery NASA · USGS Astrogeology · JPL
       </div>
       <div className="pointer-events-none absolute bottom-1.5 right-7 z-10 hidden font-mono text-[10px] tabular-nums tracking-wider text-slate-600 md:block">
         {fps} fps
@@ -1453,36 +1508,44 @@ export default function Home() {
 
       {missionTimelineOpen && (
         <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
-          <MissionTimelinePanel
-            language={uiLanguage}
-            onSelectEvent={handleSelectMissionEvent}
-            onClose={() => setMissionTimelineOpen(false)}
-          />
+          <LazyPanelBoundary language={uiLanguage} label={t('Görev zaman tüneli', 'Mission timeline')} onClose={() => setMissionTimelineOpen(false)}>
+            <MissionTimelinePanel
+              language={uiLanguage}
+              onSelectEvent={handleSelectMissionEvent}
+              onClose={() => setMissionTimelineOpen(false)}
+            />
+          </LazyPanelBoundary>
         </div>
       )}
 
       {/* ============ LANDING SITE MODAL ============ */}
       {selectedPin?.landingSite && (
-        <LandingSiteModal
-          site={selectedPin.landingSite}
-          language={uiLanguage}
-          onClose={() => setSelectedPin(null)}
-        />
+        <LazyPanelBoundary language={uiLanguage} label={t('Yüzey konumu', 'Surface site')} onClose={() => setSelectedPin(null)}>
+          <LandingSiteModal
+            site={selectedPin.landingSite}
+            language={uiLanguage}
+            onClose={() => setSelectedPin(null)}
+          />
+        </LazyPanelBoundary>
       )}
 
       {/* ============ SCALE SANDBOX MODAL ============ */}
       {showScaleModal && (
-        <ScaleSandboxModal
-          language={uiLanguage}
-          onClose={() => setShowScaleModal(false)}
-        />
+        <LazyPanelBoundary language={uiLanguage} label={t('Ölçek karşılaştırması', 'Scale comparison')} onClose={() => setShowScaleModal(false)}>
+          <ScaleSandboxModal
+            language={uiLanguage}
+            onClose={() => setShowScaleModal(false)}
+          />
+        </LazyPanelBoundary>
       )}
 
       {showAboutModal && (
-        <AboutAstrobenderModal
-          language={uiLanguage}
-          onClose={() => setShowAboutModal(false)}
-        />
+        <LazyPanelBoundary language={uiLanguage} label={t('Hakkında', 'About')} onClose={() => setShowAboutModal(false)}>
+          <AboutAstrobenderModal
+            language={uiLanguage}
+            onClose={() => setShowAboutModal(false)}
+          />
+        </LazyPanelBoundary>
       )}
 
       {/* ============ CONTEXT LOST ============ */}

@@ -759,9 +759,9 @@ export class GlobeEngine {
     // --- Earth ---
     const loader = new THREE.TextureLoader()
     const dayTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-day-8k.jpg`)
-    const nightTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-night-4k.jpg`)
-    const specTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-specular-2k.jpg`)
-    const bumpTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-bump-2k.jpg`)
+    const nightTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-night-4k.webp`)
+    const specTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-specular-2k.webp`)
+    const bumpTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-bump-2k.webp`)
 
     dayTex.colorSpace = THREE.SRGBColorSpace
     nightTex.colorSpace = THREE.SRGBColorSpace
@@ -841,7 +841,7 @@ export class GlobeEngine {
     this.earth.add(this.auroraOverlay)
 
     // --- Cloud Layer — 96×96 sphere (vs old 256×256 = 86% fewer vertices, no visible diff) ---
-    const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-4k.jpg`)
+    const cloudsTex = loader.load(`${import.meta.env.BASE_URL}textures/earth-clouds-4k.webp`)
     cloudsTex.colorSpace = THREE.SRGBColorSpace
     cloudsTex.anisotropy = 8  // 8 is imperceptible vs 16 on clouds; saves GPU bandwidth
     const cloudGeo = new THREE.SphereGeometry(1.015, 96, 96)
@@ -1436,11 +1436,13 @@ export class GlobeEngine {
       landmarkGroup.visible = false // Remove orange ring markers from planet surfaces
       const markTex = makeRingTexture()
       for (const s of sites) {
-        const phi = (90 - s.lat) * (Math.PI / 180)
-        const theta = (s.lon + 180) * (Math.PI / 180)
-        const lx = -(def.radius * 1.01 * Math.sin(phi) * Math.cos(theta))
-        const ly = def.radius * 1.01 * Math.cos(phi)
-        const lz = def.radius * 1.01 * Math.sin(phi) * Math.sin(theta)
+        // Same body frame the surface picks decode: the sphere geometry is
+        // rotated so poles sit on +z and longitude 0 on +x.
+        const latRad = s.lat * (Math.PI / 180)
+        const lonRad = s.lon * (Math.PI / 180)
+        const lx = def.radius * 1.01 * Math.cos(latRad) * Math.cos(lonRad)
+        const ly = def.radius * 1.01 * Math.cos(latRad) * Math.sin(lonRad)
+        const lz = def.radius * 1.01 * Math.sin(latRad)
 
         const sprite = new THREE.Sprite(
           new THREE.SpriteMaterial({
@@ -1992,7 +1994,9 @@ export class GlobeEngine {
 
         if (match && topMesh) {
           const pt = hit.point
-          const localPt = pt.clone().sub(topMesh.position).applyMatrix4(topMesh.matrixWorld.clone().invert()).normalize()
+          // worldToLocal applies the full inverse world matrix once; subtracting
+          // the mesh position first would remove its translation twice.
+          const localPt = topMesh.worldToLocal(pt.clone()).normalize()
           const lat = Math.asin(Math.min(Math.max(localPt.z, -1), 1)) * (180 / Math.PI)
           const lon = Math.atan2(localPt.y, localPt.x) * (180 / Math.PI)
           const site = siteFromSprite ?? findLandingSiteNear(match.id, lat, lon)

@@ -2,12 +2,23 @@ import type { CelestialBodyId } from './planets.ts'
 
 export const NSSDCA_MASTER_CATALOG_URL = 'https://nssdc.gsfc.nasa.gov/nmc/'
 
-export type MissionEventKind = 'launch' | 'flyby' | 'orbit-insertion' | 'landing' | 'end'
+export type MissionEventKind =
+  | 'launch'
+  | 'flyby'
+  | 'orbit-insertion'
+  | 'landing'
+  | 'end'
+  | 'impact'
+  | 'flight'
+  | 'sample-return'
+  | 'milestone'
 
 export interface MissionEvent {
   id: string
   /** UTC instant of the event, to the minute where the record gives one. */
   at: string
+  /** 'day' when the source dates the event but gives no time of day. */
+  precision?: 'minute' | 'day'
   kind: MissionEventKind
   missionTr: string
   missionEn: string
@@ -239,6 +250,79 @@ export const MISSION_EVENTS: readonly MissionEvent[] = [
     targetBody: 'mars',
     landingSiteId: 'zhurong',
     sourceUrl: NSSDCA('2020-049A'),
+  },
+  {
+    id: 'voyager1-heliopause',
+    // Inferred afterwards from the plasma-wave data; NASA announced it in 2013.
+    at: '2012-08-25T00:00:00Z',
+    precision: 'day',
+    kind: 'milestone',
+    missionTr: 'Voyager 1',
+    missionEn: 'Voyager 1',
+    titleTr: 'Heliopoz geçildi: yıldızlararası uzaya ilk araç',
+    titleEn: 'Crossed the heliopause: first craft in interstellar space',
+    targetBody: 'sun',
+    sourceUrl: NSSDCA('1977-084A'),
+  },
+  {
+    id: 'ingenuity-first-flight',
+    at: '2021-04-19T07:34:00Z',
+    kind: 'flight',
+    missionTr: 'Ingenuity',
+    missionEn: 'Ingenuity',
+    titleTr: 'Başka bir gezegende ilk motorlu kontrollü uçuş',
+    titleEn: 'First powered, controlled flight on another planet',
+    targetBody: 'mars',
+    landingSiteId: 'perseverance',
+    sourceUrl: NSSDCA('2020-052A'),
+  },
+  {
+    id: 'dart-impact',
+    at: '2022-09-26T23:14:00Z',
+    kind: 'impact',
+    missionTr: 'DART',
+    missionEn: 'DART',
+    titleTr: 'Dimorphos’a çarpış: ilk gezegen savunma testi (Dünya’dan ~11 milyon km)',
+    titleEn: 'Impact on Dimorphos: first planetary-defence test (~11 million km from Earth)',
+    targetBody: 'earth',
+    sourceUrl: NSSDCA('2021-110A'),
+  },
+  {
+    id: 'chandrayaan3-landing',
+    at: '2023-08-23T12:33:00Z',
+    kind: 'landing',
+    missionTr: 'Chandrayaan-3',
+    missionEn: 'Chandrayaan-3',
+    titleTr: 'Ay’ın güney kutup bölgesine ilk yumuşak iniş',
+    titleEn: 'First soft landing near the lunar south pole',
+    targetBody: 'moon',
+    landingSiteId: 'chandrayaan3',
+    // NSSDCA has no record for this mission yet.
+    sourceUrl: 'https://www.isro.gov.in/Chandrayaan3_Details.html',
+  },
+  {
+    id: 'osiris-rex-sample-return',
+    at: '2023-09-24T14:52:00Z',
+    kind: 'sample-return',
+    missionTr: 'OSIRIS-REx',
+    missionEn: 'OSIRIS-REx',
+    titleTr: 'Bennu örnek kapsülü Utah’a indi',
+    titleEn: 'Bennu sample capsule lands in Utah',
+    targetBody: 'earth',
+    sourceUrl: NSSDCA('2016-055A'),
+  },
+  {
+    id: 'change6-landing',
+    at: '2024-06-01T22:23:00Z',
+    kind: 'landing',
+    missionTr: 'Chang’e 6',
+    missionEn: 'Chang’e 6',
+    titleTr: 'Uzak yüzden ilk örnek için Apollo havzasına iniş',
+    titleEn: 'Landing in Apollo basin for the first far-side sample',
+    targetBody: 'moon',
+    landingSiteId: 'change6',
+    // NSSDCA has no record for this mission yet; NASA LRO located the lander.
+    sourceUrl: 'https://www.nasa.gov/centers-and-facilities/goddard/nasas-lro-spots-chinas-change-6-spacecraft-on-lunar-far-side',
   },
 ]
 

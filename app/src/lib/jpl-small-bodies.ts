@@ -210,6 +210,16 @@ export const NAMED_SMALL_BODIES: NamedSmallBody[] = [
     sourceUrl: SBDB('67P'),
     designations: ['67P', '67P/Churyumov-Gerasimenko'],
   },
+  {
+    id: 'encke',
+    name: '2P/Encke',
+    nameTr: 'Encke Kuyruklu Yıldızı',
+    kind: 'comet',
+    summaryTr: 'Taurid meteor yağmurlarını besleyen, 3.3 yıllık yörüngesiyle en kısa periyotlu kuyruklu yıldızlardan biridir.',
+    summaryEn: 'The parent of the Taurid meteor showers and one of the shortest-period comets, at 3.3 years.',
+    sourceUrl: SBDB('2P'),
+    designations: ['2P', '2P/Encke'],
+  },
 ]
 
 const NAMED_BODY_BY_DESIGNATION = new Map<string, NamedSmallBody>(

@@ -4,7 +4,7 @@ export const JPL_SBDB_LOOKUP = 'https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#
 
 export interface CometDefinition {
   /** Also the key into PLANETARY_ELEMENTS. */
-  id: Extract<PlanetaryBodyId, 'halley' | 'churyumov-gerasimenko' | 'pons-brooks'>
+  id: Extract<PlanetaryBodyId, 'halley' | 'churyumov-gerasimenko' | 'pons-brooks' | 'encke'>
   designation: string
   name: string
   nameTr: string
@@ -88,6 +88,25 @@ export const COMETS: readonly CometDefinition[] = [
     summaryEn:
       'A cryovolcanic comet known for sudden outbursts in brightness; its most recent perihelion was in 2024.',
     sourceUrl: `${JPL_SBDB_LOOKUP}12P`,
+  },
+  {
+    id: 'encke',
+    designation: '2P/Encke',
+    name: 'Encke',
+    nameTr: 'Encke',
+    nucleusRadiusKm: null,
+    perihelionAu: 0.3396,
+    aphelionAu: 4.098,
+    periodYears: 3.30,
+    inclinationDeg: 11.34,
+    eccentricity: 0.84694,
+    solutionEpoch: '2024-02-25',
+    horizonsDriftAu: 0.002,
+    summaryTr:
+      'Bilinen en kısa periyotlu kuyruklu yıldızlardandır (3.3 yıl); Güney ve Kuzey Taurid meteor yağmurlarını besler. Sıradaki günberisi 10 Şubat 2027.',
+    summaryEn:
+      'One of the shortest-period comets known (3.3 years) and the parent of the Southern and Northern Taurids. Next perihelion: 10 February 2027.',
+    sourceUrl: `${JPL_SBDB_LOOKUP}2P`,
   },
 ]
 

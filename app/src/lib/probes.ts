@@ -94,9 +94,11 @@ export const DEEP_SPACE_PROBES: DeepSpaceProbe[] = [
     emoji: '🛰️',
     launchYear: 2011,
     targetBodyId: 'jupiter',
-    statusTr: 'Jüpiter Yörüngesinde Aktif',
-    statusEn: 'Orbiting Jupiter',
-    descriptionTr: 'Jüpiter’in iç yapısını, atmosferini ve manyetik alanını kutupsal yörüngeden inceliyor.',
+    // NASA funded the extended mission through September 2025 and does not
+    // deorbit Juno; its orbit decays until Jupiter's atmosphere claims it.
+    statusTr: 'Uzatılmış görev Eylül 2025’te sona erdi',
+    statusEn: 'Extended mission ended September 2025',
+    descriptionTr: 'Jüpiter’in iç yapısını, atmosferini ve manyetik alanını kutupsal yörüngeden inceledi; NASA’ya göre bozulan yörüngesi sonunda aracı Jüpiter atmosferine düşürecek.',
     sourceUrl: 'https://science.nasa.gov/mission/juno/',
     rendered: true,
     ephemerisNoteTr: 'JPL Horizons vektör tablosundan gerçek konum.',

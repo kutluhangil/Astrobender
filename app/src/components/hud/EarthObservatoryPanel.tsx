@@ -2,8 +2,10 @@ import { useState } from 'react'
 import {
   EARTH_DATA_URLS,
   type EarthEvent,
+  type EarthLayerId,
   type EarthLayerVisibility,
-  type EarthSourceId,
+  type FlareSummary,
+  type KpOutlook,
 } from '@/lib/earth-observatory'
 import type { EarthObservatoryState } from '@/hooks/useEarthObservatory'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
@@ -13,7 +15,7 @@ interface EarthObservatoryPanelProps extends EarthObservatoryState {
   onRefresh: () => void
   onSelectEvent: (event: EarthEvent) => void
   layerVisibility: EarthLayerVisibility
-  onToggleLayer: (source: EarthSourceId) => void
+  onToggleLayer: (source: EarthLayerId) => void
   language?: UiLanguage
 }
 
@@ -21,6 +23,8 @@ const SOURCE_NAMES = {
   eonet: { tr: 'NASA EONET', en: 'NASA EONET' },
   usgs: { tr: 'USGS Deprem', en: 'USGS Earthquakes' },
   aurora: { tr: 'NOAA Aurora', en: 'NOAA Aurora' },
+  kp: { tr: 'NOAA Kp indeksi', en: 'NOAA Kp index' },
+  flares: { tr: 'GOES X-ışını', en: 'GOES X-ray' },
   cache: { tr: 'Yerel önbellek', en: 'Local cache' },
 } as const
 
@@ -35,6 +39,63 @@ function formatEventTime(value: string, language: UiLanguage): string {
   }).format(date)
 }
 
+function kpTone(kp: number): string {
+  if (kp >= 7) return 'text-rose-200'
+  if (kp >= 5) return 'text-amber-200'
+  if (kp >= 4) return 'text-yellow-100'
+  return 'text-emerald-100'
+}
+
+function SpaceWeatherCard({ kp, flares, language }: { kp: KpOutlook | null; flares: FlareSummary | null; language: UiLanguage }) {
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  if (!kp && !flares) return null
+  return (
+    <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-2.5" aria-label={t('Uzay havası', 'Space weather')}>
+      <div className="flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.16em] text-amber-200/80">
+        <span>{t('Uzay havası', 'Space weather')}</span>
+        <a href={EARTH_DATA_URLS.scalesInfo} target="_blank" rel="noreferrer" className="text-[8px] normal-case tracking-normal text-amber-200/70 hover:text-amber-100">
+          {t('NOAA ölçekleri', 'NOAA scales')} ↗
+        </a>
+      </div>
+      <div className="mt-1.5 grid grid-cols-2 gap-1.5 font-mono text-[8px]">
+        {kp && (
+          <a href={EARTH_DATA_URLS.kpInfo} target="_blank" rel="noreferrer" className="rounded border border-white/10 bg-black/20 px-2 py-1.5 hover:border-white/20">
+            <div className="text-slate-500">Kp · {kp.current.status === 'observed' ? t('ölçülen', 'observed') : t('tahmini', 'estimated')}</div>
+            <div className={`mt-0.5 text-base font-bold ${kpTone(kp.current.kp)}`}>
+              {kp.current.kp.toFixed(1)}{kp.current.scale ? ` · ${kp.current.scale}` : ''}
+            </div>
+            <div className="text-slate-500">
+              {kp.peakForecast
+                ? t(
+                  `Öngörü en yüksek ${kp.peakForecast.kp.toFixed(1)}${kp.peakForecast.scale ? ` (${kp.peakForecast.scale})` : ''}`,
+                  `Forecast peak ${kp.peakForecast.kp.toFixed(1)}${kp.peakForecast.scale ? ` (${kp.peakForecast.scale})` : ''}`,
+                )
+                : t('Öngörü yok', 'No forecast')}
+            </div>
+          </a>
+        )}
+        {flares && (
+          <div className="rounded border border-white/10 bg-black/20 px-2 py-1.5">
+            <div className="text-slate-500">{t('En güçlü patlama · 7 gün', 'Strongest flare · 7 days')}</div>
+            <div className="mt-0.5 text-base font-bold text-amber-100">
+              {flares.strongest ? `${flares.strongest.classLabel}${flares.strongest.radioBlackout ? ` · ${flares.strongest.radioBlackout}` : ''}` : '—'}
+            </div>
+            <div className="text-slate-500">
+              {flares.strongest ? formatEventTime(flares.strongest.peakAt, language) : t('Kayıt yok', 'None recorded')} · {flares.count} {t('olay', 'events')}
+            </div>
+          </div>
+        )}
+      </div>
+      <p className="mt-1.5 text-[8px] leading-relaxed text-slate-500">
+        {t(
+          'Kp ≥ 5 jeomanyetik fırtınadır (G1+); aurora orta enlemlere iner. M1 ve üstü patlamalar gündüz yarımküresinde HF radyo kesintisi (R1+) yapar.',
+          'Kp ≥ 5 is a geomagnetic storm (G1+) that pushes aurora toward mid-latitudes. Flares of M1 and above cause HF radio blackouts (R1+) on the dayside.',
+        )}
+      </p>
+    </div>
+  )
+}
+
 function formatAge(value: number, language: UiLanguage): string {
   const ageMinutes = Math.max(0, Math.round((Date.now() - value) / 60_000))
   if (ageMinutes < 1) return pickLanguage(language, 'şimdi', 'just now')
@@ -47,6 +108,8 @@ export default function EarthObservatoryPanel({
   status,
   events,
   aurora,
+  kp,
+  flares,
   errors,
   updatedAt,
   cachedSources,
@@ -151,6 +214,8 @@ export default function EarthObservatoryPanel({
               .join(' · ')}
           </div>
         )}
+
+        <SpaceWeatherCard kp={kp} flares={flares} language={language} />
 
         {aurora && layerVisibility.aurora && (
           <div className="rounded-xl border border-violet-400/25 bg-violet-400/5 p-2.5">

@@ -66,6 +66,7 @@ export type SourceDatasetId =
   | 'surface-sites'
   | 'sky-events'
   | 'meteor-showers'
+  | 'satellite-elements'
 
 export interface SourceDataset {
   id: SourceDatasetId
@@ -114,7 +115,7 @@ const DATASETS: SourceDataset[] = [
     labelTr: 'Kuyruklu yıldız yörüngeleri',
     labelEn: 'Comet orbits',
     sourceUrl: 'https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html',
-    verifiedAt: '2026-08-19',
+    verifiedAt: '2026-10-19',
     maxAgeDays: SOURCE_REVIEW_MAX_AGE_DAYS,
     why: 'SBDB refits cometary elements as new astrometry arrives, and the drift the UI quotes moves with them.',
   },
@@ -150,7 +151,7 @@ const DATASETS: SourceDataset[] = [
     labelTr: 'Görev zaman tüneli',
     labelEn: 'Mission timeline',
     sourceUrl: 'https://nssdc.gsfc.nasa.gov/nmc/',
-    verifiedAt: '2026-08-19',
+    verifiedAt: '2026-10-19',
     maxAgeDays: 365,
     why: 'The listed moments are historical, but new landings keep being added to the master catalog.',
   },
@@ -177,7 +178,7 @@ const DATASETS: SourceDataset[] = [
     labelTr: 'Yer yüzeyi tesisleri',
     labelEn: 'Earth surface sites',
     sourceUrl: 'https://www.jpl.nasa.gov/missions/dsn/',
-    verifiedAt: '2026-08-19',
+    verifiedAt: '2026-10-19',
     maxAgeDays: 365,
     why: 'Launch sites and observatories move rarely, but their operators restructure their pages.',
   },
@@ -186,7 +187,7 @@ const DATASETS: SourceDataset[] = [
     labelTr: 'Gökyüzü olayları',
     labelEn: 'Sky events',
     sourceUrl: 'https://science.nasa.gov/eclipses/future-eclipses/',
-    verifiedAt: '2026-08-19',
+    verifiedAt: '2026-10-19',
     maxAgeDays: 365,
     why: 'Eclipse circumstances are fixed, but the published event list rolls forward each year.',
   },
@@ -194,10 +195,19 @@ const DATASETS: SourceDataset[] = [
     id: 'meteor-showers',
     labelTr: 'Meteor yağmurları',
     labelEn: 'Meteor showers',
-    sourceUrl: 'https://www.imo.net/files/meteor-shower/cal2026.pdf',
-    verifiedAt: '2026-08-19',
+    sourceUrl: 'https://www.imo.net/ShCal27s.pdf',
+    verifiedAt: '2026-10-19',
     maxAgeDays: SOURCE_REVIEW_MAX_AGE_DAYS,
-    why: 'The IMO publishes a new shower calendar every year, so the cited PDF goes out of date annually.',
+    why: 'Maxima are computed from IMO solar longitudes, which hold year to year, but each new IMO calendar can revise a longitude or add a year-specific ZHR forecast.',
+  },
+  {
+    id: 'satellite-elements',
+    labelTr: 'Uydu element setleri (GP/OMM)',
+    labelEn: 'Satellite element sets (GP/OMM)',
+    sourceUrl: 'https://celestrak.org/NORAD/documentation/gp-data-formats.php',
+    verifiedAt: '2026-10-19',
+    maxAgeDays: SOURCE_REVIEW_MAX_AGE_DAYS,
+    why: 'The data refresh live and weekly; what needs review is the CelesTrak format contract the proxy parses, which changed when catalog numbers passed 99999.',
   },
 ]
 

@@ -1,0 +1,55 @@
+name: GP snapshot refresh
+
+# Keeps the bundled CelesTrak OMM snapshots in app/public/data recent. The app
+# paints from them before the live proxy answers and falls back to them
+# offline. Pull requests opened with GITHUB_TOKEN do not trigger other
+# workflows, so this job runs the unit tests and the build itself before it
+# opens one. Requires "Allow GitHub Actions to create and approve pull requests" in the
+# repository's Actions settings.
+
+on:
+  schedule:
+    - cron: '17 4 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: gp-snapshot
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+      - run: npm run generate:gp-snapshots
+      - run: npm run check:sources
+      - run: npm test
+      - run: npm run build
+
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: bot/gp-snapshot
+          delete-branch: true
+          add-paths: app/public/data/gp-*.csv
+          commit-message: 'chore: refresh bundled CelesTrak GP snapshots'
+          title: 'chore: refresh bundled CelesTrak GP snapshots'
+          body: |
+            Weekly refresh of `app/public/data/gp-*.csv` from CelesTrak's OMM CSV endpoint
+            (`npm run generate:gp-snapshots`). Unit tests, `check:sources` and the production
+            build already passed in the workflow run that opened this pull request.

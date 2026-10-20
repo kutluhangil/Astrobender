@@ -26,14 +26,25 @@ if (!html.includes('id="root"')) {
 
 const health = await request('/api/health', 'application/json')
 const payload = await health.json()
-if (payload.status !== 'ok' || payload.service !== 'astrobender') {
-  throw new Error(`${baseUrl}/api/health returned an invalid health payload`)
+if (!['ok', 'degraded'].includes(payload.status) || payload.service !== 'astrobender') {
+  throw new Error(`${baseUrl}/api/health returned an invalid health payload: ${JSON.stringify(payload).slice(0, 300)}`)
+}
+if (payload.status === 'degraded') {
+  console.warn(`Upstream degradation reported by ${baseUrl}/api/health: ${JSON.stringify(payload.upstreams)}`)
 }
 
-const tle = await request('/api/tle?feed=active', 'text/plain')
-const tleText = await tle.text()
-if (!/(^|\n)1 \d{5}/.test(tleText) || !/(^|\n)2 \d{5}/.test(tleText)) {
-  throw new Error(`${baseUrl}/api/tle?feed=active did not return valid TLE lines`)
+const gp = await request('/api/tle?feed=active', 'text/csv')
+const gpText = await gp.text()
+const [header, ...rows] = gpText.trim().split('\n')
+for (const column of ['OBJECT_NAME', 'NORAD_CAT_ID', 'EPOCH', 'MEAN_MOTION', 'BSTAR']) {
+  if (!header.split(',').includes(column)) {
+    throw new Error(`${baseUrl}/api/tle?feed=active returned an OMM CSV header without ${column}: ${header.slice(0, 180)}`)
+  }
+}
+if (rows.length < 1000) {
+  throw new Error(`${baseUrl}/api/tle?feed=active returned only ${rows.length} element sets`)
 }
 
-console.log(`Production smoke passed for ${baseUrl}: app shell, health, and TLE proxy are available.`)
+console.log(
+  `Production smoke passed for ${baseUrl}: app shell, health, and GP proxy (${rows.length} element sets) are available.`,
+)

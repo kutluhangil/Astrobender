@@ -7,11 +7,12 @@
 // Every message carries a generation id so stale workers are ignored.
 
 import * as satellite from 'satellite.js'
+import { satrecFromElements, type OmmElements } from '../lib/omm.ts'
 
 const INV_RE = 1 / 6371 // km -> Earth radii
 
 export type PropagatorRequest =
-  | { type: 'init'; gen: number; l1: string[]; l2: string[] }
+  | { type: 'init'; gen: number; elements: OmmElements[] }
   | { type: 'propagate'; gen: number; t0: number; t1: number }
 
 export type PropagatorResponse =
@@ -93,7 +94,7 @@ self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
   try {
     if (msg.type === 'init') {
       gen = msg.gen
-      const n = msg.l1.length
+      const n = msg.elements.length
       recs = new Array(n)
       let invalidCount = 0
       lastP0 = new Float32Array(n * 3)
@@ -102,7 +103,7 @@ self.onmessage = (e: MessageEvent<PropagatorRequest>) => {
       lastV1 = new Float32Array(n * 3)
       for (let i = 0; i < n; i++) {
         try {
-          const record = satellite.twoline2satrec(msg.l1[i], msg.l2[i])
+          const record = satrecFromElements(msg.elements[i])
           if (record.error !== satellite.SatRecError.None) {
             invalidCount += 1
             recs[i] = null

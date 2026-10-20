@@ -59,7 +59,7 @@ export default function AboutAstrobenderModal({ language, onClose }: AboutAstrob
         <section className="mt-4 rounded-xl border border-white/10 bg-white/[0.025] p-3">
           <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">{t('Canlı veri davranışı', 'Live data behavior')}</h3>
           <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-slate-300">
-            <li>{t('Uydu yörüngeleri CelesTrak TLE verisi ve SGP4 yayılımıyla hesaplanır. TLE epoch yaşı LIVE bilgi düğmesinde görünür.', 'Satellite orbits use CelesTrak TLE data and SGP4 propagation. TLE epoch age is shown through the LIVE information control.')}</li>
+            <li>{t('Uydu yörüngeleri CelesTrak GP (OMM) verisi ve SGP4 yayılımıyla hesaplanır; OMM, 99999 üstü katalog numaralarını da taşır. Element seti epoch yaşı LIVE bilgi düğmesinde görünür.', 'Satellite orbits use CelesTrak GP (OMM) data and SGP4 propagation; OMM also carries catalog numbers above 99999. Element-set epoch age is shown through the LIVE information control.')}</li>
             <li>{t('Dünya Gözlemevi katmanları yalnızca açıldığında NASA EONET, USGS ve NOAA SWPC kaynaklarını sorgular. Ağ başarısız olursa mevcut zaman damgalı önbellek açıkça belirtilir.', 'Earth Observatory layers query NASA EONET, USGS, and NOAA SWPC only when enabled. If a request fails, any timestamped cache is labelled explicitly.')}</li>
             <li>{t('Katalogdaki fiziksel bilgiler kaynak tarihiyle gösterilir; 120 günü geçen inceleme penceresi otomatik kalite kontrolünde hata üretir.', 'Catalog physical facts show their review date; a review window beyond 120 days fails the automated quality check.')}</li>
           </ul>

@@ -1,4 +1,4 @@
-// IndexedDB cache for the multi-megabyte TLE bundles (too large for
+// IndexedDB cache for the multi-megabyte GP (OMM CSV) bundles (too large for
 // localStorage). Keyed entries let the cache shape evolve without clashes.
 
 import type { FeedTexts } from '@/lib/satellites'
@@ -79,6 +79,29 @@ export async function cacheSet(value: CachedBundle): Promise<void> {
       reject(
         new Error(
           `TLE cache write transaction could not start for key "${value.key}": ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
+    }
+  })
+}
+
+export async function cacheDelete(key: string): Promise<void> {
+  const db = await openDb()
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite')
+      tx.objectStore(STORE).delete(key)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => {
+        reject(new Error(`TLE cache delete failed for key "${key}": ${tx.error?.message ?? 'unknown error'}`))
+      }
+      tx.onabort = () => {
+        reject(new Error(`TLE cache delete was aborted for key "${key}": ${tx.error?.message ?? 'unknown error'}`))
+      }
+    } catch (error) {
+      reject(
+        new Error(
+          `TLE cache delete transaction could not start for key "${key}": ${error instanceof Error ? error.message : String(error)}`,
         ),
       )
     }

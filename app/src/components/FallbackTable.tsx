@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as satellite from 'satellite.js'
+import { satrecFromElements } from '@/lib/omm'
 import type { Dataset } from '@/lib/satellites'
 import { UI_GROUPS, formatUtc } from '@/lib/satellites'
 
@@ -22,9 +23,9 @@ export default function FallbackTable({ dataset }: { dataset: Dataset | null }) 
     const recs = stations
       .map((s) => {
         try {
-          return { s, rec: satellite.twoline2satrec(s.l1, s.l2) }
+          return { s, rec: satrecFromElements(s.elements) }
         } catch (error) {
-          console.error(`Failed to parse TLE for NORAD ${s.norad} (${s.name})`, error)
+          console.error(`Failed to initialise SGP4 for NORAD ${s.norad} (${s.name})`, error)
           return null
         }
       })
@@ -65,11 +66,11 @@ export default function FallbackTable({ dataset }: { dataset: Dataset | null }) 
         <span className="text-cyan-400">A</span>STROBENDER
       </h1>
       <p className="mt-1 text-xs text-slate-400">
-        Real-time orbital satellite visualization · CelesTrak TLE × SGP4 propagation
+        Real-time orbital satellite visualization · CelesTrak GP (OMM) × SGP4 propagation
       </p>
       <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-200">
         WebGL is unavailable in this browser, so the interactive 3D globe cannot
-        be shown. Below is a static summary computed from the same TLE data.
+        be shown. Below is a static summary computed from the same orbital data.
       </div>
       {dataset && (
         <>

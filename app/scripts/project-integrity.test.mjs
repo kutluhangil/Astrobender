@@ -254,7 +254,7 @@ test('moon atmosphere data is consistent and obsolete visual assets are absent',
 
   assert.doesNotMatch(facts, /atmosphere: 'Karbondioksit, Azot'/)
   assert.match(facts, /Çok ince CO₂, Oksijen ve Hidrojen egzosferi/)
-  assert.match(facts, /atmosphere: 'Azot \(%95\), Metan \(%5\)'/)
+  assert.match(facts, /atmosphere: 'Azot \(~%95–98\), Metan \(~%1\.4–5\)'/)
   assert.match(sandbox, /texture: 'sun-map\.jpg'/)
   assert.equal(existsSync(`${appRoot}/public/textures/sun-8k.jpg`), false)
   assert.equal(existsSync(`${appRoot}/src/components/hud/CinematicTitleOverlay.tsx`), false)
@@ -283,7 +283,7 @@ test('JPL close approaches use a same-origin server proxy with no client query s
   assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
 })
 
-test('TLE refresh uses an allow-listed same-origin proxy and exposes propagation diagnostics', () => {
+test('GP refresh uses an allow-listed same-origin proxy and exposes propagation diagnostics', () => {
   const tleHook = read('src/hooks/useTleData.ts')
   const worker = read('src/workers/propagator.worker.ts')
   const home = read('src/pages/Home.tsx')
@@ -293,9 +293,12 @@ test('TLE refresh uses an allow-listed same-origin proxy and exposes propagation
   assert.doesNotMatch(tleHook, /https:\/\/celestrak\.org/)
   assert.match(tleHook, /TLE_API = '\/api\/tle'/)
   assert.match(tleHook, /\$\{TLE_API\}\?feed=/)
-  assert.match(vite, /'\/api\/tle'/)
+  assert.match(vite, /'\/api\/tle': path\.resolve\(__dirname, '\.\.\/api\/tle\.ts'\)/)
+  assert.doesNotMatch(vite, /celestrak\.org/)
   assert.match(worker, /invalidCount/)
   assert.match(worker, /failedCount/)
   assert.match(home, /describeTleFreshness/)
-  assert.match(home, /TLE epoch/i)
+  assert.match(home, /GP epoch/i)
+  assert.match(worker, /satrecFromElements/)
+  assert.doesNotMatch(worker, /twoline2satrec/)
 })

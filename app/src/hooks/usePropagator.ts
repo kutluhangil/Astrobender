@@ -217,8 +217,7 @@ export function usePropagator(
     const initMsg: PropagatorRequest = {
       type: 'init',
       gen,
-      l1: dataset.sats.map((s) => s.l1),
-      l2: dataset.sats.map((s) => s.l2),
+      elements: dataset.sats.map((s) => s.elements),
     }
     worker.postMessage(initMsg)
 

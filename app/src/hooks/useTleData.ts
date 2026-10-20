@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   buildDataset,
-  isValidTleText,
+  countGpRows,
+  isValidGpCsv,
   MIN_VALID_SATS,
-  mergeFeeds,
+  mergeFeedsWithReport,
 } from '@/lib/satellites'
 import type { Dataset, FeedTexts } from '@/lib/satellites'
-import { cacheGet, cacheSet } from '@/lib/tle-cache'
+import { cacheDelete, cacheGet, cacheSet } from '@/lib/tle-cache'
 
 const SNAP = `${import.meta.env.BASE_URL}data`
 const TLE_API = '/api/tle'
@@ -21,32 +22,41 @@ const FEEDS: FeedDef[] = [
   {
     key: 'active',
     liveUrl: `${TLE_API}?feed=active`,
-    snapUrl: `${SNAP}/tle-snapshot.txt`,
+    snapUrl: `${SNAP}/gp-active.csv`,
   },
   {
     key: 'visual',
     liveUrl: `${TLE_API}?feed=visual`,
-    snapUrl: `${SNAP}/tle-visual.txt`,
+    snapUrl: `${SNAP}/gp-visual.csv`,
   },
   {
     key: 'cosmos2251',
     liveUrl: `${TLE_API}?feed=cosmos2251`,
-    snapUrl: `${SNAP}/tle-cosmos-2251-debris.txt`,
+    snapUrl: `${SNAP}/gp-cosmos-2251-debris.csv`,
   },
   {
     key: 'iridium33',
     liveUrl: `${TLE_API}?feed=iridium33`,
-    snapUrl: `${SNAP}/tle-iridium-33-debris.txt`,
+    snapUrl: `${SNAP}/gp-iridium-33-debris.csv`,
   },
   {
     key: 'fengyun1c',
     liveUrl: `${TLE_API}?feed=fengyun1c`,
-    snapUrl: `${SNAP}/tle-fengyun-1c-debris.txt`,
+    snapUrl: `${SNAP}/gp-fengyun-1c-debris.csv`,
   },
 ]
 
 export const TLE_TTL_MS = 2 * 3600 * 1000
-const CACHE_KEY = 'bundle-v2'
+// v3 holds OMM CSV. v2 held TLE text and is deleted once on startup so it
+// stops counting against the origin's storage quota.
+const CACHE_KEY = 'bundle-v3'
+const RETIRED_CACHE_KEYS = ['bundle-v2']
+
+/**
+ * A live feed that parses to fewer than this share of the rows already held is
+ * treated as truncated rather than as a real collapse of the catalog.
+ */
+const MIN_LIVE_ROW_RATIO = 0.5
 
 export interface TleDataState {
   /** 'loading' only until the first usable dataset exists. */
@@ -64,13 +74,13 @@ async function fetchText(url: string, timeoutMs: number): Promise<string> {
     if (!res.ok) {
       const body = (await res.text()).replace(/\s+/g, ' ').slice(0, 180)
       throw new Error(
-        `TLE request failed: ${url} returned HTTP ${res.status} ${res.statusText}${body ? ` — ${body}` : ''}`,
+        `GP request failed: ${url} returned HTTP ${res.status} ${res.statusText}${body ? ` — ${body}` : ''}`,
       )
     }
     return await res.text()
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error(`TLE request timed out after ${timeoutMs} ms: ${url}`)
+      throw new Error(`GP request timed out after ${timeoutMs} ms: ${url}`)
     }
     throw error
   } finally {
@@ -79,13 +89,17 @@ async function fetchText(url: string, timeoutMs: number): Promise<string> {
 }
 
 function validate(feeds: FeedTexts) {
-  if (!isValidTleText(feeds.active)) throw new Error('invalid TLE structure')
-  const sats = mergeFeeds(feeds)
+  if (!isValidGpCsv(feeds.active)) throw new Error('active feed is not a valid OMM CSV')
+  const { sats, skipped } = mergeFeedsWithReport(feeds)
   const activeCount = sats.filter((s) => s.group !== 8 && s.group !== 9 && s.group !== 10).length
   if (activeCount < MIN_VALID_SATS) {
     throw new Error(`too few satellites (${activeCount})`)
   }
-  return sats
+  const skippedEntries = Object.entries(skipped)
+  const skippedNote = skippedEntries.length > 0
+    ? `Hatalı element satırları atlandı: ${skippedEntries.map(([feed, count]) => `${feed} ${count}`).join(', ')}.`
+    : null
+  return { sats, skippedNote }
 }
 
 /**
@@ -117,12 +131,12 @@ export function useTleData() {
       fetchedAt: number,
       warning: string | null = null,
     ) => {
-      const sats = validate(feeds)
+      const { sats, skippedNote } = validate(feeds)
       setState({
         status: 'ready',
         dataset: buildDataset(sats, source, fetchedAt),
         error: null,
-        warning,
+        warning: [warning, skippedNote].filter(Boolean).join(' ') || null,
       })
     },
     [],
@@ -151,26 +165,30 @@ export function useTleData() {
       const base = snapTextsRef.current ?? (await loadSnapshots())
       const feeds = { ...base }
       const failures: string[] = []
+      let activeLive = false
       results.forEach((r, i) => {
-        if (r.status === 'fulfilled' && isValidTleText(r.value)) {
-          feeds[FEEDS[i].key] = r.value
+        const key = FEEDS[i].key
+        const heldRows = countGpRows(base[key] ?? '')
+        if (r.status === 'fulfilled' && isValidGpCsv(r.value) && countGpRows(r.value) < heldRows * MIN_LIVE_ROW_RATIO) {
+          failures.push(`${key}: only ${countGpRows(r.value)} rows against ${heldRows} held; kept the previous set`)
+        } else if (r.status === 'fulfilled' && isValidGpCsv(r.value)) {
+          feeds[key] = r.value
+          if (key === 'active') activeLive = true
         } else if (r.status === 'fulfilled') {
-          failures.push(`${FEEDS[i].key}: invalid TLE structure`)
+          failures.push(`${FEEDS[i].key}: invalid OMM CSV structure`)
         } else {
           failures.push(
             `${FEEDS[i].key}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
           )
         }
       })
-      const activeLive =
-        results[0].status === 'fulfilled' && isValidTleText(results[0].value)
       if (!activeLive) {
-        throw new Error(failures[0] ?? 'active feed did not return valid TLE data')
+        throw new Error(failures[0] ?? 'active feed did not return valid OMM data')
       }
       const fetchedAt = Date.now()
       const warning =
         failures.length > 0
-          ? `Bazı canlı TLE akışları güncellenemedi; son geçerli veri korunuyor. ${failures.join(' | ')}`
+          ? `Bazı canlı GP yörünge akışları güncellenemedi; son geçerli veri korunuyor. ${failures.join(' | ')}`
           : null
       apply(feeds, 'live', fetchedAt, warning)
       if (failures.length === 0) {
@@ -179,14 +197,14 @@ export function useTleData() {
         } catch (error) {
           setState((current) => ({
             ...current,
-            warning: `Canlı veri yüklendi ancak yerel TLE önbelleği güncellenemedi: ${error instanceof Error ? error.message : String(error)}`,
+            warning: `Canlı veri yüklendi ancak yerel GP önbelleği güncellenemedi: ${error instanceof Error ? error.message : String(error)}`,
           }))
         }
       }
     } catch (error) {
       setState((current) => ({
         ...current,
-        warning: `Canlı TLE güncellemesi başarısız; son geçerli veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+        warning: `Canlı GP güncellemesi başarısız; son geçerli veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
       }))
     } finally {
       busyRef.current = false
@@ -196,6 +214,13 @@ export function useTleData() {
   const initialLoad = useCallback(async () => {
     const gen = ++genRef.current
     const isStale = () => genRef.current !== gen
+
+    void Promise.all(RETIRED_CACHE_KEYS.map((key) => cacheDelete(key))).catch((error: unknown) => {
+      setState((current) => ({
+        ...current,
+        warning: `Eski TLE önbelleği silinemedi: ${error instanceof Error ? error.message : String(error)}`,
+      }))
+    })
 
     // 1. snapshots first — the globe must appear within ~2 seconds
     try {
@@ -223,7 +248,7 @@ export function useTleData() {
     } catch (error) {
       setState((current) => ({
         ...current,
-        warning: `Yerel TLE önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+        warning: `Yerel GP önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
       }))
     }
 

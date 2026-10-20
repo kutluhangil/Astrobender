@@ -111,7 +111,7 @@ export default function DetailPanel({
       )}
 
       <div className="mt-2 px-4 font-mono text-[10px] tracking-wider text-slate-600">
-        TLE {sat.epochMs ? formatUtc(sat.epochMs) : t('bilinmiyor', 'unknown')}
+        Epoch {sat.epochMs ? formatUtc(sat.epochMs) : t('bilinmiyor', 'unknown')}
       </div>
 
       <div className="mt-3 flex gap-1.5 px-4 pb-4">

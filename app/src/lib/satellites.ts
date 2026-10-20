@@ -1,6 +1,7 @@
-// Satellite data model: TLE parsing, validation, classification, grouping.
+// Satellite data model: OMM parsing, validation, classification, grouping.
 //
-// The catalog is merged from five CelesTrak feeds:
+// The catalog is merged from five CelesTrak GP feeds, read as OMM CSV because
+// the TLE format cannot carry catalog numbers above 99999 (see omm.ts):
 //   active                -> classified by name into stations/gps/.../other
 //   visual                -> "Brightest" layer (overrides the active class)
 //   cosmos-2251-debris    -> Debris · Cosmos-2251
@@ -8,14 +9,16 @@
 //   fengyun-1c-debris     -> Debris · Fengyun-1C
 // Every object appears in exactly one layer; layer counts sum to the total.
 
+import { OMM_REQUIRED_COLUMNS, parseOmmCsv, type OmmElements } from './omm.ts'
+
 export interface SatInfo {
   name: string
   norad: number
-  l1: string
-  l2: string
+  /** Mean elements SGP4 is initialised from. */
+  elements: OmmElements
   /** UI group index (see UI_GROUPS). */
   group: number
-  /** TLE epoch as ms since Unix epoch. */
+  /** Element-set epoch as ms since Unix epoch. */
   epochMs: number
 }
 
@@ -84,54 +87,7 @@ function classifyActive(nameRaw: string): number {
   return G.Other // includes BeiDou, Iridium, everything else
 }
 
-/** Parse the TLE epoch (line 1 columns 19-32: YYDDD.DDDDDDDD) to ms. */
-export function tleEpochMs(l1: string): number {
-  const yy = parseInt(l1.substring(18, 20), 10)
-  const day = parseFloat(l1.substring(20, 32))
-  if (!isFinite(yy) || !isFinite(day)) return 0
-  const year = yy < 57 ? 2000 + yy : 1900 + yy
-  return Date.UTC(year, 0, 1) + (day - 1) * 86400000
-}
-
-interface RawSat {
-  name: string
-  norad: number
-  l1: string
-  l2: string
-  epochMs: number
-}
-
-function parse3le(text: string): RawSat[] {
-  const lines = text.split(/\r?\n/)
-  const out: RawSat[] = []
-  let name = ''
-  let l1 = ''
-  for (const raw of lines) {
-    const line = raw.trimEnd()
-    if (line.startsWith('1 ') && line.length >= 60) {
-      l1 = line
-    } else if (line.startsWith('2 ') && line.length >= 60 && l1) {
-      const norad = parseInt(l1.substring(2, 7), 10)
-      if (isFinite(norad)) {
-        out.push({
-          name: (name.trim() || `NORAD ${norad}`).replace(/\s+/g, ' '),
-          norad,
-          l1,
-          l2: line,
-          epochMs: tleEpochMs(l1),
-        })
-      }
-      name = ''
-      l1 = ''
-    } else if (line.length > 0 && !line.startsWith('#')) {
-      name = line
-      l1 = ''
-    }
-  }
-  return out
-}
-
-/** Texts of the five feeds; supplementals may be null if unavailable. */
+/** OMM CSV texts of the five feeds; supplementals may be null if unavailable. */
 export interface FeedTexts {
   active: string
   visual: string | null
@@ -146,41 +102,83 @@ export interface FeedTexts {
  * visual feed overrides matched objects into the Brightest layer.
  */
 export function mergeFeeds(feeds: FeedTexts): SatInfo[] {
+  return mergeFeedsWithReport(feeds).sats
+}
+
+export interface MergeReport {
+  sats: SatInfo[]
+  /** Rows each feed dropped because a required value was missing or not numeric. */
+  skipped: Partial<Record<keyof FeedTexts, number>>
+}
+
+/** `mergeFeeds` plus the per-feed count of malformed rows, so callers can surface them. */
+export function mergeFeedsWithReport(feeds: FeedTexts): MergeReport {
   const byNorad = new Map<number, SatInfo>()
-
-  const add = (r: RawSat, group: number, override: boolean) => {
-    if (!override && byNorad.has(r.norad)) return
-    byNorad.set(r.norad, { ...r, group })
+  const skipped: MergeReport['skipped'] = {}
+  const parse = (key: keyof FeedTexts, text: string) => {
+    const result = parseOmmCsv(text)
+    if (result.skipped > 0) skipped[key] = result.skipped
+    return result.records
   }
 
-  for (const [text, group] of [
-    [feeds.cosmos2251, G.DebrisCosmos],
-    [feeds.iridium33, G.DebrisIridium],
-    [feeds.fengyun1c, G.DebrisFengyun],
+  const add = (elements: OmmElements, group: number, override: boolean) => {
+    if (!override && byNorad.has(elements.norad)) return
+    byNorad.set(elements.norad, {
+      name: elements.name,
+      norad: elements.norad,
+      elements,
+      group,
+      epochMs: elements.epochMs,
+    })
+  }
+
+  for (const [key, group] of [
+    ['cosmos2251', G.DebrisCosmos],
+    ['iridium33', G.DebrisIridium],
+    ['fengyun1c', G.DebrisFengyun],
   ] as const) {
+    const text = feeds[key]
     if (!text) continue
-    for (const r of parse3le(text)) add(r, group, false)
+    for (const r of parse(key, text)) add(r, group, false)
   }
 
-  for (const r of parse3le(feeds.active)) add(r, classifyActive(r.name), false)
+  for (const r of parse('active', feeds.active)) add(r, classifyActive(r.name), false)
 
   if (feeds.visual) {
-    for (const r of parse3le(feeds.visual)) add(r, G.Brightest, true)
+    for (const r of parse('visual', feeds.visual)) add(r, G.Brightest, true)
   }
 
   const sats = [...byNorad.values()]
   sats.sort((a, b) => a.group - b.group)
-  return sats
+  return { sats, skipped }
+}
+
+/** Data rows in an OMM CSV text (lines after the header), without parsing values. */
+export function countGpRows(text: string): number {
+  let rows = 0
+  let index = text.indexOf('\n')
+  while (index !== -1 && index < text.length - 1) {
+    rows++
+    index = text.indexOf('\n', index + 1)
+  }
+  return rows
 }
 
 /** The active feed must parse to at least this many objects to be accepted. */
 export const MIN_VALID_SATS = 1000
 
-export function isValidTleText(text: string): boolean {
-  if (!text || text.length < 1000) return false
-  const l1 = text.indexOf('\n1 ')
-  const l2 = text.indexOf('\n2 ')
-  return (text.startsWith('1 ') || l1 >= 0) && l2 >= 0
+/**
+ * Structural check before a feed replaces the last good one: an OMM CSV header
+ * naming every column SGP4 needs, followed by at least one data row.
+ */
+export function isValidGpCsv(text: string | null | undefined): boolean {
+  if (!text) return false
+  const newline = text.indexOf('\n')
+  if (newline < 0 || newline === text.length - 1) return false
+  const header = new Set(
+    text.slice(0, newline).replace(/^\uFEFF/, '').split(',').map((column) => column.trim().toUpperCase()),
+  )
+  return OMM_REQUIRED_COLUMNS.every((column) => header.has(column))
 }
 
 export type DataSource = 'live' | 'cached' | 'snapshot'

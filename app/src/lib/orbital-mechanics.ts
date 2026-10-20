@@ -375,7 +375,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 1.762732,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   europa: {
     semiMajorAxisKm: 671100,
@@ -386,7 +386,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 184,
     periodDays: 3.525463,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   ganymede: {
     semiMajorAxisKm: 1070400,
@@ -397,7 +397,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 58.5,
     periodDays: 7.155588,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   callisto: {
     semiMajorAxisKm: 1882700,
@@ -408,7 +408,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 309.1,
     periodDays: 16.69044,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   amalthea: {
     semiMajorAxisKm: 181365,
@@ -419,7 +419,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 108,
     periodDays: 0.498179,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   himalia: {
     semiMajorAxisKm: 11460000,
@@ -430,7 +430,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 45,
     periodDays: 250.56,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   metis: {
     semiMajorAxisKm: 128900,
@@ -441,7 +441,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 0.29893,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   thebe: {
     semiMajorAxisKm: 222000,
@@ -452,7 +452,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 12,
     periodDays: 0.6776,
     referencePlaneTiltDeg: 3.13,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   // Jupiter's distant irregulars orbit under solar rather than equatorial
   // control, so Horizons publishes them against the Sun's invariable plane;
@@ -466,7 +466,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 108,
     periodDays: 259.6528,
     referencePlaneTiltDeg: 0,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   pasiphae: {
     semiMajorAxisKm: 23500000,
@@ -477,7 +477,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 313,
     periodDays: 735,
     referencePlaneTiltDeg: 0,
-    kmPerSceneUnit: 188270,
+    kmPerSceneUnit: 30203.74331550802,
   },
   enceladus: {
     semiMajorAxisKm: 238400,
@@ -488,7 +488,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 1.370218,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   titan: {
     semiMajorAxisKm: 1221900,
@@ -499,7 +499,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 78.6,
     periodDays: 15.945448,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   mimas: {
     semiMajorAxisKm: 185539,
@@ -510,7 +510,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 173,
     periodDays: 0.942422,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   tethys: {
     semiMajorAxisKm: 294619,
@@ -521,7 +521,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 259,
     periodDays: 1.887802,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   dione: {
     semiMajorAxisKm: 377396,
@@ -532,7 +532,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 168,
     periodDays: 2.736915,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   rhea: {
     semiMajorAxisKm: 527108,
@@ -543,7 +543,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 12,
     periodDays: 4.518212,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   iapetus: {
     semiMajorAxisKm: 3560820,
@@ -554,7 +554,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 75,
     periodDays: 79.3215,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   pan: {
     semiMajorAxisKm: 133584,
@@ -565,7 +565,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 0.57505,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   // Janus and Epimetheus share one orbit 50 km apart and swap places every four
   // years; the epoch phases below keep the two apart instead of overlapping.
@@ -578,7 +578,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 0.69459,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   epimetheus: {
     semiMajorAxisKm: 151422,
@@ -589,7 +589,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 0.69459,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   phoebe: {
     semiMajorAxisKm: 12947780,
@@ -600,7 +600,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 245,
     periodDays: 550.31,
     referencePlaneTiltDeg: 0,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   hyperion: {
     semiMajorAxisKm: 1481009,
@@ -611,7 +611,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 168,
     periodDays: 21.2766,
     referencePlaneTiltDeg: 26.73,
-    kmPerSceneUnit: 60000,
+    kmPerSceneUnit: 9513.742071881605,
   },
   miranda: {
     semiMajorAxisKm: 129390,
@@ -622,7 +622,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 326,
     periodDays: 1.413479,
     referencePlaneTiltDeg: 97.77,
-    kmPerSceneUnit: 129669.11111111111,
+    kmPerSceneUnit: 21018.683845940704,
   },
   ariel: {
     semiMajorAxisKm: 190900,
@@ -633,7 +633,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 23,
     periodDays: 2.520379,
     referencePlaneTiltDeg: 97.77,
-    kmPerSceneUnit: 129669.11111111111,
+    kmPerSceneUnit: 21018.683845940704,
   },
   umbriel: {
     semiMajorAxisKm: 266000,
@@ -644,7 +644,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 34,
     periodDays: 4.144177,
     referencePlaneTiltDeg: 97.77,
-    kmPerSceneUnit: 129669.11111111111,
+    kmPerSceneUnit: 21018.683845940704,
   },
   titania: {
     semiMajorAxisKm: 436298,
@@ -655,7 +655,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 29.5,
     periodDays: 8.705869,
     referencePlaneTiltDeg: 97.77,
-    kmPerSceneUnit: 129669.11111111111,
+    kmPerSceneUnit: 21018.683845940704,
   },
   oberon: {
     semiMajorAxisKm: 583511,
@@ -666,7 +666,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 76.8,
     periodDays: 13.463237,
     referencePlaneTiltDeg: 97.77,
-    kmPerSceneUnit: 129669.11111111111,
+    kmPerSceneUnit: 21018.683845940704,
   },
   larissa: {
     semiMajorAxisKm: 73548,
@@ -677,7 +677,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 0.55465,
     referencePlaneTiltDeg: 28.32,
-    kmPerSceneUnit: 101371.42857142857,
+    kmPerSceneUnit: 16156.885787734116,
   },
   triton: {
     semiMajorAxisKm: 354800,
@@ -688,7 +688,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 178.1,
     periodDays: 5.876994,
     referencePlaneTiltDeg: 28.32,
-    kmPerSceneUnit: 101371.42857142857,
+    kmPerSceneUnit: 16156.885787734116,
   },
   proteus: {
     semiMajorAxisKm: 117646,
@@ -699,7 +699,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 0,
     periodDays: 1.122315,
     referencePlaneTiltDeg: 28.32,
-    kmPerSceneUnit: 101371.42857142857,
+    kmPerSceneUnit: 16156.885787734116,
   },
   nereid: {
     semiMajorAxisKm: 5513400,
@@ -710,7 +710,7 @@ export const SATELLITE_ELEMENTS: Record<SatelliteBodyId, SatelliteElements> = {
     longitudeAscendingNodeDeg: 320,
     periodDays: 360.136,
     referencePlaneTiltDeg: 28.32,
-    kmPerSceneUnit: 101371.42857142857,
+    kmPerSceneUnit: 16156.885787734116,
   },
   charon: {
     semiMajorAxisKm: 19596,

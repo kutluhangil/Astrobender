@@ -17,7 +17,9 @@ import {
 import { findPlanetDef, type CelestialBodyId, type RingSystem } from '@/lib/planets'
 import {
   SCALE_REFERENCE_AU,
+  getLiveDistances,
   getScaleHonesty,
+  getSizeHonesty,
   getScaleRulerBars,
 } from '@/lib/scene-scale'
 import type { SkyObserver } from '@/lib/sky-events'
@@ -204,6 +206,71 @@ function RingBands({ ring, language }: { ring: RingSystem; language: UiLanguage 
 }
 
 /**
+ * The scene draws compressed distances, so the true ones are stated outright
+ * next to the signature tiles instead of only inside the scale disclosure.
+ */
+function LiveDistanceStrip({
+  bodyId,
+  timeMs,
+  language,
+}: {
+  bodyId: CelestialBodyId
+  timeMs: number
+  language: UiLanguage
+}) {
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const distances = getLiveDistances(bodyId, timeMs)
+  if (!distances) return null
+  const locale = language === 'tr' ? 'tr-TR' : 'en-US'
+  const au = (value: number) =>
+    `${new Intl.NumberFormat(locale, { maximumFractionDigits: value < 10 ? 3 : 2 }).format(value)} AU`
+  const km = (value: number) =>
+    `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value * 149_597_870.7)} km`
+  const light = (seconds: number) => {
+    if (seconds < 120) return t(`${Math.round(seconds)} sn`, `${Math.round(seconds)} s`)
+    if (seconds < 7200) return t(`${(seconds / 60).toFixed(1)} dk`, `${(seconds / 60).toFixed(1)} min`)
+    return t(`${(seconds / 3600).toFixed(1)} sa`, `${(seconds / 3600).toFixed(1)} h`)
+  }
+
+  const rows: Array<{ label: string; value: string; detail?: string }> = []
+  if (distances.sunAu !== null) {
+    rows.push({ label: t("Güneş'e", 'To Sun'), value: au(distances.sunAu), detail: km(distances.sunAu) })
+  }
+  if (distances.earthAu !== null && distances.lightSecondsFromEarth !== null) {
+    rows.push({
+      label: t("Dünya'ya", 'To Earth'),
+      value: au(distances.earthAu),
+      detail: `${km(distances.earthAu)} · ${t('ışık', 'light')} ${light(distances.lightSecondsFromEarth)}`,
+    })
+  }
+
+  return (
+    <div className="mt-1.5 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] px-2 py-1.5">
+      <div className="font-mono text-[7.5px] uppercase tracking-[0.14em] text-cyan-300/70">
+        {t('Gerçek uzaklık · şu an', 'True distance · now')}
+      </div>
+      {rows.map((row) => (
+        <div key={row.label} className="mt-1 flex items-baseline justify-between gap-2">
+          <span className="font-mono text-[9px] text-slate-400">{row.label}</span>
+          <span className="text-right font-mono text-[10px] tabular-nums text-slate-100">
+            {row.value}
+            {row.detail && (
+              <span className="block text-[8.5px] text-slate-400">{row.detail}</span>
+            )}
+          </span>
+        </div>
+      ))}
+      <p className="mt-1.5 text-[8.5px] leading-snug text-amber-200/80">
+        {t(
+          'Sahnede gezegen arası mesafeler sıkıştırılmıştır; ölçekli değildir.',
+          'Distances between planets are compressed in the scene; it is not to scale.',
+        )}
+      </p>
+    </div>
+  )
+}
+
+/**
  * Compressed-AU honesty. The scene keeps the ordering of the Solar System but
  * not its proportions; the two bars put the true orbit and the drawn one on one
  * axis so the difference is readable at a glance instead of only in prose.
@@ -219,7 +286,7 @@ function ScaleRuler({
 }) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
   const honesty = getScaleHonesty(bodyId, timeMs)
-  if (!honesty) return null
+  if (!honesty) return <SizeNote bodyId={bodyId} language={language} />
   const bars = getScaleRulerBars(honesty, SCALE_REFERENCE_AU)
   const percent = Math.round(honesty.compression * 100)
   const format = (au: number) =>
@@ -268,7 +335,29 @@ function ScaleRuler({
           `Scaled against Neptune's orbit. This body is drawn at ${percent}% of its true distance.`,
         )}
       </p>
+      <SizeNote bodyId={bodyId} language={language} />
     </>
+  )
+}
+
+/** States how the drawn sphere compares with the catalogued radius. */
+function SizeNote({ bodyId, language }: { bodyId: CelestialBodyId; language: UiLanguage }) {
+  const size = getSizeHonesty(bodyId)
+  if (!size) return null
+  const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const exact = Math.abs(size.ratio - 1) < 0.05
+  const percent = new Intl.NumberFormat(language === 'tr' ? 'tr-TR' : 'en-US', {
+    maximumFractionDigits: size.ratio < 0.1 || size.ratio > 10 ? 2 : 1,
+  }).format(size.ratio * 100)
+  return (
+    <p className="mt-1.5 text-[9px] leading-relaxed text-slate-400">
+      {exact
+        ? t('Boyut: gerçek yarıçapla çiziliyor.', 'Size: drawn at its true radius.')
+        : t(
+            `Boyut: gerçek yarıçapın %${percent}'i ile çiziliyor.`,
+            `Size: drawn at ${percent}% of its true radius.`,
+          )}
+    </p>
   )
 }
 
@@ -426,6 +515,9 @@ function BodyPanelContent({
   return (
     <>
       <SignatureRow metrics={getSignatureMetrics(bodyId, language)} />
+      {simTimeMs !== null && (
+        <LiveDistanceStrip bodyId={bodyId} timeMs={simTimeMs} language={language} />
+      )}
 
       <p className="mt-2 px-0.5 text-[10.5px] leading-relaxed text-cyan-100/85">{funFact}</p>
 
@@ -450,7 +542,7 @@ function BodyPanelContent({
         </Disclosure>
       )}
 
-      {simTimeMs !== null && bodyId !== 'sun' && bodyId !== 'moon' && (
+      {simTimeMs !== null && bodyId !== 'moon' && (
         <Disclosure title={t('Ölçek dürüstlüğü', 'Scale honesty')}>
           <ScaleRuler bodyId={bodyId} timeMs={simTimeMs} language={language} />
         </Disclosure>

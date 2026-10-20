@@ -4,7 +4,9 @@ import {
   SCALE_REFERENCE_AU,
   SCENE_UNITS_AT_ONE_AU,
   getScaleHonesty,
+  getLiveDistances,
   getScaleRulerBars,
+  getSizeHonesty,
 } from '../src/lib/scene-scale.ts'
 import {
   formatSolarClock,
@@ -101,4 +103,27 @@ test('illumination rejects impossible observers and times', () => {
     /Observer longitude out of range/,
   )
   assert.throws(() => formatSolarClock(Number.NaN), /Invalid local solar hour/)
+})
+
+test('live distances use true heliocentric geometry, not the compressed scene', () => {
+  const venus = getLiveDistances('venus', Date.UTC(2026, 9, 20))
+  assert.ok(venus && venus.sunAu !== null && venus.earthAu !== null)
+  assert.ok(Math.abs(venus.sunAu - 0.72) < 0.02, 'Venus orbits near 0.72 AU')
+  assert.ok(venus.earthAu < 0.4, 'Venus is close to Earth just after its August 2026 conjunction')
+  assert.ok(venus.lightSecondsFromEarth! > 100 && venus.lightSecondsFromEarth! < 300)
+
+  const earth = getLiveDistances('earth', AUGUST_2026)
+  assert.equal(earth?.earthAu, null)
+  assert.ok(Math.abs(earth!.sunAu! - 1) < 0.02)
+  assert.equal(getLiveDistances('moon', AUGUST_2026), null)
+})
+
+test('planet spheres are drawn at their catalogued radius and only the Sun is shrunk', () => {
+  for (const bodyId of ['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']) {
+    const size = getSizeHonesty(bodyId as 'mars')
+    assert.ok(size, bodyId)
+    assert.ok(Math.abs(size.ratio - 1) < 0.05, `${bodyId} drawn at ${size.ratio} of true radius`)
+  }
+  const sun = getSizeHonesty('sun')
+  assert.ok(sun && sun.ratio < 0.05, 'the Sun is the declared exception')
 })

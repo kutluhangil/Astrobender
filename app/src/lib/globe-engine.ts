@@ -46,6 +46,7 @@ import {
   type LagrangeScenePoint,
 } from './lagrange'
 import { getProbeHeliocentricAu } from './probe-ephemeris'
+import { SUN_SCENE_RADIUS } from './scene-scale'
 import { DEEP_SPACE_PROBES, type DeepSpaceProbe } from './probes'
 import { CONSTELLATIONS } from './constellations'
 import { buildStarFieldBuffers } from './star-catalog'
@@ -931,7 +932,7 @@ export class GlobeEngine {
     const sunMapTex = loader.load(`${import.meta.env.BASE_URL}textures/sun-map.jpg`)
     sunMapTex.colorSpace = THREE.SRGBColorSpace
     sunMapTex.anisotropy = 16
-    const sunGeo = new THREE.SphereGeometry(2.5, 64, 64)
+    const sunGeo = new THREE.SphereGeometry(SUN_SCENE_RADIUS, 64, 64)
     sunGeo.rotateX(Math.PI / 2)
 
     this.sunMat = new THREE.ShaderMaterial({
@@ -2385,7 +2386,7 @@ export class GlobeEngine {
   private getTargetBodyInfo(id: CelestialBodyId): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null {
     if (id === 'earth') return { mesh: this.earth, radius: 1.0, name: '🌍 EARTH' }
     if (id === 'moon') return { mesh: this.moon, radius: MOON_RADIUS, name: '🌕 MOON' }
-    if (id === 'sun') return { mesh: this.sun, radius: 2.5, name: '☀️ SUN' }
+    if (id === 'sun') return { mesh: this.sun, radius: SUN_SCENE_RADIUS, name: '☀️ SUN' }
 
     const findInRuntimes = (list: PlanetRuntime[]): { mesh: THREE.Mesh; radius: number; name: string; ensureLoaded?: () => void } | null => {
       for (const prt of list) {

@@ -48,8 +48,9 @@ Uygulama, astronomik yörünge sırasını ve görece yapıyı korur; ancak mily
 | 🌍 **Canlı 3B Dünya** | Gündüz/gece dokuları, bulut katmanı, yüzey parlaklığı ve yapay uydu noktalarıyla Dünya görünümü. |
 | 🪐 **Gezegen ve uydu sistemleri** | Güneş, sekiz gezegen, cüce gezegenler ve seçilebilir büyük uydular; halkalı dev gezegen sistemleri. |
 | 🧪 **Fiziksel profil** | Seçilen cisim için kütle, yoğunluk, yüzey yerçekimi, sıcaklık, kimya/yüzey özeti ve bilim notu. |
-| 🛰️ **TLE + SGP4** | CelesTrak TLE paketleri, `satellite.js` ile tarayıcıda yörünge yayılımı ve IndexedDB önbelleği. |
-| 🔭 **Dünya Gözlemevi** | NASA EONET olayları, USGS depremleri ve NOAA aurora öngörüsünü kaynak bağlantılarıyla katman olarak açar. |
+| 🛰️ **GP (OMM) + SGP4** | CelesTrak GP element setleri OMM CSV olarak alınır (99999 üstü katalog numaraları dahil), `satellite.js` ile tarayıcıda yayılır, IndexedDB'de önbelleklenir. |
+| 🔭 **Dünya Gözlemevi** | NASA EONET olayları, USGS depremleri, NOAA aurora öngörüsü ve uzay havası (Kp / G ölçeği, GOES X-ışını patlamaları / R ölçeği). |
+| 🌠 **Gökyüzü Takvimi** | Tutulmalar (yerel görünürlükle), ay evreleri ve süper aylar, IMO'nun 12 büyük meteor yağmuru, tüm karşı konum/kavuşumlar, gezegen yakınlaşmaları, ISS ve Tiangong görünür geçişleri, gece planlayıcısı. |
 | ☄️ **Küçük cisimler** | JPL Close Approach Data üzerinden yakın geçişler; asteroit, kuyrukluyıldız ve kuşak katmanları. |
 | ✨ **Takımyıldızlar ve sondalar** | 88 IAU takımyıldızı ile derin uzay görevlerini aynı gözlem akışında sunar. |
 | 🎬 **Sinematik uzay turu** | Türkçe ve İngilizce anlatım dosyalarıyla zaman kodlu kamera rotası. |
@@ -85,22 +86,25 @@ JPL yörünge elemanları ──▶ heliosentrik konum ──▶ görsel mesafe 
 | [JPL SSD — doğal uydu elemanları](https://ssd.jpl.nasa.gov/sats/elem/sep.html) | Büyük uyduların yörünge modeli | ✅ |
 | [JPL fiziksel parametreleri](https://ssd.jpl.nasa.gov/planets/phys_par.html) | Gezegen ve cüce gezegen fiziksel profilleri | ✅ |
 | [JPL uydu fiziksel parametreleri](https://ssd.jpl.nasa.gov/sats/phys_par/) | Doğal uydu fiziksel profilleri | ✅ |
-| [CelesTrak](https://celestrak.org/NORAD/elements/) | TLE katalogları ve canlı uydu güncellemesi | ✅ |
+| [CelesTrak GP](https://celestrak.org/NORAD/documentation/gp-data-formats.php) | OMM CSV element setleri ve canlı uydu güncellemesi | ✅ |
+| [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) | Derin uzay sondası efemerisi, kuyruklu yıldız sapma ölçümü | ✅ |
+| [JPL SBDB / CAD](https://ssd-api.jpl.nasa.gov/doc/cad.html) | Küçük cisim elemanları ve yakın geçişler | ✅ |
+| [IMO Meteor Shower Calendar](https://www.imo.net/ShCal27s.pdf) | Meteor yağmuru güneş boylamları, ZHR ve aktivite aralıkları | ✅ |
 | [NASA Solar System Exploration](https://science.nasa.gov/solar-system/) | Bilim notları ve gök cismi açıklamaları | ✅ |
 | [NASA EONET](https://eonet.gsfc.nasa.gov/) | Doğal olay katmanı | ✅ |
 | [USGS Earthquake Hazards](https://earthquake.usgs.gov/) | Deprem katmanı | ✅ |
-| [NOAA SWPC](https://www.swpc.noaa.gov/) | Aurora öngörü katmanı | ✅ |
+| [NOAA SWPC](https://www.swpc.noaa.gov/) | Aurora öngörüsü, gezegensel Kp ve GOES X-ışını patlamaları | ✅ |
 
 Fiziksel değerler, panelde okunabilir kalmaları için yuvarlanır. Küçük ve düzensiz bir uydunun kütlesi, yoğunluğu veya yüzey yerçekimi güvenilir biçimde yayımlanmamışsa uygulama değer icat etmez; **“Güvenilir ölçüm yok”** yazar.
 
-> Canlı TLE, Dünya Gözlemevi veya JPL yakın geçiş verisi ağdan alınamazsa uygulama hatayı gizlemez: kaynak ve HTTP/ağ nedeni arayüzde görünür; mevcut geçerli veri kullanılmaya devam eder.
+> Canlı GP, Dünya Gözlemevi veya JPL yakın geçiş verisi ağdan alınamazsa uygulama hatayı gizlemez: kaynak ve HTTP/ağ nedeni arayüzde görünür; mevcut geçerli veri kullanılmaya devam eder.
 
 ---
 
 ## 🛰️ Render ve Veri Akışı
 
 ```text
-CelesTrak TLE ──▶ IndexedDB önbelleği ──▶ satellite.js / SGP4 ──▶ yapay uydu noktaları
+CelesTrak GP (OMM CSV) ──▶ /api/tle ──▶ IndexedDB önbelleği ──▶ satellite.js / SGP4 ──▶ yapay uydu noktaları
 
 JPL gezegen + uydu elemanları ──▶ orbital-mechanics ──▶ sıkıştırılmış 3B konumlar
                                                          │
@@ -112,14 +116,15 @@ NASA EONET · USGS · NOAA ──▶ Dünya Gözlemevi katmanları ─┘
 - **Dünya:** yüksek çözünürlüklü gün/gece, bulut, specular ve kabartı dokuları.
 - **Gezegenler ve uydular:** doğrulanmış gözlem mozaikleri ile korumacı yüzey gölgelendirmesi.
 - **Europa, Titania, Oberon, Triton ve Plüton:** tamamlanmamış mozaik görünümünü engelleyen kesintisiz küre dokuları.
-- **Yapay uydular:** TLE başlangıç görüntüsüyle hemen açılır; daha sonra uygun olduğunda canlı CelesTrak verisiyle güncellenir.
+- **Yapay uydular:** paketlenmiş GP anlık görüntüsüyle hemen açılır; daha sonra canlı CelesTrak verisiyle güncellenir. Anlık görüntüleri haftalık `GP snapshot refresh` iş akışı yeniler. TLE biçimi beş haneli katalog alanı nedeniyle 11 Temmuz 2026 sonrası nesneleri taşıyamadığı için OMM kullanılır.
 
 ---
 
 ## 📐 Proje Yapısı
 
 ```text
-Earthbender/
+Astrobender/
+├── api/                                   # Vercel fonksiyonları: tle (GP/OMM), health, jpl-cad
 ├── app/
 │   ├── src/
 │   │   ├── pages/Home.tsx                # ana gözlemevi ve HUD bileşimi
@@ -128,11 +133,14 @@ Earthbender/
 │   │   ├── lib/celestial-catalog.ts      # kaynaklı gök cismi kataloğu
 │   │   ├── lib/celestial-physical-profiles.ts # kütle, yoğunluk, yerçekimi, kimya
 │   │   ├── lib/earth-observatory.ts      # NASA / USGS / NOAA veri ayrıştırması
-│   │   ├── hooks/useTleData.ts            # TLE önbellek ve canlı güncelleme
+│   │   ├── lib/omm.ts                     # OMM CSV ayrıştırma ve SGP4 başlatma
+│   │   ├── lib/sky-events.ts              # tutulma, ay evresi, yağmur ve gezegen olayları
+│   │   ├── lib/satellite-passes.ts        # görünür uydu geçişi tahmini
+│   │   ├── hooks/useTleData.ts            # GP önbellek ve canlı güncelleme
 │   │   ├── components/hud/                # bilgi kartları, arama ve katman kontrolleri
 │   │   ├── public/textures/               # gezegen, uydu ve Dünya dokuları
 │   │   └── public/audio/                  # TR / EN sinematik tur anlatımları
-│   ├── api/jpl-cad.ts                     # JPL CAD aynı-köken proxy'si
+│   ├── api/jpl-cad.ts                     # JPL CAD aynı-köken proxy'si (kökteki api/ bunu dışa aktarır)
 │   ├── tests/                             # birim, katalog ve bütünlük testleri
 │   ├── e2e/                               # Playwright kullanıcı akışları
 │   └── vercel.json                        # SPA yönlendirmesi ve güvenlik başlıkları
@@ -160,7 +168,7 @@ Dağıtım       → Vercel yapılandırması · CSP ve temel güvenlik başlık
 
 ### Gereksinimler
 
-- Güncel Node.js LTS (Node 20+ önerilir)
+- Node.js 24 (`.nvmrc`; geliştirme sunucusu API işleyicilerini Node'un yerleşik TypeScript desteğiyle çalıştırır)
 - WebGL 2 destekleyen modern tarayıcı
 
 ```bash
@@ -171,7 +179,7 @@ npm install
 npm run dev
 ```
 
-Vite port uygunluğuna göre uygulamayı bir yerel adreste açar. Bu çalışma alanındaki varsayılan geliştirme adresi `http://127.0.0.1:3000/` olabilir.
+Vite port uygunluğuna göre uygulamayı bir yerel adreste açar. Bu çalışma alanındaki varsayılan geliştirme adresi `http://127.0.0.1:3000/` olabilir. Geliştirme ve önizleme sunucuları `/api/*` isteklerini üretimdeki Vercel işleyicilerinin aynısıyla yanıtlar.
 
 ### Kontrol Komutları
 
@@ -184,6 +192,8 @@ npm run build            # TypeScript + Vite production build
 npm run test:e2e         # Playwright kullanıcı akışları
 npm run verify           # yukarıdaki doğrulama zinciri
 npm run verify:textures  # uydu dokusu kontrolleri
+npm run check:sources    # kaynak inceleme süreleri, efemeris kapsamı, GP anlık görüntü yaşı
+npm run generate:gp-snapshots  # CelesTrak'tan paketlenmiş GP anlık görüntülerini yenile
 ```
 
 > Ortam değişkeni, gizli anahtar veya veritabanı kurulumu gerekmiyor. Canlı veri kaynakları erişilemezse uygulama bunu görünür biçimde bildirir.

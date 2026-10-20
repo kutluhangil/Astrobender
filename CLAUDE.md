@@ -23,9 +23,14 @@ stays on the platform display face and the installed PWA keeps working offline.
 - Verification before done: `npm run verify` from `app/` (unit tests, lint, build, e2e).
 - `app/src/lib/generated/` is written by scripts, never by hand. Re-run
   `npm run generate:probe-ephemeris` and commit the result before its coverage window lapses.
+- Satellites travel as CelesTrak OMM CSV, never TLE: the TLE catalog field cannot carry numbers
+  above 99999. `api/tle.ts` and `app/src/lib/omm.ts` share one column contract, checked in
+  `tests/tle-api.test.ts`. `app/public/data/gp-*.csv` is refreshed by
+  `npm run generate:gp-snapshots` (weekly in CI); never edit those files by hand.
 
 ## Layout
 
 - `app/` — Vite + React + Three.js client, unit tests in `app/tests`, Playwright in `app/e2e`.
-- `api/` — Vercel serverless proxies (CelesTrak TLE, JPL CAD, health).
+- `api/` — Vercel serverless functions (CelesTrak GP/OMM, JPL CAD, health); the Vite dev and
+  preview servers run these same handlers.
 - `app/src/lib/` — data catalogs and pure computation; `app/src/lib/globe-engine.ts` owns the scene.

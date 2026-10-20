@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-10-20
+
+- Moved the satellite catalogue from TLE to CelesTrak's OMM CSV. The TLE catalog field holds five characters and the catalog passed 99999 on 2026-07-11, so every object launched since then had been silently missing. The proxy compacts the CSV to the columns SGP4 needs to stay under Vercel's 4.5 MB response cap, the client parses rows by header name, and SGP4 starts from `json2satrec`; converting the bundled snapshots propagated all 18,841 objects to within 4 m of their TLE positions.
+- Added a weekly `GP snapshot refresh` workflow and `npm run generate:gp-snapshots`; `check:sources` now fails once the bundled snapshot's median epoch is older than 120 days.
+- Dev and preview servers now answer `/api/*` with the same handlers Vercel deploys instead of proxying raw upstream payloads.
+- `/api/health` now probes CelesTrak (a HEAD on its home page, never a GP download) and JPL, and reports `degraded` with per-upstream detail instead of a static `configured`.
+- Skywatch now lists Moon phases with NASA-defined supermoons, every opposition and solar conjunction in the window (Uranus and Neptune included, inferior and superior conjunctions for Mercury and Venus), naked-eye planet pairs closer than 1.5°, and all twelve major IMO showers. Shower maxima are computed each year from the IMO J2000 solar longitudes and match the 2026 and 2027 IMO calendars on every date; each event states ZHR, activity window, Moon illumination and, for a saved location, the best radiant altitude in darkness.
+- Perseid Watch now follows the season: after the 2026 activity it shows the 2027 return with the IMO 08–10 UT window and ZHR 110+.
+- Added visible ISS and Tiangong passes for the Skywatch location: rise, culmination and set directions, the sunlit-and-dark span, and a jump to the culmination in the scene. Element sets older than 14 days are refused rather than shown with drifted times.
+- Added NOAA space weather to Earth Observatory: the latest planetary Kp with its G level and the forecast peak, and the strongest GOES X-ray flare of the past week with its R level.
+- Added DART, Ingenuity's first flight, Chandrayaan-3, the OSIRIS-REx sample return, Chang'e 6 and Voyager 1's heliopause crossing to the mission timeline, with Chandrayaan-3 and Chang'e 6 landing sites.
+- Added 2P/Encke, the Taurid parent, as a fourth comet; its two-body track sits 0.002 au from Horizons and reaches perihelion on 2027-02-10.
+- Listed the spacecraft at Sun-Earth L1 and L2 in the Lagrange disclosure, and removed Gaia, which left L2 when it was retired in March 2025.
+- Marked Juno's extended mission as ended in September 2025, as NASA states.
+- Fixed landing markers drawn in a y-up frame on z-up spheres, and surface picks that subtracted a body's position twice.
+- Lazy-loaded every panel and modal and split astronomy-engine and the generated catalogues into their own chunks: the main bundle fell from 861 kB to 338 kB (290 to 107 kB gzipped). Skywatch's 90-day event list is computed in idle time.
+- Re-encoded eight textures as WebP where it saved at least 20 % at above 43 dB PSNR, cutting 4.3 MB from the texture set.
+- Stopped Tailwind from scanning the generated catalogue tables, whose megabyte-long lines sent its class extractor into minutes of regex backtracking: the production build fell from 76 s (over 15 minutes on a loaded machine) to 3 s with byte-identical CSS.
+- Kept a panel chunk that fails to load inside an error boundary with a reload action instead of unmounting the globe.
+- Reported malformed element rows per feed, kept the previous set when a live feed arrives with under half its rows, and deleted the retired TLE cache entry from IndexedDB.
+- Cut visible-pass prediction to about 30 ms per station by evaluating the Sun once per pass, and shared one ephemeris sample per planet across all ten planet-pair scans.
+- Meteor notes now distinguish a sky that never gets dark at high latitude from a radiant below the horizon, and a radiant under 15° is no longer called visible.
+
+## 2026-10-19
+
+- Corrected the moon counts to NASA's August 2026 figures: Jupiter 115, Saturn 293, Uranus 29.
+- Fixed the NOAA aurora parser, which dropped every forecast cell east of 180°, i.e. the whole Americas.
+- Fixed local solar-eclipse visibility, which searched from the global peak and skipped the eclipse it described: the 2026-08-12 total eclipse now shows as visible from Reykjavik and Madrid. Lunar eclipses no longer end one penumbral semi-duration too late.
+- Fixed satellite layers: AISSAT, SWISSCUBE and "OUTPOST MISSION" were stations, ISRO's GSAT satellites were Galileo, and ARSAT was weather.
+- Aligned the physical profiles with the JPL planetary and satellite tables (Uranus gravity, Ceres, Eris, the Uranian moons from URA111, Amalthea, Janus, Epimetheus and others) and filled Makemake, Himalia, Pan, Nix, Hydra, Metis and Thebe from published GM values.
+- Labelled Quaoar, Gonggong and Sedna as dwarf-planet candidates, gave the small-body catalogue and mission statuses English text, and removed Turkish fragments from English body values.
+- Estimated a size range from absolute magnitude for the close approaches JPL publishes without a diameter, and made the JPL CAD proxy report timeouts and empty windows instead of crashing.
+- Gave irregular and chaotic moons their measured spin periods, fixed Huygens' longitude convention, and made landing sites stored on 0–360° findable from picks.
+
 ## 2026-08-20
 
 - Added an observation planner to Skywatch: pick one of the nine plannable bodies and it plans tonight from the saved location — the longest stretch that is both astronomically dark and above the 20° altitude floor, the exact culmination and its compass bearing, apparent magnitude, and how close a lit Moon sits to the target.

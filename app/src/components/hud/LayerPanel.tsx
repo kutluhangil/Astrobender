@@ -36,6 +36,8 @@ interface LayerPanelProps {
   earthObservatoryVisible?: boolean
   onToggleSmallBodies?: () => void
   smallBodiesVisible?: boolean
+  onToggleNasaData?: () => void
+  nasaDataVisible?: boolean
   onToggleSkywatch?: () => void
   skywatchVisible?: boolean
   language?: UiLanguage
@@ -66,6 +68,8 @@ export default function LayerPanel({
   earthObservatoryVisible = false,
   onToggleSmallBodies,
   smallBodiesVisible = false,
+  onToggleNasaData,
+  nasaDataVisible = false,
   onToggleSkywatch,
   skywatchVisible = false,
   language = 'tr',
@@ -163,6 +167,14 @@ export default function LayerPanel({
             }`}
           >
             ☄️ {t('JPL Cisimleri', 'JPL Objects')}
+          </button>
+          <button
+            onClick={onToggleNasaData}
+            className={`py-1 rounded border transition-all ${
+              nasaDataVisible ? 'border-cyan-400/50 bg-cyan-400/15 text-cyan-200 font-semibold shadow-[0_0_8px_rgba(34,211,238,0.25)]' : 'border-white/5 bg-white/5 text-white/60'
+            }`}
+          >
+            🛰️ {t('NASA Veri Merkezi', 'NASA Data Hub')}
           </button>
           <button
             onClick={onToggleMissionTimeline}

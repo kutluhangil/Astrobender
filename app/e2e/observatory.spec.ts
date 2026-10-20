@@ -385,3 +385,49 @@ test('Skywatch stays operable on mobile with reduced motion', async ({ page }) =
   await expect(panel.getByRole('group', { name: 'Olay takvimi' })).toBeVisible()
   await expect(panel.getByRole('group', { name: 'Olay takvimi' }).getByRole('button').first()).toBeVisible()
 })
+
+test('NASA Data Hub shows live feeds, eclipse table and surfaces a failing feed with retry', async ({ page }) => {
+  let sentryFails = true
+  await page.route('**/api/nasa-feed?feed=*', async (route) => {
+    const feed = new URL(route.request().url()).searchParams.get('feed')
+    const json = (body: unknown, status = 200) =>
+      route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+    if (feed === 'donki-flares') {
+      return json([{ flrID: 'f1', beginTime: '2026-10-18T10:00Z', classType: 'X1.4', sourceLocation: 'S10W20' }])
+    }
+    if (feed === 'donki-cme') return json([])
+    if (feed === 'donki-storms') {
+      return json([{ gstID: 'g1', startTime: '2026-10-10T00:00Z', allKpIndex: [{ kpIndex: 6 }] }])
+    }
+    if (feed === 'sentry') {
+      if (sentryFails) return json({ error: 'JPL Sentry returned HTTP 503 — test outage' }, 502)
+      return json({
+        count: '1',
+        data: [{ des: '99942', fullname: '99942 Apophis', ip: '0.00001', ps_cum: '-3.1', ts_max: null, n_imp: 1, range: '2068-2068', h: '19.7' }],
+      })
+    }
+    if (feed === 'scout') return json({ data: [{ objectName: 'P21ABCD', neoScore: 88 }] })
+    return json({ error: 'unmocked feed' }, 500)
+  })
+
+  await page.getByRole('button', { name: '🛰️ NASA Veri Merkezi' }).first().click()
+  const hub = page.getByRole('region', { name: 'NASA Veri Merkezi' })
+  await expect(hub).toBeVisible()
+  await expect(hub.getByText('X1.4').first()).toBeVisible()
+  await expect(hub.getByText('Kp 6 · G2')).toBeVisible()
+
+  await hub.getByRole('tab', { name: 'Risk' }).click()
+  await expect(hub.getByRole('alert')).toContainText('JPL Sentry returned HTTP 503 — test outage')
+  sentryFails = false
+  await hub.getByRole('button', { name: 'Tekrar dene' }).click()
+  await expect(hub.getByText('99942 Apophis')).toBeVisible()
+  await expect(hub.getByText('P21ABCD')).toBeVisible()
+
+  await hub.getByRole('tab', { name: 'Tutulma' }).click()
+  await expect(hub.getByRole('link', { name: /Güneş tutulmaları/ })).toHaveAttribute(
+    'href',
+    'https://eclipse.gsfc.nasa.gov/SEdecade/SEdecade2021.html',
+  )
+  await hub.getByRole('button', { name: 'NASA Veri Merkezini kapat' }).click()
+  await expect(hub).toHaveCount(0)
+})

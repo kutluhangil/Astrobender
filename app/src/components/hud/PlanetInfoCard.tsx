@@ -59,6 +59,10 @@ interface PlanetInfoCardProps {
   /** Mobile: whether the card is expanded (controlled from Home) */
   mobileExpanded?: boolean
   onMobileToggle?: () => void
+  /** Desktop: dismiss the dock; the card only returns when a body is picked or the toggle is pressed. */
+  onClose?: () => void
+  /** Desktop: header only, used while another panel needs the right-hand space. */
+  compact?: boolean
   language?: UiLanguage
   /** Drives the scale ruler and the Earth terminator readout. */
   clock?: SimClock
@@ -507,52 +511,53 @@ export default function PlanetInfoCard({
   bodyId,
   mobileExpanded = false,
   onMobileToggle,
+  onClose,
+  compact = false,
   language = 'tr',
   clock,
   observer = null,
 }: PlanetInfoCardProps) {
-  const [collapsed, setCollapsed] = useState(false)
   const simTimeMs = useSimulationTime(clock)
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
 
   return (
     <>
-      {/* ===== DESKTOP: always visible panel beside the focused body ===== */}
-      <div
-        data-hud-surface
-        className="hud-shell pointer-events-auto hidden w-[326px] max-w-[calc(100vw-32px)] backdrop-blur-2xl transition-all duration-700 [transition-timing-function:var(--hud-ease)] animate-in fade-in slide-in-from-right-4 md:block"
-      >
-        <div className="hud-core max-h-[calc(100vh-160px)] overflow-y-auto p-3">
-          <BodyHeader
-            bodyId={bodyId}
-            language={language}
-            action={
-              <button
-                type="button"
-                onClick={() => setCollapsed(!collapsed)}
-                aria-label={
-                  collapsed
-                    ? t('Gezegen bilgi kartını genişlet', 'Expand body information')
-                    : t('Gezegen bilgi kartını daralt', 'Collapse body information')
-                }
-                className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2 py-1 font-mono text-[10px] leading-none text-slate-300 transition-all duration-500 [transition-timing-function:var(--hud-ease)] hover:bg-white/[0.1] active:scale-95"
-              >
-                {collapsed ? '＋' : '－'}
-              </button>
-            }
-          />
-          {!collapsed && (
-            <div className="mt-2">
-              <BodyPanelContent
-                bodyId={bodyId}
-                language={language}
-                simTimeMs={simTimeMs}
-                observer={observer}
-              />
-            </div>
-          )}
+      {/* ===== DESKTOP: dismissible dock under the search bar ===== */}
+      {onClose && (
+        <div
+          data-hud-surface
+          className="hud-shell pointer-events-auto hidden w-[326px] max-w-[calc(100vw-32px)] backdrop-blur-2xl animate-in fade-in slide-in-from-right-4 duration-500 md:block"
+        >
+          <div className="hud-core max-h-[calc(100vh-270px)] overflow-y-auto p-3">
+            <BodyHeader
+              bodyId={bodyId}
+              language={language}
+              action={
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label={t('Gezegen bilgi kartını kapat', 'Close body information')}
+                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.08] p-1.5 text-slate-300 transition-transform duration-500 [transition-timing-function:var(--hud-ease)] hover:bg-white/[0.14] active:scale-95"
+                >
+                  <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 stroke-current" strokeWidth="1.4">
+                    <path d="M1 1l8 8M9 1l-8 8" />
+                  </svg>
+                </button>
+              }
+            />
+            {!compact && (
+              <div className="mt-2">
+                <BodyPanelContent
+                  bodyId={bodyId}
+                  language={language}
+                  simTimeMs={simTimeMs}
+                  observer={observer}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ===== MOBILE: slide-up sheet when expanded ===== */}
       {mobileExpanded && (

@@ -1,7 +1,7 @@
 import { CELESTIAL_FACTS } from '@/lib/celestial-facts'
 import { PLANETS, type CelestialBodyId } from '@/lib/planets'
 import { pickLanguage, type UiLanguage } from '@/lib/ui-language'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 interface CelestialTrayProps {
   focusBody: CelestialBodyId
@@ -123,7 +123,15 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
   const [openDrawerId, setOpenDrawerId] = useState<TrayBody['id'] | null>(() =>
     TRAY_BODIES.find((body) => body.children?.some((child) => child.id === focusBody))?.id ?? null,
   )
+  const [tip, setTip] = useState<{ label: string; left: number } | null>(null)
+  const navRef = useRef<HTMLElement>(null)
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  const showTip = (label: string, element: HTMLElement) => {
+    const nav = navRef.current
+    if (!nav) return
+    const box = element.getBoundingClientRect()
+    setTip({ label, left: box.left + box.width / 2 - nav.getBoundingClientRect().left })
+  }
   const activeDrawer = TRAY_BODIES.find((body) => body.id === openDrawerId)
 
   const drawerTitle = (body: TrayBody) =>
@@ -133,10 +141,14 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
 
   return (
     <nav
+      ref={navRef}
       data-hud-surface
       aria-label={t('Gök cismi seçici', 'Celestial body selector')}
       className="pointer-events-auto relative inline-block max-w-full rounded-[28px] border border-white/10 bg-[#06090e]/85 px-3 py-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.58)] backdrop-blur-2xl"
-      onMouseLeave={() => setOpenDrawerId(null)}
+      onMouseLeave={() => {
+        setOpenDrawerId(null)
+        setTip(null)
+      }}
     >
       <span className="sr-only">{t('Gök cisimleri', 'Celestial bodies')}</span>
       <div className="flex max-w-full items-center gap-2 overflow-x-auto px-1 pb-0.5 scrollbar-none">
@@ -158,7 +170,11 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
             <div
               key={body.id}
               className="relative shrink-0"
-              onMouseEnter={() => hasChildren && setOpenDrawerId(body.id)}
+              onMouseEnter={(event) => {
+                if (hasChildren) setOpenDrawerId(body.id)
+                showTip(label, event.currentTarget)
+              }}
+              onMouseLeave={() => setTip(null)}
             >
               <button
                 type="button"
@@ -166,7 +182,11 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
                   setOpenDrawerId(hasChildren ? body.id : null)
                   if (!isDrawerOnly) onSelectBody(body.id as CelestialBodyId)
                 }}
-                onFocus={() => hasChildren && setOpenDrawerId(body.id)}
+                onFocus={(event) => {
+                  if (hasChildren) setOpenDrawerId(body.id)
+                  showTip(label, event.currentTarget)
+                }}
+                onBlur={() => setTip(null)}
                 className={`group relative flex h-11 w-11 items-center justify-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${
                   isFocused || (isDrawerOnly && holdsFocusedChild)
                     ? 'border-cyan-300/80 bg-cyan-400/15 shadow-[0_0_0_3px_rgba(34,211,238,0.11),0_0_22px_rgba(34,211,238,0.3)]'
@@ -215,6 +235,15 @@ export default function CelestialTray({ focusBody, onSelectBody, language }: Cel
           )
         })}
       </div>
+      {tip && !activeDrawer?.children?.length && (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute bottom-full z-30 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-[#080c12]/95 px-2.5 py-1 font-mono text-[10px] text-slate-100 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+          style={{ left: tip.left }}
+        >
+          {tip.label}
+        </span>
+      )}
       {activeDrawer?.children && activeDrawer.children.length > 0 && (
         <div className="absolute bottom-full left-1/2 z-30 -translate-x-1/2 pb-4">
           <div

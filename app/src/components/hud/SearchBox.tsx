@@ -100,14 +100,14 @@ export default function SearchBox({
         }}
         placeholder={pickLanguage(
           language,
-          'Uydu, gezegen, görev, konum veya NORAD ara…',
-          'Search satellites, worlds, missions, sites or NORAD…',
+          'Uydu, gezegen, görev veya NORAD ara…',
+          'Search satellites, worlds, missions…',
         )}
         aria-label={pickLanguage(language, 'Gözlemevinde ara', 'Search the observatory')}
         aria-expanded={open && results.length > 0}
         aria-controls={resultsId}
         aria-activedescendant={open && results.length > 0 ? `${resultsId}-${visibleActiveIndex}` : undefined}
-        className="w-full rounded-xl border border-white/10 bg-[#0a0e14]/70 py-2.5 pl-9 pr-3 font-mono text-xs text-slate-200 placeholder-slate-500 outline-none backdrop-blur-xl focus:border-sky-400/40"
+        className="w-full rounded-xl border border-white/10 bg-[#0a0e14]/70 h-10 pl-9 pr-3 font-mono text-xs text-slate-200 placeholder-slate-500 outline-none backdrop-blur-xl focus:border-sky-400/40"
       />
       {open && results.length > 0 && (
         <div

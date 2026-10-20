@@ -67,6 +67,8 @@ export type SourceDatasetId =
   | 'sky-events'
   | 'meteor-showers'
   | 'satellite-elements'
+  | 'eclipses'
+  | 'nasa-live-feeds'
 
 export interface SourceDataset {
   id: SourceDatasetId
@@ -208,6 +210,24 @@ const DATASETS: SourceDataset[] = [
     verifiedAt: '2026-10-19',
     maxAgeDays: SOURCE_REVIEW_MAX_AGE_DAYS,
     why: 'The data refresh live and weekly; what needs review is the CelesTrak format contract the proxy parses, which changed when catalog numbers passed 99999.',
+  },
+  {
+    id: 'eclipses',
+    labelTr: 'Güneş ve Ay tutulmaları',
+    labelEn: 'Solar and lunar eclipses',
+    sourceUrl: 'https://eclipse.gsfc.nasa.gov/SEdecade/SEdecade2021.html',
+    verifiedAt: '2026-10-20',
+    maxAgeDays: 365,
+    why: 'Eclipse circumstances are fixed by celestial mechanics; the decade tables only change when NASA GSFC publishes a new edition or when the list runs out.',
+  },
+  {
+    id: 'nasa-live-feeds',
+    labelTr: 'NASA/JPL canlı akışları',
+    labelEn: 'NASA/JPL live feeds',
+    sourceUrl: 'https://ssd-api.jpl.nasa.gov/doc/sentry.html',
+    verifiedAt: '2026-10-20',
+    maxAgeDays: SOURCE_REVIEW_MAX_AGE_DAYS,
+    why: 'DONKI, Sentry, Scout, fireball, APOD, EPIC, Horizons and Exoplanet Archive refresh live; what needs review is the field contract each parser validates, which upstream can rename without notice.',
   },
 ]
 

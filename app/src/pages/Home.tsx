@@ -31,7 +31,6 @@ import CosmicTourControls from '@/components/hud/CosmicTourControls'
 import OpeningWordmark from '@/components/OpeningWordmark'
 import OfflineBanner from '@/components/hud/OfflineBanner'
 import PrepareOfflineControl from '@/components/hud/PrepareOfflineControl'
-import { useBodyPanelPlacement } from '@/hooks/useBodyPanelPlacement'
 import type { LandingSite } from '@/lib/landing-sites'
 import type {
   EarthEvent,
@@ -59,6 +58,7 @@ const LandingSiteModal = lazy(() => import('@/components/hud/LandingSiteModal'))
 const MissionTimelinePanel = lazy(() => import('@/components/hud/MissionTimelinePanel'))
 const EarthObservatoryPanel = lazy(() => import('@/components/hud/EarthObservatoryPanel'))
 const SmallBodiesPanel = lazy(() => import('@/components/hud/SmallBodiesPanel'))
+const NasaDataPanel = lazy(() => import('@/components/hud/NasaDataPanel'))
 const SkywatchPanel = lazy(() => import('@/components/hud/SkywatchPanel'))
 const MeteorFlowOverlay = lazy(() => import('@/components/hud/MeteorFlowOverlay'))
 const AboutAstrobenderModal = lazy(() => import('@/components/hud/AboutAstrobenderModal'))
@@ -151,6 +151,7 @@ export default function Home() {
     aurora: true,
   })
   const [smallBodiesOpen, setSmallBodiesOpen] = useState(false)
+  const [nasaDataOpen, setNasaDataOpen] = useState(false)
   const [skywatchOpen, setSkywatchOpen] = useState(false)
   const [meteorFlowVisible, setMeteorFlowVisible] = useState(false)
   const [skywatchCalculatedAt, setSkywatchCalculatedAt] = useState(() => Date.now())
@@ -300,10 +301,13 @@ export default function Home() {
     [getRec],
   )
 
+  const [bodyInfoOpen, setBodyInfoOpen] = useState(true)
+
   const handleSelectBody = useCallback((body: CelestialBodyId) => {
     setSelectedPin(null)
     setMeteorFlowVisible(false)
     setFocusBody(body)
+    setBodyInfoOpen(true)
     setBodySelectionRevision((current) => current + 1)
     engineRef.current?.setFocusTarget(body)
     // Close mobile panels when selecting a body
@@ -318,6 +322,7 @@ export default function Home() {
         handleSelectBody('earth')
         setLayersOpen(false)
         setSmallBodiesOpen(false)
+        setNasaDataOpen(false)
       }
       return next
     })
@@ -328,6 +333,21 @@ export default function Home() {
       const next = !current
       if (next) {
         setEarthObservatoryOpen(false)
+        setNasaDataOpen(false)
+        setLayersOpen(false)
+      }
+      return next
+    })
+  }, [])
+
+  const handleToggleNasaData = useCallback(() => {
+    setNasaDataOpen((current) => {
+      const next = !current
+      if (next) {
+        setEarthObservatoryOpen(false)
+        setSmallBodiesOpen(false)
+        setSkywatchOpen(false)
+        setMissionTimelineOpen(false)
         setLayersOpen(false)
       }
       return next
@@ -341,6 +361,7 @@ export default function Home() {
         setSkywatchCalculatedAt(Date.now())
         setEarthObservatoryOpen(false)
         setSmallBodiesOpen(false)
+        setNasaDataOpen(false)
         setLayersOpen(false)
       }
       return next
@@ -907,17 +928,6 @@ export default function Home() {
   const selSat =
     selectedIndex !== null && selectedIndex < sats.length ? sats[selectedIndex] : null
 
-  // The desktop body panel follows the focused body instead of a fixed corner
-  const planetInfoRef = useRef<HTMLDivElement>(null)
-  // The body panel follows its body only while it owns the right-hand space;
-  // an explicitly opened panel takes that space back.
-  const planetInfoPlacement = useBodyPanelPlacement(
-    focusBody,
-    engineRef,
-    planetInfoRef,
-    !selSat && !skywatchOpen && !smallBodiesOpen && !earthObservatoryOpen && !missionTimelineOpen,
-  )
-
   // tooltip stays inside the viewport
   const tooltipPos = hover
     ? {
@@ -1071,6 +1081,8 @@ export default function Home() {
     earthObservatoryVisible: earthObservatoryOpen,
     onToggleSmallBodies: handleToggleSmallBodies,
     smallBodiesVisible: smallBodiesOpen,
+    onToggleNasaData: handleToggleNasaData,
+    nasaDataVisible: nasaDataOpen,
     onToggleSkywatch: handleToggleSkywatch,
     skywatchVisible: skywatchOpen,
   }
@@ -1134,16 +1146,33 @@ export default function Home() {
         <ClockCard clock={clock} />
       </div>
 
-      {/* Top-right (desktop only): Search */}
-      <div className="hidden md:block absolute right-4 top-[338px] z-20 w-[310px]">
-        <SearchBox
-          sats={sats}
-          earthEvents={earthObservatory.events}
-          closeApproaches={smallBodies.approaches}
-          skyEvents={skywatchEvents}
-          language={uiLanguage}
-          onSelectResult={handleSearchResult}
-        />
+      {/* Top-right (desktop only): body-info toggle + Search, one aligned bar */}
+      <div className="absolute right-7 top-6 z-20 hidden items-center gap-2 md:flex">
+        <button
+          type="button"
+          data-hud-surface
+          onClick={() => setBodyInfoOpen((open) => !open)}
+          aria-pressed={bodyInfoOpen}
+          aria-label={t('Gök cismi bilgi kartını aç veya kapat', 'Show or hide body information')}
+          title={t('Cisim bilgisi', 'Body information')}
+          className={`pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border font-mono text-sm backdrop-blur-xl transition-colors ${
+            bodyInfoOpen
+              ? 'border-cyan-400/60 bg-cyan-500/20 text-cyan-100'
+              : 'border-white/10 bg-[#0a0e14]/70 text-slate-300 hover:border-white/30'
+          }`}
+        >
+          i
+        </button>
+        <div className="w-[280px]">
+          <SearchBox
+            sats={sats}
+            earthEvents={earthObservatory.events}
+            closeApproaches={smallBodies.approaches}
+            skyEvents={skywatchEvents}
+            language={uiLanguage}
+            onSelectResult={handleSearchResult}
+          />
+        </div>
       </div>
 
       {/* Mobile top-right: Planet info icon + Theme toggle */}
@@ -1265,7 +1294,7 @@ export default function Home() {
 
       {/* ============ TARGET COORDINATES PIN BADGE ============ */}
       {selectedPin && (
-        <div data-hud-surface className="absolute left-3 right-3 top-[155px] z-30 flex items-center gap-3 rounded-xl border border-sky-400/40 bg-[#0a0e14]/85 px-4 py-2.5 backdrop-blur-xl shadow-[0_0_15px_rgba(56,189,248,0.25)] md:left-auto md:right-7 md:top-20 md:w-auto">
+        <div data-hud-surface className="absolute left-3 right-3 top-[155px] z-30 flex items-center gap-3 rounded-xl border border-sky-400/40 bg-[#0a0e14]/85 px-4 py-2.5 backdrop-blur-xl shadow-[0_0_15px_rgba(56,189,248,0.25)] md:left-auto md:right-7 md:top-[84px] md:w-[326px]">
           <span className="relative flex h-3 w-3 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
             <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
@@ -1350,6 +1379,14 @@ export default function Home() {
               onShowApproach={handleShowCloseApproach}
               onFocusBody={handleFocusSmallBody}
             />
+          </LazyPanelBoundary>
+        </div>
+      )}
+
+      {nasaDataOpen && (
+        <div className="fixed bottom-[92px] left-3 right-3 z-40 md:absolute md:bottom-7 md:left-auto md:right-7 md:z-40">
+          <LazyPanelBoundary language={uiLanguage} label={t('NASA Veri Merkezi', 'NASA Data Hub')} onClose={() => setNasaDataOpen(false)}>
+            <NasaDataPanel language={uiLanguage} onClose={() => setNasaDataOpen(false)} />
           </LazyPanelBoundary>
         </div>
       )}
@@ -1466,23 +1503,19 @@ export default function Home() {
       {/* ============ PLANET INFO CARD ============ */}
       {!selSat && !skywatchOpen && (
         <>
-          {/* Desktop only: panel tracks the focused body, top-right until it is on screen */}
-          <div
-            ref={planetInfoRef}
-            className="hidden md:block fixed z-20"
-            style={
-              planetInfoPlacement
-                ? { left: planetInfoPlacement.left, top: planetInfoPlacement.top }
-                : { right: 16, top: 16 }
-            }
-          >
-            <PlanetInfoCard
-              bodyId={focusBody}
-              language={uiLanguage}
-              clock={clock}
-              observer={skywatchLocation.observer}
-            />
-          </div>
+          {/* Desktop only: dismissible dock under the search bar */}
+          {bodyInfoOpen && (
+            <div className={`fixed right-7 z-20 hidden md:block ${selectedPin ? 'top-[150px]' : 'top-[84px]'}`}>
+              <PlanetInfoCard
+                bodyId={focusBody}
+                language={uiLanguage}
+                clock={clock}
+                observer={skywatchLocation.observer}
+                compact={nasaDataOpen || earthObservatoryOpen || smallBodiesOpen || missionTimelineOpen}
+                onClose={() => setBodyInfoOpen(false)}
+              />
+            </div>
+          )}
           {/* Mobile only: slide-up sheet controlled by 🪐 icon */}
           <div className="md:hidden">
             <PlanetInfoCard

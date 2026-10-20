@@ -520,3 +520,12 @@ canvas {
   .target-callout__guide,
   .target-callout__endpoint { animation: none; }
 }
+
+/* Hide the scrollbar on horizontally scrolling HUD rows without disabling scroll. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

@@ -1,5 +1,5 @@
 {
-  "totalBytes": 40326555,
+  "totalBytes": 35983583,
   "files": [
     {
       "file": "callisto-4k.jpg",
@@ -14,24 +14,24 @@
       "bytes": 137100
     },
     {
-      "file": "earth-bump-2k.jpg",
-      "bytes": 443970
+      "file": "earth-bump-2k.webp",
+      "bytes": 217052
     },
     {
-      "file": "earth-clouds-4k.jpg",
-      "bytes": 4017442
+      "file": "earth-clouds-4k.webp",
+      "bytes": 2438162
     },
     {
       "file": "earth-day-8k.jpg",
       "bytes": 1923703
     },
     {
-      "file": "earth-night-4k.jpg",
-      "bytes": 772520
+      "file": "earth-night-4k.webp",
+      "bytes": 286010
     },
     {
-      "file": "earth-specular-2k.jpg",
-      "bytes": 386318
+      "file": "earth-specular-2k.webp",
+      "bytes": 182724
     },
     {
       "file": "enceladus-4k.jpg",
@@ -58,8 +58,8 @@
       "bytes": 3227263
     },
     {
-      "file": "mercury-4k.jpg",
-      "bytes": 4061945
+      "file": "mercury-4k.webp",
+      "bytes": 2645968
     },
     {
       "file": "moon-4k.webp",
@@ -78,8 +78,8 @@
       "bytes": 670436
     },
     {
-      "file": "neptune-2k.jpg",
-      "bytes": 241580
+      "file": "neptune-2k.webp",
+      "bytes": 21678
     },
     {
       "file": "oberon-4k.jpg",
@@ -90,8 +90,8 @@
       "bytes": 296470
     },
     {
-      "file": "pluto-2k.jpg",
-      "bytes": 597162
+      "file": "pluto-2k.webp",
+      "bytes": 454580
     },
     {
       "file": "saturn-8k.jpg",
@@ -166,8 +166,8 @@
       "bytes": 558814
     },
     {
-      "file": "uranus-2k.jpg",
-      "bytes": 77751
+      "file": "uranus-2k.webp",
+      "bytes": 9542
     },
     {
       "file": "venus-surface-8k.jpg",

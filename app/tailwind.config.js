@@ -1,7 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // src/lib/generated/ holds megabyte-scale single-line data tables with no
+  // class names; scanning them sent Tailwind's extractor regex into minutes of
+  // backtracking, so the lib glob stops at its top level.
+  content: [
+    './index.html',
+    './src/*.{js,ts,jsx,tsx}',
+    './src/{components,hooks,pages,workers}/**/*.{js,ts,jsx,tsx}',
+    './src/lib/*.{js,ts}',
+  ],
   theme: {
     extend: {
       colors: {

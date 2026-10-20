@@ -77,7 +77,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '8.69 m/s² (0.89g)',
     climate: '-195°C, 97.7° Yan Yatan Eksen',
     atmosphere: 'Hidrojen (%83), Helyum (%15), Metan',
-    texture: 'uranus-2k.jpg',
+    texture: 'uranus-2k.webp',
     funFact: 'Ekseni 98 derece yatıktır, yana yatmış bir varil gibi yörüngesinde yuvarlanır.',
   },
   {
@@ -91,7 +91,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '11.15 m/s² (1.14g)',
     climate: '-200°C, 2,000 km/h Fırtınalar',
     atmosphere: 'Hidrojen (%80), Helyum (%19), Metan',
-    texture: 'neptune-2k.jpg',
+    texture: 'neptune-2k.webp',
     funFact: 'Güneş Sistemi\'nin en güçlü rüzgarlarına sahiptir (2,000 km/h üzeri).',
   },
   {
@@ -175,7 +175,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '3.70 m/s² (0.38g)',
     climate: '-180°C (Gece) / +430°C (Gündüz)',
     atmosphere: 'Oksijen & Sodyum İzleri',
-    texture: 'mercury-4k.jpg',
+    texture: 'mercury-4k.webp',
     funFact: 'Güneş\'e en yakın gezegendir; hiç atmosferi olmadığı için sıcaklık uçurumdur.',
   },
   {
@@ -259,7 +259,7 @@ const SORTED_BODIES: CelestialScaleSpec[] = [
     gravity: '0.62 m/s² (0.06g)',
     climate: '-230°C, Azot & Karbonmonoksit Buzları',
     atmosphere: 'Azot, Metan, Karbonmonoksit',
-    texture: 'pluto-2k.jpg',
+    texture: 'pluto-2k.webp',
     funFact: 'Yüzeyinde devasa bir azot buzu kalbi (Sputnik Planitia) taşır.',
   },
   {

@@ -1,229 +1,116 @@
 <div align="center">
 
-<br />
+<img src="docs/media/hero.svg" alt="Astrobender — an interactive 3D observatory for the Solar System and Earth orbit" width="100%">
 
-<img src="https://img.shields.io/badge/Status-Interactive-22d3ee?style=for-the-badge&logoColor=black" alt="Durum: etkileşimli" />
-<img src="https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
-<img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 5" />
-<img src="https://img.shields.io/badge/three.js-r185-000000?style=for-the-badge&logo=threedotjs&logoColor=white" alt="three.js r185" />
-<img src="https://img.shields.io/badge/Vite-7-646cff?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 7" />
-<img src="https://img.shields.io/badge/WebGL-2-990000?style=for-the-badge&logo=webgl&logoColor=white" alt="WebGL 2" />
+<p>
+  <a href="https://astrobender.vercel.app/"><img alt="Live demo" src="https://img.shields.io/badge/live%20demo-open%20the%20observatory-ffb347?style=for-the-badge&labelColor=070b1d"></a>
+  <img alt="Three.js" src="https://img.shields.io/badge/Three.js-WebGL%20scene-6ec3ff?style=for-the-badge&labelColor=070b1d">
+  <img alt="SGP4" src="https://img.shields.io/badge/SGP4-satellite.js-b28dff?style=for-the-badge&labelColor=070b1d">
+  <img alt="Languages" src="https://img.shields.io/badge/UI-TR%20%2F%20EN-ffb347?style=for-the-badge&labelColor=070b1d">
+</p>
 
-<br /><br />
+<p><em>The Sun, eight planets, their moons and every tracked satellite around Earth, in one Three.js scene.<br>
+Click a body to fly to it and read its physical profile, chemistry and science notes.</em></p>
 
-```text
-   █████╗ ███████╗████████╗██████╗  ██████╗ ██████╗ ███╗   ██╗██████╗ ███████╗██████╗
-  ██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔═══██╗██╔══██╗████╗  ██║██╔══██╗██╔════╝██╔══██╗
-  ███████║███████╗   ██║   ██████╔╝██║   ██║██████╔╝██╔██╗ ██║██████╔╝█████╗  ██████╔╝
-  ██╔══██║╚════██║   ██║   ██╔══██╗██║   ██║██╔══██╗██║╚██╗██║██╔══██╗██╔══╝  ██╔══██╗
-  ██║  ██║███████║   ██║   ██║  ██║╚██████╔╝██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║
-  ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝
-```
-
-### **ASTROBENDER** — Güneş Sistemi, Dünya yörüngesi ve canlı uzay verileri için etkileşimli 3B gözlemevi.
-
-**JPL tabanlı yörüngeler** · **SGP4 uydu yayılımı** · **TR / EN arayüz** · **tarayıcıda WebGL**
+<a href="https://astrobender.vercel.app/"><img src="screenshots/v-desktop.png" alt="Astrobender desktop view: Earth with satellite dots and the control panels" width="100%"></a>
 
 </div>
 
----
+<img src="docs/media/divider.svg" width="100%" alt="">
 
-## ✦ Genel Bakış
+## What it is
 
-**ASTROBENDER**, Güneş Sistemi'ni ve Dünya çevresindeki yapay uyduları aynı Three.js sahnesinde incelemek için geliştirilmiş etkileşimli bir web uygulamasıdır. Gezegenlere veya uydularına tıklayarak hedefe uçabilir; fiziksel profilini, kimyasını ve bilim notlarını inceleyebilirsin.
+Astrobender is an interactive observatory that runs entirely in the browser. The planets sit where JPL's orbital elements put them, the satellites are propagated with SGP4 from live CelesTrak data, and a second layer watches the Earth itself: wildfires, storms, earthquakes, aurora and space weather.
 
-Uygulama, astronomik yörünge sırasını ve görece yapıyı korur; ancak milyarlarca kilometrelik uzay mesafelerini tarayıcıda gezilebilir tutmak için görsel olarak sıkıştırır. Bu nedenle sahne ölçeği temsili, gösterilen astronomik değerler ise gerçek kaynak değerleridir.
+The orbital order and geometry are real, but distances are compressed so billions of kilometres stay explorable in a tab. AU labels always show the true semi-major axis.
 
-<div align="center">
-  <img src="screenshots/v-desktop.png" alt="ASTROBENDER masaüstü görünümü: Dünya, uydu noktaları ve kontrol panelleri" width="100%" />
-  <sub><i>Dünya varsayılan hedef olarak açılır; parlak uydu noktaları ve Dünya yüzey katmanları korunur.</i></sub>
-</div>
+<img src="docs/media/divider.svg" width="100%" alt="">
 
----
+## What's inside
 
-## ⚡ Öne Çıkan Özellikler
-
-| Özellik | Açıklama |
+| | |
 |---|---|
-| 🌍 **Canlı 3B Dünya** | Gündüz/gece dokuları, bulut katmanı, yüzey parlaklığı ve yapay uydu noktalarıyla Dünya görünümü. |
-| 🪐 **Gezegen ve uydu sistemleri** | Güneş, sekiz gezegen, cüce gezegenler ve seçilebilir büyük uydular; halkalı dev gezegen sistemleri. |
-| 🧪 **Fiziksel profil** | Seçilen cisim için kütle, yoğunluk, yüzey yerçekimi, sıcaklık, kimya/yüzey özeti ve bilim notu. |
-| 🛰️ **GP (OMM) + SGP4** | CelesTrak GP element setleri OMM CSV olarak alınır (99999 üstü katalog numaraları dahil), `satellite.js` ile tarayıcıda yayılır, IndexedDB'de önbelleklenir. |
-| 🔭 **Dünya Gözlemevi** | NASA EONET olayları, USGS depremleri, NOAA aurora öngörüsü ve uzay havası (Kp / G ölçeği, GOES X-ışını patlamaları / R ölçeği). |
-| 🌠 **Gökyüzü Takvimi** | Tutulmalar (yerel görünürlükle), ay evreleri ve süper aylar, IMO'nun 12 büyük meteor yağmuru, tüm karşı konum/kavuşumlar, gezegen yakınlaşmaları, ISS ve Tiangong görünür geçişleri, gece planlayıcısı. |
-| ☄️ **Küçük cisimler** | JPL Close Approach Data üzerinden yakın geçişler; asteroit, kuyrukluyıldız ve kuşak katmanları. |
-| ✨ **Takımyıldızlar ve sondalar** | 88 IAU takımyıldızı ile derin uzay görevlerini aynı gözlem akışında sunar. |
-| 🎬 **Sinematik uzay turu** | Türkçe ve İngilizce anlatım dosyalarıyla zaman kodlu kamera rotası. |
-| 🔎 **Tek arama kutusu** | Gök cismi, uydu, görev, yüzey konumu veya NORAD numarasını tek yerden bulur. |
-| 🌐 **TR / EN** | Arayüz, hedef bilgileri ve sinematik tur için iki dil desteği. |
+| **Live 3D Earth** | Day and night textures, a cloud layer, specular oceans and thousands of satellite dots. |
+| **Planets and moons** | The Sun, eight planets, dwarf planets and the major moons, including ringed giant systems. |
+| **Physical profile** | Mass, density, surface gravity, temperature, chemistry and a science note for every body. If a value has never been measured, it says *"no reliable measurement"* instead of inventing one. |
+| **GP (OMM) + SGP4** | CelesTrak element sets are fetched as OMM CSV (catalog numbers above 99999 included), propagated with `satellite.js` and cached in IndexedDB. |
+| **Earth Observatory** | NASA EONET events, USGS earthquakes, NOAA aurora forecasts, Kp / G-scale and GOES X-ray flares. |
+| **Sky calendar** | Eclipses with local visibility, moon phases and supermoons, the 12 major IMO meteor showers, oppositions, conjunctions and visible ISS / Tiangong passes. |
+| **Small bodies** | Close approaches from JPL CAD, plus asteroid, comet and belt layers. |
+| **Constellations and probes** | All 88 IAU constellations and the deep-space missions in the same view. |
+| **Cinematic tour** | A time-coded camera route narrated in Turkish and English. |
+| **One search box** | Finds a body, satellite, mission, surface location or NORAD number. |
 
----
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/v-search.png" alt="Search across bodies, satellites and NORAD numbers"></td>
+    <td width="50%"><img src="screenshots/v-laptop.png" alt="Laptop layout with the planet panel open"></td>
+  </tr>
+  <tr>
+    <td align="center"><code>search</code> · one box for everything</td>
+    <td align="center"><code>laptop</code> · planet panel and layers</td>
+  </tr>
+</table>
 
-## 🧭 Gezegen Konumu ve Ölçek Modeli
+<img src="docs/media/divider.svg" width="100%" alt="">
 
-Gezegenlerin konumu, JPL Solar System Dynamics'in yaklaşık Kepler elemanlarından hesaplanır. Büyük doğal uydular için JPL J2000 ortalama elemanları kullanılır. Böylece sistemdeki yörünge sırası, göreli yön ve dönem mantığı korunur.
+## How the data flows
 
-Gerçek Güneş Sistemi ölçeği bir tarayıcı sahnesi için aşırı büyüktür. ASTROBENDER bunun yerine tekdüze bir mesafe sıkıştırması kullanır:
-
-```text
-JPL yörünge elemanları ──▶ heliosentrik konum ──▶ görsel mesafe sıkıştırması ──▶ WebGL sahnesi
-                                      │
-                                      └── AU etiketi gerçek yarı-büyük eksen değerini gösterir
+```mermaid
+flowchart LR
+  GP[CelesTrak GP · OMM CSV] --> API[api/tle]
+  API --> IDB[IndexedDB cache]
+  IDB --> SGP[satellite.js · SGP4] --> DOTS[Satellite dots]
+  JPL[JPL planet + moon elements] --> OM[orbital-mechanics] --> POS[Compressed 3D positions]
+  TEX[NASA / USGS textures] --> GL[Three.js scene]
+  POS --> GL
+  DOTS --> GL
+  OBS[EONET · USGS · NOAA] --> LAYERS[Earth Observatory layers] --> GL
 ```
 
-- Sahnedeki uzaklıklar **navigasyon için sıkıştırılmıştır**.
-- Yörünge sırası ve gezegenler arası göreli yapı **korunur**.
-- Arayüzdeki AU değeri, sahnedeki çizim yarıçapı değil; cismin gerçek yarı-büyük eksenidir.
-- Uydu sistemleri kendi içlerinde gerçek uzaklık oranlarını koruyan ayrı bir görsel ölçek kullanır.
+| Source | Used for |
+|---|---|
+| JPL SSD | Planet positions, moon elements, physical parameters |
+| JPL Horizons · SBDB / CAD | Deep-space probes, comets, close approaches |
+| CelesTrak GP | Satellite element sets, refreshed weekly by a GitHub workflow snapshot |
+| NASA EONET · USGS · NOAA SWPC | Natural events, earthquakes, aurora and space weather |
+| IMO calendar | Meteor shower solar longitudes and ZHR |
 
----
+If a live feed fails, the app shows the source and the HTTP or network reason and keeps the last valid data.
 
-## 🗂️ Veri Kaynakları ve Gerçeklik Notu
+<img src="docs/media/divider.svg" width="100%" alt="">
 
-| Kaynak | Uygulamada kullanımı | Durum |
-|---|---|:---:|
-| [JPL SSD — gezegen konumları](https://ssd.jpl.nasa.gov/planets/approx_pos.html) | Gezegenlerin yaklaşık Kepler elemanları ve heliosentrik konumları | ✅ |
-| [JPL SSD — doğal uydu elemanları](https://ssd.jpl.nasa.gov/sats/elem/sep.html) | Büyük uyduların yörünge modeli | ✅ |
-| [JPL fiziksel parametreleri](https://ssd.jpl.nasa.gov/planets/phys_par.html) | Gezegen ve cüce gezegen fiziksel profilleri | ✅ |
-| [JPL uydu fiziksel parametreleri](https://ssd.jpl.nasa.gov/sats/phys_par/) | Doğal uydu fiziksel profilleri | ✅ |
-| [CelesTrak GP](https://celestrak.org/NORAD/documentation/gp-data-formats.php) | OMM CSV element setleri ve canlı uydu güncellemesi | ✅ |
-| [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) | Derin uzay sondası efemerisi, kuyruklu yıldız sapma ölçümü | ✅ |
-| [JPL SBDB / CAD](https://ssd-api.jpl.nasa.gov/doc/cad.html) | Küçük cisim elemanları ve yakın geçişler | ✅ |
-| [IMO Meteor Shower Calendar](https://www.imo.net/ShCal27s.pdf) | Meteor yağmuru güneş boylamları, ZHR ve aktivite aralıkları | ✅ |
-| [NASA Solar System Exploration](https://science.nasa.gov/solar-system/) | Bilim notları ve gök cismi açıklamaları | ✅ |
-| [NASA EONET](https://eonet.gsfc.nasa.gov/) | Doğal olay katmanı | ✅ |
-| [USGS Earthquake Hazards](https://earthquake.usgs.gov/) | Deprem katmanı | ✅ |
-| [NOAA SWPC](https://www.swpc.noaa.gov/) | Aurora öngörüsü, gezegensel Kp ve GOES X-ışını patlamaları | ✅ |
+## Türkçe özet
 
-Fiziksel değerler, panelde okunabilir kalmaları için yuvarlanır. Küçük ve düzensiz bir uydunun kütlesi, yoğunluğu veya yüzey yerçekimi güvenilir biçimde yayımlanmamışsa uygulama değer icat etmez; **“Güvenilir ölçüm yok”** yazar.
+**Astrobender**, Güneş Sistemi'ni ve Dünya çevresindeki yapay uyduları aynı Three.js sahnesinde gösteren etkileşimli bir gözlemevi. Gezegenler JPL yörünge elemanlarıyla, uydular canlı CelesTrak verisinden SGP4 ile hesaplanıyor. Bir cisme tıklayınca kamera oraya uçuyor; kütle, yoğunluk, kimya ve bilim notları açılıyor. Dünya Gözlemevi katmanı NASA, USGS ve NOAA verileriyle yangın, deprem, aurora ve uzay havasını gösteriyor. Arayüz Türkçe ve İngilizce, hesap gerekmiyor.
 
-> Canlı GP, Dünya Gözlemevi veya JPL yakın geçiş verisi ağdan alınamazsa uygulama hatayı gizlemez: kaynak ve HTTP/ağ nedeni arayüzde görünür; mevcut geçerli veri kullanılmaya devam eder.
+<img src="docs/media/divider.svg" width="100%" alt="">
 
----
+## Development
 
-## 🛰️ Render ve Veri Akışı
-
-```text
-CelesTrak GP (OMM CSV) ──▶ /api/tle ──▶ IndexedDB önbelleği ──▶ satellite.js / SGP4 ──▶ yapay uydu noktaları
-
-JPL gezegen + uydu elemanları ──▶ orbital-mechanics ──▶ sıkıştırılmış 3B konumlar
-                                                         │
-NASA / USGS Astrogeology dokuları ──────────────────────┼──▶ Three.js / WebGL sahnesi
-                                                         │
-NASA EONET · USGS · NOAA ──▶ Dünya Gözlemevi katmanları ─┘
-```
-
-- **Dünya:** yüksek çözünürlüklü gün/gece, bulut, specular ve kabartı dokuları.
-- **Gezegenler ve uydular:** doğrulanmış gözlem mozaikleri ile korumacı yüzey gölgelendirmesi.
-- **Europa, Titania, Oberon, Triton ve Plüton:** tamamlanmamış mozaik görünümünü engelleyen kesintisiz küre dokuları.
-- **Yapay uydular:** paketlenmiş GP anlık görüntüsüyle hemen açılır; daha sonra canlı CelesTrak verisiyle güncellenir. Anlık görüntüleri haftalık `GP snapshot refresh` iş akışı yeniler. TLE biçimi beş haneli katalog alanı nedeniyle 11 Temmuz 2026 sonrası nesneleri taşıyamadığı için OMM kullanılır.
-
----
-
-## 📐 Proje Yapısı
-
-```text
-Astrobender/
-├── api/                                   # Vercel fonksiyonları: tle (GP/OMM), health, jpl-cad
-├── app/
-│   ├── src/
-│   │   ├── pages/Home.tsx                # ana gözlemevi ve HUD bileşimi
-│   │   ├── lib/globe-engine.ts           # Three.js sahne, kamera, seçim ve render
-│   │   ├── lib/orbital-mechanics.ts      # JPL tabanlı yörünge hesapları
-│   │   ├── lib/celestial-catalog.ts      # kaynaklı gök cismi kataloğu
-│   │   ├── lib/celestial-physical-profiles.ts # kütle, yoğunluk, yerçekimi, kimya
-│   │   ├── lib/earth-observatory.ts      # NASA / USGS / NOAA veri ayrıştırması
-│   │   ├── lib/omm.ts                     # OMM CSV ayrıştırma ve SGP4 başlatma
-│   │   ├── lib/sky-events.ts              # tutulma, ay evresi, yağmur ve gezegen olayları
-│   │   ├── lib/satellite-passes.ts        # görünür uydu geçişi tahmini
-│   │   ├── hooks/useTleData.ts            # GP önbellek ve canlı güncelleme
-│   │   ├── components/hud/                # bilgi kartları, arama ve katman kontrolleri
-│   │   ├── public/textures/               # gezegen, uydu ve Dünya dokuları
-│   │   └── public/audio/                  # TR / EN sinematik tur anlatımları
-│   ├── api/jpl-cad.ts                     # JPL CAD aynı-köken proxy'si (kökteki api/ bunu dışa aktarır)
-│   ├── tests/                             # birim, katalog ve bütünlük testleri
-│   ├── e2e/                               # Playwright kullanıcı akışları
-│   └── vercel.json                        # SPA yönlendirmesi ve güvenlik başlıkları
-├── screenshots/                           # README görselleri
-├── CHANGELOG.md
-└── README.md
-```
-
----
-
-## 🛠️ Teknoloji
-
-```text
-Uygulama      → React 19 · TypeScript 5 · Vite 7
-3B render     → Three.js r185 · WebGL 2
-Yörünge       → satellite.js 6 · SGP4 · JPL Kepler elemanları
-Stil          → Tailwind CSS 3 · tailwindcss-animate
-Test          → Node test runner · Playwright · ESLint
-Dağıtım       → Vercel yapılandırması · CSP ve temel güvenlik başlıkları
-```
-
----
-
-## 🚀 Yerel Kurulum
-
-### Gereksinimler
-
-- Node.js 24 (`.nvmrc`; geliştirme sunucusu API işleyicilerini Node'un yerleşik TypeScript desteğiyle çalıştırır)
-- WebGL 2 destekleyen modern tarayıcı
-
-```bash
-git clone https://github.com/kutluhangil/Astrobender.git
-cd Astrobender/app
-
-npm install
-npm run dev
-```
-
-Vite port uygunluğuna göre uygulamayı bir yerel adreste açar. Bu çalışma alanındaki varsayılan geliştirme adresi `http://127.0.0.1:3000/` olabilir. Geliştirme ve önizleme sunucuları `/api/*` isteklerini üretimdeki Vercel işleyicilerinin aynısıyla yanıtlar.
-
-### Kontrol Komutları
-
-```bash
+```sh
 cd app
-
-npm test                 # katalog, yörünge, veri ve bütünlük testleri
-npm run lint             # ESLint
-npm run build            # TypeScript + Vite production build
-npm run test:e2e         # Playwright kullanıcı akışları
-npm run verify           # yukarıdaki doğrulama zinciri
-npm run verify:textures  # uydu dokusu kontrolleri
-npm run check:sources    # kaynak inceleme süreleri, efemeris kapsamı, GP anlık görüntü yaşı
-npm run generate:gp-snapshots  # CelesTrak'tan paketlenmiş GP anlık görüntülerini yenile
+npm install
+npm run dev            # local dev server
+npm test               # unit, catalog and integrity tests
+npm run test:e2e       # Playwright user flows
+npm run verify         # lint + tests + build
+npm run build          # production bundle
 ```
 
-> Ortam değişkeni, gizli anahtar veya veritabanı kurulumu gerekmiyor. Canlı veri kaynakları erişilemezse uygulama bunu görünür biçimde bildirir.
-
----
-
-## 🖥️ Ekranlar
-
-<div align="center">
-  <img src="screenshots/v-laptop.png" alt="ASTROBENDER dizüstü bilgisayar görünümü" width="49%" />
-  <img src="screenshots/v-mobile.png" alt="ASTROBENDER mobil görünümü" width="49%" />
-  <br />
-  <sub><i>Sol: masaüstü gözlemevi. Sağ: mobil düzen ve dokunmatik kontroller.</i></sub>
-</div>
-
----
-
-## ♿ Güvenlik ve Erişilebilirlik
-
-- Vercel yanıtlarında CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` ve çerçeveleme koruması bulunur.
-- Diyaloglarda `role="dialog"`, `aria-modal`, odak yönetimi ve Escape ile kapatma desteği vardır.
-- Görünür odak stilleri, klavyeyle arama ve azaltılmış hareket tercihi desteklenir.
-- Haricî font bağımlılığı yoktur.
-
----
+```
+api/                 Vercel functions: tle (GP/OMM), health, jpl-cad, nasa-feed
+app/src/
+  pages/Home.tsx     observatory and HUD composition
+  lib/               globe engine, orbital mechanics, catalog, physical profiles,
+                     earth observatory, OMM parsing, sky events, satellite passes
+  components/hud/    info cards, search and layer controls
+app/tests · app/e2e  unit and Playwright suites
+screenshots/         README images
+```
 
 <div align="center">
-
-**ASTROBENDER** · Kaynaklara dayalı, gezilebilir Güneş Sistemi gözlemevi
-
-<sub>Bilimsel değerleri bağlamıyla gösterir; görsel mesafeyi ise açıkça temsili olarak sıkıştırır.</sub>
-
+<br>
+<a href="https://github.com/kutluhangil"><img src="docs/media/signature.svg" width="100%" alt="Built by kutluhangil"></a>
+<sub>Orbits from JPL · satellites from CelesTrak · textures from NASA and USGS Astrogeology.</sub>
 </div>

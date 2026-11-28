@@ -10,17 +10,19 @@ import {
 } from '../src/lib/celestial-physical-profiles.ts'
 import { SATELLITE_ELEMENTS } from '../src/lib/orbital-mechanics.ts'
 import { PLANETS, RING_BAND_MIN_WIDTH_RATIO, getAllBodyIds } from '../src/lib/planets.ts'
+import { getSourceDataset } from '../src/lib/source-governance.ts'
 
 test('catalog covers every selectable rendered body with a dated primary source', () => {
   const bodyIds = getAllBodyIds()
   assert.equal(new Set(bodyIds).size, bodyIds.length)
   assert.equal(bodyIds.length, 61)
 
+  const expectedVerifiedAt = getSourceDataset('celestial-catalog').verifiedAt
   for (const bodyId of bodyIds) {
     const entry = CELESTIAL_CATALOG[bodyId]
     assert.equal(entry.id, bodyId)
     assert.match(entry.sourceUrl, /^https:\/\/science\.nasa\.gov\//)
-    assert.equal(entry.verifiedAt, '2026-10-19')
+    assert.equal(entry.verifiedAt, expectedVerifiedAt)
     assert.ok(CELESTIAL_FUN_FACTS_EN[bodyId].length > 20)
   }
 })

@@ -1003,7 +1003,7 @@ export default function Home() {
             'Paketlenmiş son geçerli uydu kataloğu kullanılmaya devam ediyor.',
             'The last valid bundled satellite catalog remains in use.',
           ),
-          technicalDetails: tleWarning,
+          technicalDetails: t(tleWarning.tr, tleWarning.en),
           retryLabel: t('Tekrar dene', 'Retry'),
           onRetry: () => void retryTle(),
         }]

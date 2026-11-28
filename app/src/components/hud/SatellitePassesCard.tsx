@@ -33,9 +33,11 @@ function formatTime(date: Date, language: UiLanguage): string {
 
 export default function SatellitePassesCard({ targets, observer, fromMs, language, onShowPass }: SatellitePassesCardProps) {
   const t = (tr: string, en: string) => pickLanguage(language, tr, en)
+  // SGP4 drag error grows symmetrically away from an element set's epoch,
+  // whether the simulation clock sits ahead of or behind the catalog epoch.
   const oldestAgeDays = targets.length === 0
     ? null
-    : Math.max(...targets.map((target) => (fromMs - target.epochMs) / DAY_MS))
+    : Math.max(...targets.map((target) => Math.abs(fromMs - target.epochMs) / DAY_MS))
 
   const result = useMemo((): { passes: SatellitePass[]; error: string | null } => {
     if (!observer || targets.length === 0 || oldestAgeDays === null || oldestAgeDays > MAX_ELEMENT_AGE_DAYS) {

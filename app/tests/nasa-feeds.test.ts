@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import handler from '../api/nasa-feed.ts'
+import handler from '../../api/nasa-feed.ts'
 import {
   flareClassRank,
   parseApod,
@@ -16,7 +16,7 @@ import {
   parseSolarFlares,
   stormScale,
 } from '../src/lib/nasa-feeds.ts'
-import { ECLIPSES, upcomingEclipses } from '../src/lib/eclipses.ts'
+import { ECLIPSES, formatEclipseDuration, upcomingEclipses } from '../src/lib/eclipses.ts'
 
 test('solar flares sort newest first and rank GOES classes', () => {
   const flares = parseSolarFlares([
@@ -130,6 +130,10 @@ test('eclipse table is chronological per kind and filters to the future', () => 
   const upcoming = upcomingEclipses(Date.UTC(2027, 7, 3))
   assert.ok(upcoming.every((eclipse) => eclipse.date >= '2027-08-03'))
   assert.equal(upcoming[0].date, '2027-08-17')
+  assert.equal(formatEclipseDuration('2 sa 21 dk', 'en'), '2 h 21 min')
+  assert.equal(formatEclipseDuration('7 dk 51 sn', 'en'), '7 min 51 s')
+  assert.equal(formatEclipseDuration('7 dk 51 sn', 'tr'), '7 dk 51 sn')
+  assert.equal(formatEclipseDuration(null, 'en'), null)
 })
 
 function createResponse() {
@@ -189,6 +193,34 @@ test('nasa-feed builds a fixed upstream URL, caches it, and reports upstream fai
     assert.equal(bad.result().statusCode, 502)
     assert.match(bad.result().body.error ?? '', /HTTP 503 Service Unavailable — upstream says no/)
     assert.match(requested[1], /^https:\/\/ccmc\.gsfc\.nasa\.gov\/DONKI\/WS\/get\/FLR\?startDate=\d{4}-\d{2}-\d{2}&endDate=/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('nasa-feed APOD falls back once to yesterday on 5xx and exoplanets-recent queries disc_pubdate', async () => {
+  const originalFetch = globalThis.fetch
+  const requested: string[] = []
+  globalThis.fetch = async (input) => {
+    const url = String(input)
+    requested.push(url)
+    if (url.includes('/planetary/apod') && !url.includes('date=')) {
+      return new Response('{"code":500,"msg":"Internal Service Error"}', { status: 500, statusText: 'Internal Server Error' })
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200 })
+  }
+  try {
+    const apod = createResponse()
+    await handler({ method: 'GET', url: '/api/nasa-feed?feed=apod' }, apod.response)
+    assert.equal(apod.result().statusCode, 200)
+    assert.equal(requested.length, 2)
+    assert.match(requested[1], /&date=\d{4}-\d{2}-\d{2}$/)
+
+    const exo = createResponse()
+    await handler({ method: 'GET', url: '/api/nasa-feed?feed=exoplanets-recent' }, exo.response)
+    assert.equal(exo.result().statusCode, 200)
+    assert.match(requested[2], /disc_pubdate/)
+    assert.doesNotMatch(requested[2], /rowupdate/)
   } finally {
     globalThis.fetch = originalFetch
   }

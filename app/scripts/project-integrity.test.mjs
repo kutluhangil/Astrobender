@@ -8,14 +8,16 @@ const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 const read = (path) => readFileSync(new URL(path, `${new URL('..', import.meta.url)}/`), 'utf8')
 const readRepository = (path) => readFileSync(new URL(path, `${new URL('../../', import.meta.url)}/`), 'utf8')
 
-test('root Vercel configuration builds the nested app and exposes the JPL CAD function', () => {
+test('root Vercel configuration builds the nested app and exposes self-contained API functions', () => {
   const vercel = JSON.parse(readRepository('vercel.json'))
   assert.equal(vercel.installCommand, 'npm --prefix app ci')
   assert.equal(vercel.buildCommand, 'npm --prefix app run build')
   assert.equal(vercel.outputDirectory, 'app/dist')
-  assert.equal(existsSync(`${repositoryRoot}/api/jpl-cad.ts`), true)
-  assert.equal(existsSync(`${repositoryRoot}/api/health.ts`), true)
-  assert.match(readRepository('api/jpl-cad.ts'), /app\/api\/jpl-cad/)
+  for (const name of ['jpl-cad.ts', 'nasa-feed.ts', 'health.ts', 'tle.ts']) {
+    assert.equal(existsSync(`${repositoryRoot}/api/${name}`), true, `missing root api/${name}`)
+    assert.doesNotMatch(readRepository(`api/${name}`), /\.\.\/app\//, `api/${name} must be self-contained`)
+  }
+  assert.equal(existsSync(`${appRoot}/api`), false, 'app/api/ must not duplicate root api/')
 })
 
 test('production smoke target checks the public shell and safe readiness endpoint', () => {
@@ -272,15 +274,15 @@ test('ambient belts are deterministic and explicitly described as schematic', ()
 test('JPL close approaches use a same-origin server proxy with no client query string', () => {
   const smallBodies = read('src/lib/jpl-small-bodies.ts')
   const vite = read('vite.config.ts')
-  const proxy = read('api/jpl-cad.ts')
+  const proxy = readRepository('api/jpl-cad.ts')
 
   // No query string on the client URL: the CDN caches per full URL, so
   // arbitrary parameters would each miss the cache and bill a fresh
   // invocation. The proxy rejects them and hardcodes the upstream query.
   assert.match(smallBodies, /JPL_CAD_API_URL = '\/api\/jpl-cad'/)
   assert.match(proxy, /accepts no query parameters/)
-  assert.match(vite, /'\/api\/jpl-cad'/)
-  assert.equal(existsSync(`${appRoot}/api/jpl-cad.ts`), true)
+  assert.match(vite, /'\/api\/jpl-cad': path\.resolve\(__dirname, '\.\.\/api\/jpl-cad\.ts'\)/)
+  assert.equal(existsSync(`${repositoryRoot}/api/jpl-cad.ts`), true)
 })
 
 test('GP refresh uses an allow-listed same-origin proxy and exposes propagation diagnostics', () => {

@@ -88,6 +88,30 @@ test('small-body elements reproduce the JPL Horizons vectors for 2026-08-19', ()
   }
 })
 
+/**
+ * Equatorial (ICRF) heliocentric vectors read from the JPL Horizons API for
+ * 2026-11-28 00:00 TDB, `CENTER='500@10'`, `REF_PLANE='FRAME'`.
+ */
+const HORIZONS_DWARF_2026_11_28_AU: Record<string, { x: number; y: number; z: number }> = {
+  ceres: { x: -0.330364, y: 2.334030, z: 1.168177 },
+  haumea: { x: -36.560465, y: -31.538382, z: 11.942928 },
+  makemake: { x: -45.917742, y: -18.513206, z: 18.167389 },
+  eris: { x: 85.054386, y: 43.303754, z: 0.039406 },
+}
+
+test('dwarf-planet elements reproduce the JPL Horizons vectors for 2026-11-28', () => {
+  const timeMs = Date.UTC(2026, 10, 28)
+  for (const [bodyId, reference] of Object.entries(HORIZONS_DWARF_2026_11_28_AU)) {
+    const position = heliocentricPositionAu(bodyId as PlanetaryBodyId, timeMs)
+    const errorAu = Math.hypot(
+      position.x - reference.x,
+      position.y - reference.y,
+      position.z - reference.z,
+    )
+    assert.ok(errorAu < 0.01, `${bodyId} deviates ${errorAu.toFixed(6)} au from Horizons`)
+  }
+})
+
 test('the Kepler solver converges on near-parabolic eccentricities', () => {
   // 1P/Halley sits at e = 0.968, where the naive M + e sin M starter stalls.
   for (const eccentricity of [0, 0.5, 0.86, 0.95, 0.968, 0.99]) {

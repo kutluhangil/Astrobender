@@ -45,6 +45,18 @@ if (rows.length < 1000) {
   throw new Error(`${baseUrl}/api/tle?feed=active returned only ${rows.length} element sets`)
 }
 
+const cad = await request('/api/jpl-cad', 'application/json')
+const cadPayload = await cad.json()
+if (typeof cadPayload !== 'object' || cadPayload === null || (!('fields' in cadPayload) && Number(cadPayload.count) !== 0)) {
+  throw new Error(`${baseUrl}/api/jpl-cad returned an unexpected payload: ${JSON.stringify(cadPayload).slice(0, 200)}`)
+}
+
+const nasa = await request('/api/nasa-feed?feed=exoplanets-count', 'application/json')
+const nasaPayload = await nasa.json()
+if (!Array.isArray(nasaPayload) || !Number.isFinite(Number(nasaPayload[0]?.confirmed))) {
+  throw new Error(`${baseUrl}/api/nasa-feed?feed=exoplanets-count returned an unexpected payload: ${JSON.stringify(nasaPayload).slice(0, 200)}`)
+}
+
 console.log(
-  `Production smoke passed for ${baseUrl}: app shell, health, and GP proxy (${rows.length} element sets) are available.`,
+  `Production smoke passed for ${baseUrl}: app shell, health, GP proxy (${rows.length} element sets), JPL CAD, and NASA feed are available.`,
 )

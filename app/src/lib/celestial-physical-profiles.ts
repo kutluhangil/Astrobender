@@ -178,7 +178,7 @@ export const CELESTIAL_PHYSICAL_PROFILES: Record<CelestialBodyId, CelestialPhysi
     chemistry: { tr: 'N₂, CH₄ ve CO buzları; çok ince N₂ atmosferi.', en: 'N₂, CH₄, and CO ices; very thin N₂ atmosphere.' },
   },
   pluto: {
-    mass: '1.303 × 10²² kg', density: '1.86 g/cm³', gravity: '0.62 m/s²', temperature: '~−229 °C',
+    mass: '1.303 × 10²² kg', density: '1.853 g/cm³', gravity: '0.62 m/s²', temperature: '~−229 °C',
     chemistry: { tr: 'N₂, CH₄ ve CO buzları; mevsimsel, çok ince N₂ atmosferi.', en: 'N₂, CH₄, and CO ices; seasonal, very thin N₂ atmosphere.' },
   },
   charon: {

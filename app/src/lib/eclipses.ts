@@ -54,3 +54,11 @@ export function upcomingEclipses(nowMs: number, limit = 8): Eclipse[] {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit)
 }
+
+export function formatEclipseDuration(duration: string | null, language: 'tr' | 'en'): string | null {
+  if (!duration || language === 'tr') return duration
+  return duration
+    .replace(/\bsa\b/g, 'h')
+    .replace(/\bdk\b/g, 'min')
+    .replace(/\bsn\b/g, 's')
+}

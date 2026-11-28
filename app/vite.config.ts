@@ -9,8 +9,8 @@ import { VitePWA } from "vite-plugin-pwa"
 // shapes production does instead of proxying raw upstream payloads.
 const API_ROUTES: Record<string, string> = {
   '/api/tle': path.resolve(__dirname, '../api/tle.ts'),
-  '/api/jpl-cad': path.resolve(__dirname, 'api/jpl-cad.ts'),
-  '/api/nasa-feed': path.resolve(__dirname, 'api/nasa-feed.ts'),
+  '/api/jpl-cad': path.resolve(__dirname, '../api/jpl-cad.ts'),
+  '/api/nasa-feed': path.resolve(__dirname, '../api/nasa-feed.ts'),
   '/api/health': path.resolve(__dirname, '../api/health.ts'),
 }
 

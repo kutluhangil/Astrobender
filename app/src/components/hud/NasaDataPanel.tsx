@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNasaTopic, type FeedState, type NasaTopic } from '@/hooks/useNasaFeeds'
-import { ECLIPSE_SOURCE_URLS, upcomingEclipses, type Eclipse } from '@/lib/eclipses'
+import { ECLIPSE_SOURCE_URLS, formatEclipseDuration, upcomingEclipses, type Eclipse } from '@/lib/eclipses'
 import {
   NASA_FEED_SOURCES,
   flareClassRank,
@@ -449,7 +449,9 @@ function EclipsesTab({ language, t }: { language: UiLanguage; t: Translate }) {
             aside={
               <>
                 <div>{formatDate(eclipse.date, language)} {eclipse.date.slice(0, 4)}</div>
-                <div className="text-[8px] text-slate-500">{eclipse.duration ?? `mag ${eclipse.magnitude.toFixed(2)}`}</div>
+                <div className="text-[8px] text-slate-500">
+                  {formatEclipseDuration(eclipse.duration, language) ?? `mag ${eclipse.magnitude.toFixed(2)}`}
+                </div>
               </>
             }
           />

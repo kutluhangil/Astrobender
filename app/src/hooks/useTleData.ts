@@ -58,12 +58,17 @@ const RETIRED_CACHE_KEYS = ['bundle-v2']
  */
 const MIN_LIVE_ROW_RATIO = 0.5
 
+export interface LocalizedWarning {
+  tr: string
+  en: string
+}
+
 export interface TleDataState {
   /** 'loading' only until the first usable dataset exists. */
   status: 'loading' | 'ready' | 'error'
   dataset: Dataset | null
   error: string | null
-  warning: string | null
+  warning: LocalizedWarning | null
 }
 
 async function fetchText(url: string, timeoutMs: number): Promise<string> {
@@ -96,10 +101,25 @@ function validate(feeds: FeedTexts) {
     throw new Error(`too few satellites (${activeCount})`)
   }
   const skippedEntries = Object.entries(skipped)
-  const skippedNote = skippedEntries.length > 0
-    ? `Hatalı element satırları atlandı: ${skippedEntries.map(([feed, count]) => `${feed} ${count}`).join(', ')}.`
+  const skippedSummary = skippedEntries.map(([feed, count]) => `${feed} ${count}`).join(', ')
+  const skippedNote: LocalizedWarning | null = skippedEntries.length > 0
+    ? {
+        tr: `Hatalı element satırları atlandı: ${skippedSummary}.`,
+        en: `Invalid element rows skipped: ${skippedSummary}.`,
+      }
     : null
   return { sats, skippedNote }
+}
+
+function joinWarnings(
+  ...items: Array<LocalizedWarning | null | undefined>
+): LocalizedWarning | null {
+  const present = items.filter((item): item is LocalizedWarning => Boolean(item))
+  if (present.length === 0) return null
+  return {
+    tr: present.map((item) => item.tr).join(' '),
+    en: present.map((item) => item.en).join(' '),
+  }
 }
 
 /**
@@ -129,14 +149,14 @@ export function useTleData() {
       feeds: FeedTexts,
       source: Dataset['source'],
       fetchedAt: number,
-      warning: string | null = null,
+      warning: LocalizedWarning | null = null,
     ) => {
       const { sats, skippedNote } = validate(feeds)
       setState({
         status: 'ready',
         dataset: buildDataset(sats, source, fetchedAt),
         error: null,
-        warning: [warning, skippedNote].filter(Boolean).join(' ') || null,
+        warning: joinWarnings(warning, skippedNote),
       })
     },
     [],
@@ -186,25 +206,37 @@ export function useTleData() {
         throw new Error(failures[0] ?? 'active feed did not return valid OMM data')
       }
       const fetchedAt = Date.now()
-      const warning =
+      const joinedFailures = failures.join(' | ')
+      const warning: LocalizedWarning | null =
         failures.length > 0
-          ? `Bazı canlı GP yörünge akışları güncellenemedi; son geçerli veri korunuyor. ${failures.join(' | ')}`
+          ? {
+              tr: `Bazı canlı GP yörünge akışları güncellenemedi; son geçerli veri korunuyor. ${joinedFailures}`,
+              en: `Some live GP orbital feeds could not be refreshed; keeping the last valid set. ${joinedFailures}`,
+            }
           : null
       apply(feeds, 'live', fetchedAt, warning)
       if (failures.length === 0) {
         try {
           await cacheSet({ key: CACHE_KEY, texts: feeds, fetchedAt })
         } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error)
           setState((current) => ({
             ...current,
-            warning: `Canlı veri yüklendi ancak yerel GP önbelleği güncellenemedi: ${error instanceof Error ? error.message : String(error)}`,
+            warning: {
+              tr: `Canlı veri yüklendi ancak yerel GP önbelleği güncellenemedi: ${detail}`,
+              en: `Live data loaded, but the local GP cache could not be updated: ${detail}`,
+            },
           }))
         }
       }
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
       setState((current) => ({
         ...current,
-        warning: `Canlı GP güncellemesi başarısız; son geçerli veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+        warning: {
+          tr: `Canlı GP güncellemesi başarısız; son geçerli veri kullanılıyor. ${detail}`,
+          en: `Live GP refresh failed; using the last valid set. ${detail}`,
+        },
       }))
     } finally {
       busyRef.current = false
@@ -216,9 +248,13 @@ export function useTleData() {
     const isStale = () => genRef.current !== gen
 
     void Promise.all(RETIRED_CACHE_KEYS.map((key) => cacheDelete(key))).catch((error: unknown) => {
+      const detail = error instanceof Error ? error.message : String(error)
       setState((current) => ({
         ...current,
-        warning: `Eski TLE önbelleği silinemedi: ${error instanceof Error ? error.message : String(error)}`,
+        warning: {
+          tr: `Eski TLE önbelleği silinemedi: ${detail}`,
+          en: `Legacy TLE cache could not be removed: ${detail}`,
+        },
       }))
     })
 
@@ -246,9 +282,13 @@ export function useTleData() {
         apply(cached.texts, 'cached', cached.fetchedAt)
       }
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
       setState((current) => ({
         ...current,
-        warning: `Yerel GP önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${error instanceof Error ? error.message : String(error)}`,
+        warning: {
+          tr: `Yerel GP önbelleği okunamadı; paketlenmiş veri kullanılıyor. ${detail}`,
+          en: `Local GP cache could not be read; using bundled data. ${detail}`,
+        },
       }))
     }
 
